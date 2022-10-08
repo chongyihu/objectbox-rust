@@ -3,6 +3,8 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(dead_code)]
+#![allow(unsafe_code)]
+#![allow(unsafe_op_in_unsafe_fn)]
 include!(concat!(env!("OUT_DIR"), "/objectbox-c-bindings.rs"));
 
 use crate::error::Error;
@@ -27,7 +29,7 @@ pub struct NativeError {
 }
 
 impl NativeError {
-    fn _new(kind: NativeErrorKind) -> NativeError {
+    fn _new(_kind: NativeErrorKind) -> NativeError {
         unsafe {
             let mut c_code: i32 = 0;
             let mut c_message: *const ::std::os::raw::c_char = ptr::null();

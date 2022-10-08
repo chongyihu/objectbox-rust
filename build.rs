@@ -22,6 +22,7 @@ fn main() {
         .derive_debug(false)
         .derive_default(false)
         .rustfmt_bindings(true)
+        .generate_comments(false)
         // Finish the builder and generate the bindings.
         .generate()
         // Unwrap the Result and panic on failure.

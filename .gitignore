@@ -1,5 +1,7 @@
-/target
+**target
 **/*.rs.bk
 Cargo.lock
+download*
+lib
 
 .idea
