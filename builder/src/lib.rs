@@ -17,25 +17,80 @@ use syn::{AttributeArgs, DeriveInput, parse_macro_input};
 use std::option::Option;
 use std::vec::Vec;
 
+// TODO These consts should be SCREAMING UPPERCASE
+const OBXPropertyType_Bool: u16 = 1;   // bool
+const OBXPropertyType_Byte: u16 = 2;   // u8
+const OBXPropertyType_Short: u16 = 3;  // i16 / u16
+const OBXPropertyType_Char: u16 = 4;   // char
+const OBXPropertyType_Int: u16 = 5;    // i32 / u32
+const OBXPropertyType_Long: u16 = 6;   // i64 / u64
+const OBXPropertyType_Float: u16 = 7;  // f32
+const OBXPropertyType_Double: u16 = 8; // f64
+const OBXPropertyType_String: u16 = 9; // str, String
+const OBXPropertyType_Date: u16 = 10; // chrono::DateTime<Utc>, u64: unix epoch
+const OBXPropertyType_Relation: u16 = 11; // TODO
+const OBXPropertyType_DateNano: u16 = 12; // chrono::DateTime<Utc>, u64: unix epoch
+const OBXPropertyType_Flex: u16 = 13; // tuple?! There is no 'Object' in rustlang
+const OBXPropertyType_ByteVector: u16 = 23; // Vec<u8>, bytes, ByteArray, unsized byte slice, compile time statically sized array on stack
+const OBXPropertyType_StringVector: u16 = 30; // Vec<str> / Vec<String>
+
 // TODO see if uid type = u64 can be parameterized with generics e.g. 0x... 0b... etc.
 // TODO see quote::format_ident
 struct Field {
   name: String,
-  ty: syn::Type,
-  vis: syn::Visibility,
+  field_type: u16,
   ///
-  id: Option<u64>,
+  id: Option<u64>, // Do we do that id_uid thing?
   uid: Option<u64>,
   unique: bool
 }
 
 impl Field {
   fn from_syn_field(field: &syn::Field) -> Option<Field> {
+    // TODO check if objectbox-model.json was generated
+    // TODO compare values read from macro attributes
+    
     if let Some(ident) = &field.ident {
+
+      let field_type = match &field.ty {
+        syn::Type::Array(type_array) => {
+          // TODO
+          0
+        },
+        // BareFn(TypeBareFn),
+        syn::Type::Group(type_group) => {
+          // TODO
+          0
+        },
+        // ImplTrait(TypeImplTrait),
+        // Infer(TypeInfer),
+        // Macro(TypeMacro),
+        // Never(TypeNever),
+        // Paren(TypeParen),
+        // Path(TypePath),
+        // Ptr(typePtr)
+        // Reference(typeReference)
+        syn::Type::Slice(type_slice) => {
+          // TODO
+          0
+        },
+        // TraitObject(TypeTraitObject), 
+        syn::Type::Tuple(type_tuple) => {
+          // TODO
+          0
+        }, // Flex?
+        syn::Type::Verbatim(token_stream) => {
+          // TODO
+          0
+        }
+        _ => {
+          0
+        }
+      };
+
       return Some(Field {
         name: ident.to_string(),
-        ty: field.ty.clone(),
-        vis: field.vis.clone(),
+        field_type: field_type,
         id: None, // TODO
         uid: None, // TODO
         unique: false // TODO
@@ -81,7 +136,7 @@ fn print_token_stream(label: &str, stream: TokenStream) {
 // }  
 
 impl Entity {
-  /// unnamed fields are ignored, e.g. nested anonymous unions / structs, like in C
+  /// Unnamed fields are ignored, e.g. nested anonymous unions / structs, like in C.
   fn parse_entity_name_and_fields(derive_input: DeriveInput) -> Entity {
     let mut entity = Entity {
       name: derive_input.ident.to_string(),
@@ -94,11 +149,13 @@ impl Entity {
             fields_named.named.pairs().for_each(|p| {
               match p {
                 Pair::Punctuated(t, _) => {
+                  // TODO check for attribute: #[transient]
                   if let Some(f) = Field::from_syn_field(t) {
                     entity.fields.push(f);
                   }
                 },
                 Pair::End(t) => {
+                  // TODO check for attribute: #[transient]
                   if let Some(f) = Field::from_syn_field(t) {
                     entity.fields.push(f);
                   }
@@ -158,9 +215,9 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   let entity = Entity::parse_entity_name_and_fields(struct_info);
 
   let attr_args = parse_macro_input!(args as AttributeArgs);
-  {
-    entity.parse_entity_attribute_parameter(attr_args);
-  }
+  
+  entity.parse_entity_attribute_parameter(attr_args);
+  
 
   input.into_iter().map(|x| {
     if let proc_macro::TokenTree::Group (group) = x {
