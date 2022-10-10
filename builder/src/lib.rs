@@ -30,20 +30,20 @@ use std::vec::Vec;
 // For lack of the Debug trait in certain tokens
 // TODO Figure out how to make this generic, since TokenStream2 inherits from TokenStream
 // TODO maybe a simple 'x as proc_macro::TokenStream' might suffice
-fn print_token_stream2(label: &str, stream: proc_macro2::TokenStream) {
-  if cfg!(debug_assertions) {
-    stream.into_iter()
-      .for_each(|x| {
-        println!("{} {:#?}", label, x);
-      });
-    println!("{}", "///");
-  }
-}
+// fn print_token_stream2(label: &str, stream: proc_macro2::TokenStream) {
+//   if cfg!(debug_assertions) {
+//     stream.into_iter()
+//       .for_each(|x| {
+//         println!("{} {:#?}", label, x);
+//       });
+//     println!("{}", "///");
+//   }
+// }
 
 fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
   let field_ts = field.to_token_stream();
   let  debug_label = format!("field({}) token_stream", field_ident_str);
-  print_token_stream2(&debug_label, field_ts);
+  // print_token_stream2(&debug_label, field_ts);
 }
 
 // TODO see if uid type = u64 can be parameterized with generics e.g. 0x... 0b... etc.
@@ -52,8 +52,8 @@ fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
 
 #[derive(Debug)]
 struct IdUid {
-  id: u64,
-  uid: u64
+  id: Option<u64>,
+  uid: Option<u64>
 }
 
 #[derive(Debug)]
@@ -61,27 +61,45 @@ struct Field {
   name: String,
   field_type: u16,
   ///
-  id: Option<IdUid>,
-  unique: bool
-  // TODO all the attributes
+  id: IdUid,
+  unique: bool,
+  index: bool,
 }
 
 impl Field {
+
+  fn scan_obx_property_type (mnv: &syn::MetaNameValue) -> u16 {
+    let mut obx_property_type: u16 = 0;
+
+    if let syn::Lit::Int(li) = &mnv.lit {
+      let result = li.base10_parse::<u16>();
+      if let Ok(value) = result {
+        if let Some(ident) = mnv.path.get_ident() {
+          let param_name: &str = &ident.to_string();
+          match param_name {
+            "type" => { obx_property_type = value },
+            _ => {}
+          }
+        }
+      }
+    }
+    obx_property_type
+  }
+
   fn from_syn_field(field: &syn::Field) -> Option<Field> {
     // TODO check if objectbox-model.json was generated
     // TODO compare values read from macro attributes
 
-    let mut entity = 
-      Field {
-        name: String::new(),
-        field_type: 0,
-        id: None,
-        unique: false
-    };
-
+    let mut name: String = String::new();
+    let mut uid : Option<u64> = None;
+    let mut id  : Option<u64> = None;
+    let mut obx_property_type: u16 = 0;
+    let mut unique: bool = false;
+    let mut index: bool = false;
+    
     if let Some(ident) = &field.ident {
       let new_name = ident.to_string();
-      entity.name.push_str(&new_name);
+      name.push_str(&new_name);
 
       print_field_token_stream(field, new_name);
 
@@ -91,12 +109,17 @@ impl Field {
         if let Some(attr_path_ident) = a.path.get_ident() {
           let attr_name : &str = &attr_path_ident.to_string();
           match attr_name {
-            "index" => {},
-            "unique" => {},
+            "index" => { index = true }, // id, uid, type
+            "unique" => { unique = true }, // id, uid, type
+            // TODO the backlink symbols are lossy, there will be problems
+            // TODO with Structs referenced in another file
             "backlink" => {},
-            "transient" => {},
-            "property" => {},
-            _ => {} // skip if not ours
+            "transient" => { return None }, // no params
+            "property" => {}, // id, uid, type
+            _ => {
+              // skip if not ours
+              continue;
+            }
           }  
         }
 
@@ -107,16 +130,17 @@ impl Field {
           match m {
             // single parameter
             syn::Meta::NameValue(mnv) => {
-
+              (id, uid) = IdUid::scan_id_uid(&mnv);
+              obx_property_type = Self::scan_obx_property_type(&mnv);
             },
             // multiple parameters
             syn::Meta::List(meta_list) => {
               meta_list.nested.into_iter().for_each(|nm| {
-                match nm {
-                  syn::NestedMeta::Meta(meta) => {
-                    // TODO repeat stuff in the match arm above
-                  },
-                  _ => {}
+                if let syn::NestedMeta::Meta(meta) = nm {
+                  if let syn::Meta::NameValue(mnv) = meta {
+                    (id, uid) = IdUid::scan_id_uid(&mnv);
+                    obx_property_type = Self::scan_obx_property_type(&mnv);
+                  }
                 }
               });
             },
@@ -147,10 +171,11 @@ impl Field {
       // TODO Skip type determination if provided in attribute
       // TODO anything can be in a 'Box'
       // Auto-map values based on probably OBXPropertyType correspondence
-      if let syn::Type::Path(p) = &field.ty {
+      
+      if let (syn::Type::Path(p), true) = (&field.ty, obx_property_type == 0) {
         if let Some(ident) = p.path.get_ident() {
           let rust_type: &str = &ident.to_string();
-          let obx_property_type = match rust_type {
+          obx_property_type = match rust_type {
             "u8" => 2,
             "i16" => 3,
             "u16" => 3,
@@ -188,7 +213,18 @@ impl Field {
 
       }
 
-      return Some(entity);
+      let id_uid = IdUid {
+        id: id,
+        uid: uid,
+      };
+      let field = Field {
+          name: name,
+          field_type: obx_property_type,
+          id: id_uid,
+          unique: unique,
+          index: index,
+      };
+      return Some(field);
     }
 
     Option::None
@@ -203,19 +239,14 @@ impl Field {
 #[derive(Debug)]
 struct Entity {
   name: String,
-  id: Option<IdUid>,
+  id: IdUid,
   fields: Vec<Field>
 }
 
 impl Entity {
   /// Unnamed fields are ignored, e.g. nested anonymous unions / structs, like in C.
-  fn parse_entity_name_and_fields(id : IdUid, derive_input: DeriveInput) -> Entity {
-    let mut entity = Entity {
-      name: derive_input.ident.to_string(),
-      id: Some(id),
-      fields: Vec::new()
-    };
-
+  fn from_entity_name_and_fields(id : IdUid, derive_input: DeriveInput) -> Entity {
+    let mut fields = Vec::<Field>::new();
     if let syn::Data::Struct(ds) = derive_input.data {
         match ds.fields {
           syn::Fields::Named(fields_named) => {
@@ -224,13 +255,13 @@ impl Entity {
                 Pair::Punctuated(t, _) => {
                   // TODO check for attribute: #[transient]
                   if let Some(f) = Field::from_syn_field(t) {
-                    entity.fields.push(f);
+                    fields.push(f);
                   }
                 },
                 Pair::End(t) => {
                   // TODO check for attribute: #[transient]
                   if let Some(f) = Field::from_syn_field(t) {
-                    entity.fields.push(f);
+                    fields.push(f);
                   }
                 }
               }
@@ -241,41 +272,44 @@ impl Entity {
     }else {
       panic!("This macro attribute is only applicable on structs");
     }
-    entity
+    Entity {
+      name: derive_input.ident.to_string(),
+      id: id,
+      fields: fields
+    }
   }
 }
 
 impl IdUid {
-  fn from_attribute_args(args: AttributeArgs) -> IdUid {
-    fn panic_only_id_uid_param_allowed() {
-      panic!("Only the id=<integer>, uid=<integer> parameter are allowed");
+
+  fn scan_id_uid (mnv: &syn::MetaNameValue) -> (Option<u64>, Option<u64>) {
+    let mut id: Option<u64> = None;
+    let mut uid: Option<u64> = None;
+
+    if let syn::Lit::Int(li) = &mnv.lit {
+      let result = li.base10_parse::<u64>();
+      if let Ok(value) = result {
+        if let Some(ident) = mnv.path.get_ident() {
+          let param_name: &str = &ident.to_string();
+          match param_name {
+            "uid" => { uid = Some(value) },
+            "id"  => { id = Some(value) },
+            _ => {}
+          }
+        }
+      }
     }
+    (id, uid)
+  }
 
-    if args.len() > 2 {
-      panic_only_id_uid_param_allowed()
-    }
+  fn from_nested_metas(iter: core::slice::Iter::<syn::NestedMeta>) -> IdUid {
+    let mut uid : Option<u64> = None;
+    let mut id  : Option<u64> = None;
 
-    let mut uid : u64 = 0;
-    let mut id  : u64 = 0;
-
-    args.iter().for_each(|nm| {
+    iter.for_each(|nm| {
       match nm {
         syn::NestedMeta::Meta(NameValue(mnv)) => {
-          if let syn::Lit::Int(li) = &mnv.lit {
-            let result = li.base10_parse::<u64>();
-            if let Ok(value) = result {
-              if let Some(ident) = mnv.path.get_ident() {
-                let param_name: &str = &ident.to_string();
-                match param_name {
-                  "uid" => { uid = value },
-                  "id"  => { id = value },
-                  _ => {
-                    panic_only_id_uid_param_allowed();
-                  }
-                }
-              }
-            }
-          }
+          (id, uid) = Self::scan_id_uid(mnv);
         },
         _ => {}
       }
@@ -299,10 +333,11 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   let struct_info = parse_macro_input!(struct_clone as DeriveInput);
 
   let attr_args = parse_macro_input!(args as AttributeArgs);
-  let id = IdUid::from_attribute_args(attr_args);
+  let id = IdUid::from_nested_metas(attr_args.iter());
 
   // TODO transform to objects from objectbox-model-serde
-  let entity = Entity::parse_entity_name_and_fields(id, struct_info);  
+  let entity = Entity::from_entity_name_and_fields(id, struct_info);
+  println!("{:#?}", entity);
 
   input.into_iter().map(|x| {
     if let proc_macro::TokenTree::Group (group) = x {
