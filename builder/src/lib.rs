@@ -1,4 +1,3 @@
-
 extern crate quote;
 extern crate syn;
 extern crate proc_macro;
@@ -58,16 +57,30 @@ fn print_token_stream2(label: &str, stream: proc_macro2::TokenStream) {
       });
     println!("{}", "///");
   }
-}  
+}
+
+fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
+  let field_ts = field.to_token_stream();
+  let  debug_label = format!("field({}) token_stream", field_ident_str);
+  print_token_stream2(&debug_label, field_ts);
+}
 
 // TODO see if uid type = u64 can be parameterized with generics e.g. 0x... 0b... etc.
 // TODO see quote::format_ident
 // TODO replace with serde
+
+#[derive(Debug)]
+struct IdUid {
+  id: u64,
+  uid: u64
+}
+
+#[derive(Debug)]
 struct Field {
   name: String,
   field_type: u16,
   ///
-  id: Option<u64>, // Do we do that id_uid thing?
+  id: Option<IdUid>,
   uid: Option<u64>,
   unique: bool
   // TODO all the attributes
@@ -91,6 +104,9 @@ impl Field {
       let new_name = ident.to_string();
       entity.name.push_str(&new_name);
 
+      print_field_token_stream(field, new_name);
+
+      // Attribute parsing
       for a in field.attrs.iter() {
         // get attribute name from `#[name]`
         if let Some(attr_path_ident) = a.path.get_ident() {
@@ -101,7 +117,7 @@ impl Field {
             "backlink" => {},
             "transient" => {},
             "property" => {},
-            _ => {}
+            _ => {} // skip if not ours
           }  
         }
         // I don't know why we need this yet
@@ -123,79 +139,10 @@ impl Field {
       }
       
 
-      let field_ts = field.to_token_stream();
-      let  debug_label = format!("field({}) token_stream", ident.to_string());
-      print_token_stream2(&debug_label, field_ts);
-      
-      // mental note: it's probably easier to parse the token stream,
-      // than exhaustively go through these matches
-      // This is here to figure out how different types are parsed (then call get_ident or something)
-      let field_type = match &field.ty {
-        syn::Type::Array(type_array) => {
-          // TODO
-          // println!("{} {:#?}", ident.to_string(), type_array);
-          /*
-          struct TypeArray {
-            bracket_token: Bracket,
-            elem: Box<Type>,
-            semi_token: Semi,
-            len: Expr,
-          }
-          */
-          // For lack of the Debug trait in certain tokens
-          println!("{} {}", debug_label, "Array");
-          0
-        },
-        // BareFn(TypeBareFn),
-        syn::Type::Group(type_group) => {
-          // TODO
-          /*
-          struct TypeGroup {
-            group_token: Group,
-            elem: Box<Type>,
-          }
-          */
-          // For lack of the Debug trait in certain tokens
-          println!("{} {}", debug_label, "Group");
-          0
-        },
-        // ImplTrait(TypeImplTrait),
-        // Infer(TypeInfer),
-        syn::Type::Macro(type_macro) => {
-          println!("{} {}", debug_label, "Macro");
-          0
-        },
-        // Never(TypeNever),
-        // Paren(TypeParen),
-        syn::Type::Path(type_path) => {
-          println!("{} {}", debug_label, "Path");
-          0
-        },
-        // Ptr(typePtr)
-        // Reference(typeReference)
-        syn::Type::Slice(type_slice) => {
-          // TODO
-          // For lack of the Debug trait in certain tokens
-          println!("{} {}", debug_label, "Slice");
-          0
-        },
-        // TraitObject(TypeTraitObject), 
-        syn::Type::Tuple(type_tuple) => {
-          // TODO
-          // For lack of the Debug trait in certain tokens
-          println!("{} {}", debug_label, "Tuple");          
-          0
-        }, // Flex?
-        syn::Type::Verbatim(token_stream) => {
-          // TODO
-          // For lack of the Debug trait in certain tokens
-          println!("{} {}", debug_label, "Verbatim");
-          0
-        }
-        _ => {
-          0
-        }
-      };
+      if let syn::Type::Path(p) = &field.ty {
+          // p.to_token_stream(); or use syn::Type
+          // TODO map values based on OBXPropertyType correspondence
+      }
 
       return Some(entity);
     }
@@ -209,23 +156,22 @@ impl Field {
 // TODO see how generics work with this e.g. "struct Gen<T> { field: T }"
 // TODO see how fields with Option<T> type, that default to None, and how store deals with this
 // TODO check if another attribute macro can mess with our attribute, otherwise panic if another attribute is present
-// TODO replace with serde
+#[derive(Debug)]
 struct Entity {
   name: String,
-  id: Option<u64>,
-  uid: Option<u64>,
+  id: Option<IdUid>,
   fields: Vec<Field>
 }
 
 impl Entity {
   /// Unnamed fields are ignored, e.g. nested anonymous unions / structs, like in C.
-  fn parse_entity_name_and_fields(derive_input: DeriveInput) -> Entity {
+  fn parse_entity_name_and_fields(id : IdUid, derive_input: DeriveInput) -> Entity {
     let mut entity = Entity {
       name: derive_input.ident.to_string(),
-      id: Option::None,
-      uid: Option::None,
+      id: Some(id),
       fields: Vec::new()
     };
+
     if let Struct(ds) = derive_input.data {
         match ds.fields {
           syn::Fields::Named(fields_named) => {
@@ -253,32 +199,45 @@ impl Entity {
     }
     entity
   }
+}
 
-  // TODO this can probably be reused to read the field attributes
-  // TODO pass a lambda to the extracted function
-  fn parse_entity_attribute_parameter(mut self, args: AttributeArgs) {
+impl IdUid {
+  fn from_attribute_args(args: AttributeArgs) -> IdUid {
     fn panic_only_id_uid_param_allowed() {
-      panic!("Only the uid=<integer> parameter is allowed");
+      panic!("Only the id=<integer>, uid=<integer> parameter are allowed");
     }
 
     if args.len() > 2 {
       panic_only_id_uid_param_allowed()
     }
 
-    // TODO parse id and uid
-    if let Some(Meta(NameValue(mnv))) = args.iter().next() {
+    let mut uid : u64 = 0;
+    let mut id  : u64 = 0;
 
-
-      if let Int(li) = &mnv.lit {
-        let result = li.base10_parse::<u64>();
-        if let Ok(value) = result {
-          // self.uid = Some(value);
-          return;
-        }
+    args.iter().for_each(|nm| {
+      match nm {
+        Meta(NameValue(mnv)) => {
+          if let Int(li) = &mnv.lit {
+            let result = li.base10_parse::<u64>();
+            if let Ok(value) = result {
+              if let Some(ident) = mnv.path.get_ident() {
+                let param_name: &str = &ident.to_string();
+                match param_name {
+                  "uid" => { uid = value },
+                  "id"  => { id = value },
+                  _ => {
+                    panic_only_id_uid_param_allowed();
+                  }
+                }
+              }
+            }
+          }
+        },
+        _ => {}
       }
+    });
 
-      panic_only_id_uid_param_allowed();
-    }
+    IdUid { id: id, uid: uid }
   }
 }
 
@@ -286,25 +245,27 @@ impl Entity {
 /// The last bit will remove the annotations in the generated code
 /// because the generated code cannot reference the attributes.
 /// The result of this is unused imported attributes.
-// TODO make sure we only remove _our_ attributes (index, unique etc.)
-// TODO also remove those imports
+// TODO also remove those unused imports, in the generated code
 #[proc_macro_attribute]
 pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   // print_token_stream("all: ", input.clone());
 
   let struct_clone = input.clone();
+  // all parse_macro_input! macro have to happen inside a proc_macro_attribute(d) function
   let struct_info = parse_macro_input!(struct_clone as DeriveInput);
-  let entity = Entity::parse_entity_name_and_fields(struct_info);
 
   let attr_args = parse_macro_input!(args as AttributeArgs);
-  
-  entity.parse_entity_attribute_parameter(attr_args);
-  
+  let id = IdUid::from_attribute_args(attr_args);
+
+  // TODO transform to objects objectbox-model-serde
+  let entity = Entity::parse_entity_name_and_fields(id, struct_info);  
 
   input.into_iter().map(|x| {
     if let proc_macro::TokenTree::Group (group) = x {
       let new_group = group.stream().into_iter().filter(|y| {
         match y {
+          // TODO make sure we only remove _our_ attributes (index, unique etc.)
+          // TODO replace false and '#' with something more intelligent
           proc_macro::TokenTree::Group(_) => false,
           proc_macro::TokenTree::Punct(p) => p.as_char() != '#',
           _ => true

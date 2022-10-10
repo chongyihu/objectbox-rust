@@ -28,7 +28,7 @@ pub struct Root {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
-    pub id: String,
+    pub id: String, // iduid = "1:12341820347123498124"
     pub last_property_id: String,
     pub name: String,
     pub properties: Vec<Property>,
@@ -38,7 +38,7 @@ pub struct Entity {
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Property {
-    pub id: String,
+    pub id: String, // iduid = "1:12341820347123498124"
     pub name: String,
     #[serde(rename = "type")]
     pub type_field: i64,
