@@ -152,7 +152,7 @@ impl Field {
       /*
       // TODO These consts should be SCREAMING UPPERCASE
       const OBXPropertyType_Bool: u16 = 1;   // bool
-      const OBXPropertyType_Byte: u16 = 2;   // u8
+      const OBXPropertyType_Byte: u16 = 2;   // i8 / u8
       const OBXPropertyType_Short: u16 = 3;  // i16 / u16
       const OBXPropertyType_Char: u16 = 4;   // char
       const OBXPropertyType_Int: u16 = 5;    // i32 / u32
@@ -176,7 +176,9 @@ impl Field {
         if let Some(ident) = p.path.get_ident() {
           let rust_type: &str = &ident.to_string();
           obx_property_type = match rust_type {
+            "bool" => 1,
             "u8" => 2,
+            "i8" => 2,
             "i16" => 3,
             "u16" => 3,
             "char" => 4,
@@ -186,7 +188,6 @@ impl Field {
             "i64" => 6,
             "f32" => 7,
             "f64" => 8,
-            "str" => 9,
             "String" => 9,
             _ => {
               // ignore scoping
@@ -202,6 +203,9 @@ impl Field {
                     ends_with = ele.1;
                     break;
                   }
+              }
+              if rust_type.contains("DateTime") {
+                ends_with = 12
               }
               if ends_with == 0 {
                 eprintln!("Warning: Unknown translation of rust type {}", rust_type);
