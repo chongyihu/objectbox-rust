@@ -8,10 +8,7 @@ use proc_macro::TokenStream;
 
 use quote::ToTokens;
 use syn::punctuated::Pair;
-use syn::NestedMeta::{Meta, self};
 use syn::Meta::NameValue;
-use syn::Data::Struct;
-use syn::Lit::Int;
 use syn::{AttributeArgs, DeriveInput, parse_macro_input};
 
 use std::option::Option;
@@ -206,7 +203,7 @@ impl Entity {
       fields: Vec::new()
     };
 
-    if let Struct(ds) = derive_input.data {
+    if let syn::Data::Struct(ds) = derive_input.data {
         match ds.fields {
           syn::Fields::Named(fields_named) => {
             fields_named.named.pairs().for_each(|p| {
@@ -250,8 +247,8 @@ impl IdUid {
 
     args.iter().for_each(|nm| {
       match nm {
-        Meta(NameValue(mnv)) => {
-          if let Int(li) = &mnv.lit {
+        syn::NestedMeta::Meta(NameValue(mnv)) => {
+          if let syn::Lit::Int(li) = &mnv.lit {
             let result = li.base10_parse::<u64>();
             if let Ok(value) = result {
               if let Some(ident) = mnv.path.get_ident() {
