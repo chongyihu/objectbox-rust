@@ -10,6 +10,7 @@ crate_type = [ "proc-macro" ]
 builder = true
 
 [dependencies]
+maplit = "1.0"
 serde = "1.0"
 codegen = "0.2.0"
 proc-macro2 = { version = "1.0", default-features = false }

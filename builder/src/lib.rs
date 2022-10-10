@@ -3,6 +3,7 @@ extern crate syn;
 extern crate proc_macro;
 extern crate proc_macro2;
 extern crate prettyplease;
+extern crate maplit;
 
 use proc_macro::TokenStream;
 
@@ -143,6 +144,7 @@ impl Field {
       const OBXPropertyType_StringVector: u16 = 30; // Vec<str> / Vec<String>
       */
 
+      // TODO Skip type determination if provided in attribute
       // TODO anything can be in a 'Box'
       // Auto-map values based on probably OBXPropertyType correspondence
       if let syn::Type::Path(p) = &field.ty {
@@ -161,14 +163,25 @@ impl Field {
             "f64" => 8,
             "str" => 9,
             "String" => 9,
-            "Vec<u8>" => 23, // TODO fragile, might be prefixed with crate identifier
-            "bytes" => 23, // TODO fragile, might be prefixed with crate identifier
-            "ByteArray" => 23, // TODO fragile, might be prefixed with crate identifier
-            "Vec<String>" => 30,
-            "Vec<str>" => 30, // not sure about this, since it's on the stack?
             _ => {
-              eprintln!("Warning: Unknown translation of rust type {}", rust_type);
-              0
+              // ignore scoping
+              let map = maplit::hashmap! {
+                "Vec<u8>" => 23,
+                "bytes" => 23,
+                "ByteArray" => 23,
+                "Vec<String>" => 30,
+              };
+              let mut ends_with = 0;
+              for ele in map {
+                  if rust_type.ends_with(ele.0) {
+                    ends_with = ele.1;
+                    break;
+                  }
+              }
+              if ends_with == 0 {
+                eprintln!("Warning: Unknown translation of rust type {}", rust_type);
+              }
+              ends_with
             }
           };
         }
