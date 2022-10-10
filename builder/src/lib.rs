@@ -17,34 +17,17 @@ use syn::{AttributeArgs, DeriveInput, parse_macro_input};
 use std::option::Option;
 use std::vec::Vec;
 
-// TODO These consts should be SCREAMING UPPERCASE
-const OBXPropertyType_Bool: u16 = 1;   // bool
-const OBXPropertyType_Byte: u16 = 2;   // u8
-const OBXPropertyType_Short: u16 = 3;  // i16 / u16
-const OBXPropertyType_Char: u16 = 4;   // char
-const OBXPropertyType_Int: u16 = 5;    // i32 / u32
-const OBXPropertyType_Long: u16 = 6;   // i64 / u64
-const OBXPropertyType_Float: u16 = 7;  // f32
-const OBXPropertyType_Double: u16 = 8; // f64
-const OBXPropertyType_String: u16 = 9; // str, String
-const OBXPropertyType_Date: u16 = 10; // chrono::DateTime<Utc>, u64: unix epoch
-const OBXPropertyType_Relation: u16 = 11; // TODO
-const OBXPropertyType_DateNano: u16 = 12; // chrono::DateTime<Utc>, u64: unix epoch
-const OBXPropertyType_Flex: u16 = 13; // tuple?! There is no 'Object' in rustlang
-const OBXPropertyType_ByteVector: u16 = 23; // Vec<u8>, bytes, ByteArray, unsized byte slice, compile time statically sized array on stack
-const OBXPropertyType_StringVector: u16 = 30; // Vec<str> / Vec<String>
-
 /// For lack of the Debug trait in certain tokens
 /// Only available in Debug mode
-fn print_token_stream(label: &str, stream: TokenStream) {
-  if cfg!(debug_assertions) {
-    stream.into_iter()
-      .for_each(|x| {
-        println!("{} {:#?}", label, x);
-      });
-    println!("{}", "///");
-  }
-}  
+// fn print_token_stream(label: &str, stream: TokenStream) {
+//   if cfg!(debug_assertions) {
+//     stream.into_iter()
+//       .for_each(|x| {
+//         println!("{} {:#?}", label, x);
+//       });
+//     println!("{}", "///");
+//   }
+// }  
 
 // For lack of the Debug trait in certain tokens
 // TODO Figure out how to make this generic, since TokenStream2 inherits from TokenStream
@@ -81,7 +64,6 @@ struct Field {
   field_type: u16,
   ///
   id: Option<IdUid>,
-  uid: Option<u64>,
   unique: bool
   // TODO all the attributes
 }
@@ -96,7 +78,6 @@ impl Field {
         name: String::new(),
         field_type: 0,
         id: None,
-        uid: None,
         unique: false
     };
 
@@ -120,28 +101,81 @@ impl Field {
             _ => {} // skip if not ours
           }  
         }
-        // I don't know why we need this yet
-        // if let syn::parse::Result::Ok(m) = a.parse_meta() {
-          /*
-          enum Meta {
-            Path(Path),
-            List(MetaList),
-            NameValue(MetaNameValue),
+
+        // TODO move out as generalized function with lambda
+        // that parses depending on given attrib parameter names
+        // given by 'index', 'backlink', 'transient', 'property'
+        if let syn::parse::Result::Ok(m) = a.parse_meta() {
+          match m {
+            // single parameter
+            syn::Meta::NameValue(mnv) => {
+
+            },
+            // multiple parameters
+            syn::Meta::List(meta_list) => {
+              meta_list.nested.into_iter().for_each(|nm| {
+                match nm {
+                  syn::NestedMeta::Meta(meta) => {
+                    // TODO repeat stuff in the match arm above
+                  },
+                  _ => {}
+                }
+              });
+            },
+            /* syn::Meta::Path(path) */ _ => {}
           }
-          */
-        // }
-        let args_result = a.parse_args::<NestedMeta>();
-        if let syn::parse::Result::Ok(args) = args_result {
-          // TODO maybe Meta is a better choice, we'll see
-          // TODO for multiple params you probably need to parse Punctuated NameValues
-          // TODO maybe parsing the TokenStream is easier
         }
       }
       
+      /*
+      // TODO These consts should be SCREAMING UPPERCASE
+      const OBXPropertyType_Bool: u16 = 1;   // bool
+      const OBXPropertyType_Byte: u16 = 2;   // u8
+      const OBXPropertyType_Short: u16 = 3;  // i16 / u16
+      const OBXPropertyType_Char: u16 = 4;   // char
+      const OBXPropertyType_Int: u16 = 5;    // i32 / u32
+      const OBXPropertyType_Long: u16 = 6;   // i64 / u64
+      const OBXPropertyType_Float: u16 = 7;  // f32
+      const OBXPropertyType_Double: u16 = 8; // f64
+      const OBXPropertyType_String: u16 = 9; // str, String
+      const OBXPropertyType_Date: u16 = 10; // chrono::DateTime<Utc>, u64: unix epoch
+      const OBXPropertyType_Relation: u16 = 11; // TODO
+      const OBXPropertyType_DateNano: u16 = 12; // chrono::DateTime<Utc>, u64: unix epoch
+      const OBXPropertyType_Flex: u16 = 13; // tuple?! There is no 'Object' in rustlang
+      const OBXPropertyType_ByteVector: u16 = 23; // Vec<u8>, bytes, ByteArray, unsized byte slice, compile time statically sized array on stack
+      const OBXPropertyType_StringVector: u16 = 30; // Vec<str> / Vec<String>
+      */
 
+      // TODO anything can be in a 'Box'
+      // Auto-map values based on probably OBXPropertyType correspondence
       if let syn::Type::Path(p) = &field.ty {
-          // p.to_token_stream(); or use syn::Type
-          // TODO map values based on OBXPropertyType correspondence
+        if let Some(ident) = p.path.get_ident() {
+          let rust_type: &str = &ident.to_string();
+          let obx_property_type = match rust_type {
+            "u8" => 2,
+            "i16" => 3,
+            "u16" => 3,
+            "char" => 4,
+            "u32" => 5,
+            "i32" => 5,
+            "u64" => 6,
+            "i64" => 6,
+            "f32" => 7,
+            "f64" => 8,
+            "str" => 9,
+            "String" => 9,
+            "Vec<u8>" => 23, // TODO fragile, might be prefixed with crate identifier
+            "bytes" => 23, // TODO fragile, might be prefixed with crate identifier
+            "ByteArray" => 23, // TODO fragile, might be prefixed with crate identifier
+            "Vec<String>" => 30,
+            "Vec<str>" => 30, // not sure about this, since it's on the stack?
+            _ => {
+              eprintln!("Warning: Unknown translation of rust type {}", rust_type);
+              0
+            }
+          };
+        }
+
       }
 
       return Some(entity);
@@ -257,7 +291,7 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   let attr_args = parse_macro_input!(args as AttributeArgs);
   let id = IdUid::from_attribute_args(attr_args);
 
-  // TODO transform to objects objectbox-model-serde
+  // TODO transform to objects from objectbox-model-serde
   let entity = Entity::parse_entity_name_and_fields(id, struct_info);  
 
   input.into_iter().map(|x| {
