@@ -103,7 +103,7 @@ impl Field {
       // print_field_token_stream(field, new_name);
 
       // Attribute parsing
-      for a in field.attrs.iter() {
+      for (i, a) in field.attrs.iter().enumerate() {
         // get attribute name from `#[name]`
         if let Some(attr_path_ident) = a.path.get_ident() {
           let attr_name : &str = &attr_path_ident.to_string();
@@ -129,7 +129,7 @@ impl Field {
           match m {
             // single parameter
             syn::Meta::NameValue(mnv) => {
-              (id, uid) = id::IdUid::scan_id_uid(&mnv);
+              (id, uid) = id::IdUid::scan_id_uid(&mnv, (Some(i as u64), None));
               (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
             },
             // multiple parameters
@@ -137,7 +137,7 @@ impl Field {
               meta_list.nested.into_iter().for_each(|nm| {
                 if let syn::NestedMeta::Meta(meta) = nm {
                   if let syn::Meta::NameValue(mnv) = meta {
-                    (id, uid) = id::IdUid::scan_id_uid(&mnv);
+                    (id, uid) = id::IdUid::scan_id_uid(&mnv, (Some(i as u64), None));
                     (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
                   }
                 }
@@ -302,9 +302,9 @@ impl Entity {
 
 impl id::IdUid {
 
-  fn scan_id_uid (mnv: &syn::MetaNameValue) -> (Option<u64>, Option<u64>) {
-    let mut id: Option<u64> = None;
-    let mut uid: Option<u64> = None;
+  fn scan_id_uid (mnv: &syn::MetaNameValue, defaults: (Option<u64>, Option<u64>)) -> (Option<u64>, Option<u64>) {
+    let mut id: Option<u64> = defaults.0;
+    let mut uid: Option<u64> = defaults.1;
 
     if let syn::Lit::Int(li) = &mnv.lit {
       let result = li.base10_parse::<u64>();
@@ -322,6 +322,7 @@ impl id::IdUid {
     (id, uid)
   }
 
+  // TODO why did my gut feeling say don't use the default construction here?
   fn from_nested_metas(iter: core::slice::Iter::<syn::NestedMeta>) -> id::IdUid {
     let mut uid : Option<u64> = None;
     let mut id  : Option<u64> = None;
@@ -329,7 +330,7 @@ impl id::IdUid {
     iter.for_each(|nm| {
       match nm {
         syn::NestedMeta::Meta(NameValue(mnv)) => {
-          (id, uid) = Self::scan_id_uid(mnv);
+          (id, uid) = Self::scan_id_uid(mnv, (None, None));
         },
         _ => {}
       }
