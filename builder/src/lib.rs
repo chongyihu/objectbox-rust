@@ -7,7 +7,7 @@ extern crate maplit;
 
 use proc_macro::TokenStream;
 
-use quote::ToTokens;
+// use quote::ToTokens;
 use syn::punctuated::Pair;
 use syn::Meta::NameValue;
 use syn::{AttributeArgs, DeriveInput, parse_macro_input};
@@ -17,6 +17,9 @@ use std::vec::Vec;
 
 #[path = "./objectbox-model-serde.rs"]
 mod json;
+
+#[path = "./id.rs"]
+mod id;
 
 /// For lack of the Debug trait in certain tokens
 /// Only available in Debug mode
@@ -43,36 +46,28 @@ mod json;
 //   }
 // }
 
-fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
-  let field_ts = field.to_token_stream();
-  let  debug_label = format!("field({}) token_stream", field_ident_str);
-  // print_token_stream2(&debug_label, field_ts);
-}
-
-// TODO see if uid type = u64 can be parameterized with generics e.g. 0x... 0b... etc.
-// TODO see quote::format_ident
-// TODO replace with serde
-
-#[derive(Debug)]
-struct IdUid {
-  id: Option<u64>,
-  uid: Option<u64>
-}
+// fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
+//   let field_ts = field.to_token_stream();
+//   let  debug_label = format!("field({}) token_stream", field_ident_str);
+//   // print_token_stream2(&debug_label, field_ts);
+// }
 
 #[derive(Debug)]
 struct Field {
   name: String,
   field_type: u16,
   ///
-  id: IdUid,
+  id: id::IdUid,
   unique: bool,
   index: bool,
+  flags: Option<u16>,
 }
 
 impl Field {
 
-  fn scan_obx_property_type (mnv: &syn::MetaNameValue) -> u16 {
+  fn scan_obx_property_type_and_flags (mnv: &syn::MetaNameValue) -> (u16, Option<u16>) {
     let mut obx_property_type: u16 = 0;
+    let mut obx_property_flags: Option<u16> = None;
 
     if let syn::Lit::Int(li) = &mnv.lit {
       let result = li.base10_parse::<u16>();
@@ -81,22 +76,23 @@ impl Field {
           let param_name: &str = &ident.to_string();
           match param_name {
             "type" => { obx_property_type = value },
+            "flags" => { obx_property_flags = Some(value) }
             _ => {}
           }
         }
       }
     }
-    obx_property_type
+    (obx_property_type, obx_property_flags)
   }
 
   fn from_syn_field(field: &syn::Field) -> Option<Field> {
     // TODO check if objectbox-model.json was generated
-    // TODO compare values read from macro attributes
 
     let mut name: String = String::new();
     let mut uid : Option<u64> = None;
     let mut id  : Option<u64> = None;
     let mut obx_property_type: u16 = 0;
+    let mut obx_property_flags: Option<u16> = None;
     let mut unique: bool = false;
     let mut index: bool = false;
     
@@ -104,7 +100,7 @@ impl Field {
       let new_name = ident.to_string();
       name.push_str(&new_name);
 
-      print_field_token_stream(field, new_name);
+      // print_field_token_stream(field, new_name);
 
       // Attribute parsing
       for a in field.attrs.iter() {
@@ -114,11 +110,11 @@ impl Field {
           match attr_name {
             "index" => { index = true }, // id, uid, type
             "unique" => { unique = true }, // id, uid, type
-            // TODO the backlink symbols are lossy, there will be problems
-            // TODO with Structs referenced in another file
+            // TODO the backlink symbols are lossy, in terms of type-safety, there will be problems
+            // TODO with Structs referenced in another file / mod
             "backlink" => {},
             "transient" => { return None }, // no params
-            "property" => {}, // id, uid, type
+            "property" => {}, // id, uid, type, flags
             _ => {
               // skip if not ours
               continue;
@@ -133,16 +129,16 @@ impl Field {
           match m {
             // single parameter
             syn::Meta::NameValue(mnv) => {
-              (id, uid) = IdUid::scan_id_uid(&mnv);
-              obx_property_type = Self::scan_obx_property_type(&mnv);
+              (id, uid) = id::IdUid::scan_id_uid(&mnv);
+              (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
             },
             // multiple parameters
             syn::Meta::List(meta_list) => {
               meta_list.nested.into_iter().for_each(|nm| {
                 if let syn::NestedMeta::Meta(meta) = nm {
                   if let syn::Meta::NameValue(mnv) = meta {
-                    (id, uid) = IdUid::scan_id_uid(&mnv);
-                    obx_property_type = Self::scan_obx_property_type(&mnv);
+                    (id, uid) = id::IdUid::scan_id_uid(&mnv);
+                    (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
                   }
                 }
               });
@@ -152,28 +148,9 @@ impl Field {
         }
       }
       
-      /*
-      // TODO These consts should be SCREAMING UPPERCASE
-      const OBXPropertyType_Bool: u16 = 1;   // bool
-      const OBXPropertyType_Byte: u16 = 2;   // i8 / u8
-      const OBXPropertyType_Short: u16 = 3;  // i16 / u16
-      const OBXPropertyType_Char: u16 = 4;   // char
-      const OBXPropertyType_Int: u16 = 5;    // i32 / u32
-      const OBXPropertyType_Long: u16 = 6;   // i64 / u64
-      const OBXPropertyType_Float: u16 = 7;  // f32
-      const OBXPropertyType_Double: u16 = 8; // f64
-      const OBXPropertyType_String: u16 = 9; // str, String
-      const OBXPropertyType_Date: u16 = 10; // chrono::DateTime<Utc>, u64: unix epoch
-      const OBXPropertyType_Relation: u16 = 11; // TODO
-      const OBXPropertyType_DateNano: u16 = 12; // chrono::DateTime<Utc>, u64: unix epoch
-      const OBXPropertyType_Flex: u16 = 13; // tuple?! There is no 'Object' in rustlang
-      const OBXPropertyType_ByteVector: u16 = 23; // Vec<u8>, bytes, ByteArray, unsized byte slice, compile time statically sized array on stack
-      const OBXPropertyType_StringVector: u16 = 30; // Vec<str> / Vec<String>
-      */
-
       // TODO Skip type determination if provided in attribute
       // TODO anything can be in a 'Box'
-      // Auto-map values based on probably OBXPropertyType correspondence
+      // Auto-map values based on likely OBXPropertyType correspondence
       
       if let (syn::Type::Path(p), true) = (&field.ty, obx_property_type == 0) {
         if let Some(ident) = p.path.get_ident() {
@@ -220,7 +197,7 @@ impl Field {
 
       }
 
-      let id_uid = IdUid {
+      let id_uid = id::IdUid {
         id: id,
         uid: uid,
       };
@@ -230,6 +207,7 @@ impl Field {
           id: id_uid,
           unique: unique,
           index: index,
+          flags: obx_property_flags,
       };
       return Some(field);
     }
@@ -238,7 +216,6 @@ impl Field {
   }
 }
 
-// TODO Make this JSON serializable, or another like it, with an adapter 'from' in-between
 // TODO see if uid type = u64 can be parameterized with generics e.g. 0x... 0b... etc.
 // TODO see how generics work with this e.g. "struct Gen<T> { field: T }"
 // TODO see how fields with Option<T> type, that default to None, and how store deals with this
@@ -246,13 +223,13 @@ impl Field {
 #[derive(Debug)]
 struct Entity {
   name: String,
-  id: IdUid,
-  fields: Vec<Field>
+  id: id::IdUid,
+  fields: Vec<Field>,
 }
 
 impl Entity {
   /// Unnamed fields are ignored, e.g. nested anonymous unions / structs, like in C.
-  fn from_entity_name_and_fields(id : IdUid, derive_input: DeriveInput) -> Entity {
+  fn from_entity_name_and_fields(id : id::IdUid, derive_input: DeriveInput) -> Entity {
     let mut fields = Vec::<Field>::new();
     if let syn::Data::Struct(ds) = derive_input.data {
         match ds.fields {
@@ -279,15 +256,51 @@ impl Entity {
     }else {
       panic!("This macro attribute is only applicable on structs");
     }
+    if fields.is_empty() {
+      panic!("Structs must have at least one attribute / property!");
+    }
     Entity {
       name: derive_input.ident.to_string(),
       id: id,
       fields: fields
     }
   }
+
+  fn get_last_property_id(&self) -> id::IdUid {
+    if let Some(field) = self.fields.last() {
+      return field.id.clone()
+    }
+    // TODO throw an error down the road, this should never happen
+    // TODO write test with an Entity without properties
+    id::IdUid { id: None, uid: None }
+  }
+
+  fn get_properties(&self) -> Vec<json::Property> {
+    let mut v: Vec<json::Property> = Vec::new();
+    for f in self.fields.iter() {
+      let p = json::Property {
+        id: f.id.to_string(),
+        name: f.name.clone(),
+        type_field: f.field_type,
+        flags: f.flags,
+      };
+      v.push(p);
+    }
+    v
+  }
+
+  fn serialize(&self) -> json::Entity {
+    json::Entity {
+      id: self.id.to_string(),
+        last_property_id: self.get_last_property_id().to_string(),
+        name: self.name.clone(),
+        properties: self.get_properties(),
+        // TODO Optional relations, see flags
+    }
+  }
 }
 
-impl IdUid {
+impl id::IdUid {
 
   fn scan_id_uid (mnv: &syn::MetaNameValue) -> (Option<u64>, Option<u64>) {
     let mut id: Option<u64> = None;
@@ -309,7 +322,7 @@ impl IdUid {
     (id, uid)
   }
 
-  fn from_nested_metas(iter: core::slice::Iter::<syn::NestedMeta>) -> IdUid {
+  fn from_nested_metas(iter: core::slice::Iter::<syn::NestedMeta>) -> id::IdUid {
     let mut uid : Option<u64> = None;
     let mut id  : Option<u64> = None;
 
@@ -322,7 +335,7 @@ impl IdUid {
       }
     });
 
-    IdUid { id: id, uid: uid }
+    id::IdUid { id: id, uid: uid }
   }
 }
 
@@ -340,11 +353,10 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   let struct_info = parse_macro_input!(struct_clone as DeriveInput);
 
   let attr_args = parse_macro_input!(args as AttributeArgs);
-  let id = IdUid::from_nested_metas(attr_args.iter());
+  let id = id::IdUid::from_nested_metas(attr_args.iter());
 
-  // TODO transform to objects from objectbox-model-serde
   let entity = Entity::from_entity_name_and_fields(id, struct_info);
-
+  entity.serialize().write();
   // println!("{:#?}", entity);
 
   input.into_iter().map(|x| {
@@ -405,3 +417,82 @@ pub fn transient(_attribute: TokenStream, input: TokenStream) -> TokenStream {
 pub fn property(_attribute: TokenStream, input: TokenStream) -> TokenStream {
   input
 }
+
+// TODO test combinations of these obx property types & flags
+/*
+      // TODO These consts should be SCREAMING UPPERCASE
+      const OBXPropertyType_Bool: u16 = 1;   // bool
+      const OBXPropertyType_Byte: u16 = 2;   // i8 / u8
+      const OBXPropertyType_Short: u16 = 3;  // i16 / u16
+      const OBXPropertyType_Char: u16 = 4;   // char
+      const OBXPropertyType_Int: u16 = 5;    // i32 / u32
+      const OBXPropertyType_Long: u16 = 6;   // i64 / u64
+      const OBXPropertyType_Float: u16 = 7;  // f32
+      const OBXPropertyType_Double: u16 = 8; // f64
+      const OBXPropertyType_String: u16 = 9; // str, String
+      const OBXPropertyType_Date: u16 = 10; // chrono::DateTime<Utc>, u64: unix epoch
+      const OBXPropertyType_Relation: u16 = 11; // TODO
+      const OBXPropertyType_DateNano: u16 = 12; // chrono::DateTime<Utc>, u64: unix epoch
+      const OBXPropertyType_Flex: u16 = 13; // tuple?! There is no 'Object' in rustlang
+      const OBXPropertyType_ByteVector: u16 = 23; // Vec<u8>, bytes, ByteArray, unsized byte slice, compile time statically sized array on stack
+      const OBXPropertyType_StringVector: u16 = 30; // Vec<str> / Vec<String>
+
+      typedef enum {
+    /// 64 bit long property (internally unsigned) representing the ID of the entity.
+    /// May be combined with: NON_PRIMITIVE_TYPE, ID_MONOTONIC_SEQUENCE, ID_SELF_ASSIGNABLE.
+    OBXPropertyFlags_ID = 1,
+
+    /// On languages like Java, a non-primitive type is used (aka wrapper types, allowing null)
+    OBXPropertyFlags_NON_PRIMITIVE_TYPE = 2,
+
+    /// Unused yet
+    OBXPropertyFlags_NOT_NULL = 4,
+
+    OBXPropertyFlags_INDEXED = 8,
+
+    /// Unused yet
+    OBXPropertyFlags_RESERVED = 16,
+
+    /// Unique index
+    OBXPropertyFlags_UNIQUE = 32,
+
+    /// Unused yet: Use a persisted sequence to enforce ID to rise monotonic (no ID reuse)
+    OBXPropertyFlags_ID_MONOTONIC_SEQUENCE = 64,
+
+    /// Allow IDs to be assigned by the developer
+    OBXPropertyFlags_ID_SELF_ASSIGNABLE = 128,
+
+    /// Unused yet
+    OBXPropertyFlags_INDEX_PARTIAL_SKIP_NULL = 256,
+
+   /// Used by References for 1) back-references and 2) to clear references to deleted objects (required for ID reuse)
+    OBXPropertyFlags_INDEX_PARTIAL_SKIP_ZERO = 512,
+
+    /// Virtual properties may not have a dedicated field in their entity class, e.g. target IDs of to-one relations
+    OBXPropertyFlags_VIRTUAL = 1024,
+
+    /// Index uses a 32 bit hash instead of the value
+    /// 32 bits is shorter on disk, runs well on 32 bit systems, and should be OK even with a few collisions
+    OBXPropertyFlags_INDEX_HASH = 2048,
+
+    /// Index uses a 64 bit hash instead of the value
+    /// recommended mostly for 64 bit machines with values longer >200 bytes; small values are faster with a 32 bit hash
+    OBXPropertyFlags_INDEX_HASH64 = 4096,
+
+    /// The actual type of the variable is unsigned (used in combination with numeric OBXPropertyType_*).
+    /// While our default are signed ints, queries & indexes need do know signing info.
+    /// Note: Don't combine with ID (IDs are always unsigned internally).
+    OBXPropertyFlags_UNSIGNED = 8192,
+
+    /// By defining an ID companion property, a special ID encoding scheme is activated involving this property.
+    ///
+    /// For Time Series IDs, a companion property of type Date or DateNano represents the exact timestamp.
+    OBXPropertyFlags_ID_COMPANION = 16384,
+
+    /// Unique on-conflict strategy: the object being put replaces any existing conflicting object (deletes it).
+    OBXPropertyFlags_UNIQUE_ON_CONFLICT_REPLACE = 32768,
+
+    /// If a date property has this flag (max. one per entity type), the date value specifies the time by which
+    /// the object expires, at which point it MAY be removed (deleted), which can be triggered by an API call.
+    OBXPropertyFlags_EXPIRATION_TIME = 65536,
+      */

@@ -1,6 +1,9 @@
-use serde_derive::Deserialize;
-use serde_derive::Serialize;
+use serde_derive::{Deserialize,Serialize};
 use serde_json::Value;
+
+use std::env;
+use std::fs;
+use std::path::Path;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -32,7 +35,19 @@ pub struct Entity {
     pub last_property_id: String,
     pub name: String,
     pub properties: Vec<Property>,
-    pub relations: Vec<Value>,
+    // pub relations: Vec<Value>, // TODO
+    // pub flags: Option<i64>,
+}
+
+impl Entity {
+    pub fn write(&self) {
+      let out_dir = env::var_os("OUT_DIR").unwrap();
+      let dest_path = Path::new(&out_dir).join(format!("{}.objectbox.info", self.name.clone()));
+      fs::write(
+          &dest_path,
+          format!("[{}]", serde_json::to_string(self).unwrap()),
+          ).unwrap();
+  }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -41,6 +56,7 @@ pub struct Property {
     pub id: String, // iduid = "1:12341820347123498124"
     pub name: String,
     #[serde(rename = "type")]
-    pub type_field: i64,
-    pub flags: Option<i64>,
+    pub type_field: u16,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub flags: Option<u16>,
 }

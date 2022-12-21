@@ -1,12 +1,13 @@
-use objectbox;
 extern crate builder;
 extern crate chrono;
 
 use builder::{entity, index, transient, unique, sync};
 use chrono::{DateTime, Utc};
 
+/*
 #[entity]
-struct SomeEmptyType; // expected: ignore completely
+struct SomeEmptyType; // expected: panic
+*/
 
 #[sync]
 #[entity(id=1, uid=1337)]
