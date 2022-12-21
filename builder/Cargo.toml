@@ -12,6 +12,9 @@ builder = true
 [dependencies]
 maplit = "1.0"
 serde = "1.0"
+
+serde_json = "1.0"
+serde_derive = "1.0.151"
 codegen = "0.2.0"
 proc-macro2 = { version = "1.0", default-features = false }
 syn = "1.0" # syn = { version = "1.0.90", default-features = false, features = ["full"] }

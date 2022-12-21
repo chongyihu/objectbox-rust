@@ -15,6 +15,9 @@ use syn::{AttributeArgs, DeriveInput, parse_macro_input};
 use std::option::Option;
 use std::vec::Vec;
 
+#[path = "./objectbox-model-serde.rs"]
+mod json;
+
 /// For lack of the Debug trait in certain tokens
 /// Only available in Debug mode
 // fn print_token_stream(label: &str, stream: TokenStream) {
@@ -341,7 +344,8 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
 
   // TODO transform to objects from objectbox-model-serde
   let entity = Entity::from_entity_name_and_fields(id, struct_info);
-  println!("{:#?}", entity);
+
+  // println!("{:#?}", entity);
 
   input.into_iter().map(|x| {
     if let proc_macro::TokenTree::Group (group) = x {
