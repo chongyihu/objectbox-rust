@@ -4,12 +4,12 @@
 
 #[derive(Default, Debug, Clone)]
 pub struct IdUid {
-  pub id: Option<u64>,
-  pub uid: Option<u64>
+  pub id: u64,
+  pub uid: u64
 }
 
 impl IdUid {
   pub fn to_string(&self) -> String {
-    format!("{:?}:{:?}", self.id.unwrap_or_default(), self.uid.unwrap_or_default())
+    format!("{}:{}", self.id, self.uid)
   }
 }

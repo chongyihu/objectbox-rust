@@ -52,6 +52,7 @@ mod id;
 //   // print_token_stream2(&debug_label, field_ts);
 // }
 
+// TODO implement flags, reference: https://github.com/objectbox/objectbox-dart/blob/main/generator/lib/src/entity_resolver.dart#L23-L30
 #[derive(Debug)]
 struct Field {
   name: String,
@@ -89,8 +90,7 @@ impl Field {
     // TODO check if objectbox-model.json was generated
 
     let mut name: String = String::new();
-    let mut uid : Option<u64> = None;
-    let mut id  : Option<u64> = None;
+    let mut id = id::IdUid::zero();
     let mut obx_property_type: u16 = 0;
     let mut obx_property_flags: Option<u16> = None;
     let mut unique: bool = false;
@@ -103,7 +103,7 @@ impl Field {
       // print_field_token_stream(field, new_name);
 
       // Attribute parsing
-      for (i, a) in field.attrs.iter().enumerate() {
+      for a in field.attrs.iter() {
         // get attribute name from `#[name]`
         if let Some(attr_path_ident) = a.path.get_ident() {
           let attr_name : &str = &attr_path_ident.to_string();
@@ -129,7 +129,7 @@ impl Field {
           match m {
             // single parameter
             syn::Meta::NameValue(mnv) => {
-              (id, uid) = id::IdUid::scan_id_uid(&mnv, (Some(i as u64), None));
+              id.update_from_scan(&mnv);
               (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
             },
             // multiple parameters
@@ -137,7 +137,7 @@ impl Field {
               meta_list.nested.into_iter().for_each(|nm| {
                 if let syn::NestedMeta::Meta(meta) = nm {
                   if let syn::Meta::NameValue(mnv) = meta {
-                    (id, uid) = id::IdUid::scan_id_uid(&mnv, (Some(i as u64), None));
+                    id.update_from_scan(&mnv);
                     (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
                   }
                 }
@@ -184,6 +184,7 @@ impl Field {
                     break;
                   }
               }
+              // Note: this will not work if the type is aliased in any way
               if rust_type.contains("DateTime") {
                 ends_with = 12
               }
@@ -197,14 +198,10 @@ impl Field {
 
       }
 
-      let id_uid = id::IdUid {
-        id: id,
-        uid: uid,
-      };
       let field = Field {
           name: name,
           field_type: obx_property_type,
-          id: id_uid,
+          id: id ,
           unique: unique,
           index: index,
           flags: obx_property_flags,
@@ -272,7 +269,7 @@ impl Entity {
     }
     // TODO throw an error down the road, this should never happen
     // TODO write test with an Entity without properties
-    id::IdUid { id: None, uid: None }
+    id::IdUid::zero()
   }
 
   fn get_properties(&self) -> Vec<json::Property> {
@@ -295,48 +292,50 @@ impl Entity {
         last_property_id: self.get_last_property_id().to_string(),
         name: self.name.clone(),
         properties: self.get_properties(),
-        // TODO Optional relations, see flags
+        relations: Vec::new(), // TODO
+        path: None,
+        // TODO see flags
     }
   }
 }
 
 impl id::IdUid {
 
-  fn scan_id_uid (mnv: &syn::MetaNameValue, defaults: (Option<u64>, Option<u64>)) -> (Option<u64>, Option<u64>) {
-    let mut id: Option<u64> = defaults.0;
-    let mut uid: Option<u64> = defaults.1;
+  fn zero() -> Self { id::IdUid{ id: 0, uid: 0 } }
 
+  fn update_from_scan (&mut self, mnv: &syn::MetaNameValue) {
     if let syn::Lit::Int(li) = &mnv.lit {
       let result = li.base10_parse::<u64>();
       if let Ok(value) = result {
         if let Some(ident) = mnv.path.get_ident() {
           let param_name: &str = &ident.to_string();
           match param_name {
-            "uid" => { uid = Some(value) },
-            "id"  => { id = Some(value) },
+            "uid" => {
+              if self.uid == 0 {
+                self.uid = value
+              }
+            },
+            "id"  => {
+              if self.id == 0 {
+                self.id = value
+              }
+            },
             _ => {}
           }
         }
       }
     }
-    (id, uid)
   }
 
-  // TODO why did my gut feeling say don't use the default construction here?
-  fn from_nested_metas(iter: core::slice::Iter::<syn::NestedMeta>) -> id::IdUid {
-    let mut uid : Option<u64> = None;
-    let mut id  : Option<u64> = None;
-
+  fn update_from_nested_metas(&mut self, iter: core::slice::Iter::<syn::NestedMeta>) {
     iter.for_each(|nm| {
       match nm {
         syn::NestedMeta::Meta(NameValue(mnv)) => {
-          (id, uid) = Self::scan_id_uid(mnv, (None, None));
+          self.update_from_scan(mnv);
         },
         _ => {}
       }
     });
-
-    id::IdUid { id: id, uid: uid }
   }
 }
 
@@ -354,7 +353,8 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   let struct_info = parse_macro_input!(struct_clone as DeriveInput);
 
   let attr_args = parse_macro_input!(args as AttributeArgs);
-  let id = id::IdUid::from_nested_metas(attr_args.iter());
+  let mut id = id::IdUid::zero();
+  id.update_from_nested_metas(attr_args.iter());
 
   let entity = Entity::from_entity_name_and_fields(id, struct_info);
   entity.serialize().write();

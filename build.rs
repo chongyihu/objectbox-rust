@@ -33,4 +33,7 @@ fn main() {
     bindings
         .write_to_file(out_path.join("objectbox-c-bindings.rs"))
         .expect("Couldn't write bindings!");
+
+    // Read <entity>.objectbox.info and consolidate into
+    // objectbox-model.json & objectbox-generated.rs
 }

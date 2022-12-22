@@ -35,17 +35,23 @@ pub struct Entity {
     pub last_property_id: String,
     pub name: String,
     pub properties: Vec<Property>,
-    // pub relations: Vec<Value>, // TODO
-    // pub flags: Option<i64>,
+    pub relations: Vec<Value>, // TODO
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub path: Option<String>,
 }
 
 impl Entity {
-    pub fn write(&self) {
+    pub fn set_path(&mut self, path: Option<String>) -> &mut Self {
+        self.path = path;
+        self
+    }
+
+    pub fn write(&mut self) {
       let out_dir = env::var_os("OUT_DIR").unwrap();
       let dest_path = Path::new(&out_dir).join(format!("{}.objectbox.info", self.name.clone()));
       fs::write(
           &dest_path,
-          format!("[{}]", serde_json::to_string(self).unwrap()),
+          format!("{}", serde_json::to_string(self).unwrap()),
           ).unwrap();
   }
 }
