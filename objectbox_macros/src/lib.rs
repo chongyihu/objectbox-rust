@@ -21,19 +21,19 @@ mod json;
 #[path = "./id.rs"]
 mod id;
 
-/// For lack of the Debug trait in certain tokens
-/// Only available in Debug mode
-// fn print_token_stream(label: &str, stream: TokenStream) {
-//   if cfg!(debug_assertions) {
-//     stream.into_iter()
-//       .for_each(|x| {
-//         println!("{} {:#?}", label, x);
-//       });
-//     println!("{}", "///");
-//   }
-// }  
+// For lack of the Debug trait in certain tokens (that I know of, in this version)
+// Only available in Debug mode
+fn print_token_stream(label: &str, stream: TokenStream) {
+  if cfg!(debug_assertions) {
+    stream.into_iter()
+      .for_each(|x| {
+        println!("{} {:#?}", label, x);
+      });
+    println!("{}", "///");
+  }
+}  
 
-// For lack of the Debug trait in certain tokens
+// For lack of the Debug trait in certain tokens (that I know of, in this version)
 // TODO Figure out how to make this generic, since TokenStream2 inherits from TokenStream
 // TODO maybe a simple 'x as proc_macro::TokenStream' might suffice
 // fn print_token_stream2(label: &str, stream: proc_macro2::TokenStream) {
@@ -61,14 +61,14 @@ struct Field {
   id: id::IdUid,
   unique: bool,
   index: bool,
-  flags: Option<u16>,
+  flags: u16,
 }
 
 impl Field {
 
-  fn scan_obx_property_type_and_flags (mnv: &syn::MetaNameValue) -> (u16, Option<u16>) {
+  fn scan_obx_property_type_and_flags (mnv: &syn::MetaNameValue) -> (u16, u16) {
     let mut obx_property_type: u16 = 0;
-    let mut obx_property_flags: Option<u16> = None;
+    let mut obx_property_flags: u16 = 0;
 
     if let syn::Lit::Int(li) = &mnv.lit {
       let result = li.base10_parse::<u16>();
@@ -77,7 +77,7 @@ impl Field {
           let param_name: &str = &ident.to_string();
           match param_name {
             "type" => { obx_property_type = value },
-            "flags" => { obx_property_flags = Some(value) }
+            "flags" => { obx_property_flags = value }
             _ => {}
           }
         }
@@ -92,7 +92,7 @@ impl Field {
     let mut name: String = String::new();
     let mut id = id::IdUid::zero();
     let mut obx_property_type: u16 = 0;
-    let mut obx_property_flags: Option<u16> = None;
+    let mut obx_property_flags: u16 = 0;
     let mut unique: bool = false;
     let mut index: bool = false;
     
@@ -275,11 +275,12 @@ impl Entity {
   fn get_properties(&self) -> Vec<json::Property> {
     let mut v: Vec<json::Property> = Vec::new();
     for f in self.fields.iter() {
+      let flags = if f.flags == 0 { None } else { Some(f.flags) };
       let p = json::Property {
         id: f.id.to_string(),
         name: f.name.clone(),
         type_field: f.field_type,
-        flags: f.flags,
+        flags: flags,
       };
       v.push(p);
     }
@@ -293,7 +294,7 @@ impl Entity {
         name: self.name.clone(),
         properties: self.get_properties(),
         relations: Vec::new(), // TODO
-        path: None,
+        // path: None,
         // TODO see flags
     }
   }
@@ -339,14 +340,14 @@ impl id::IdUid {
   }
 }
 
-/// This will break with nested sub types.
-/// The last bit will remove the annotations in the generated code
-/// because the generated code cannot reference the attributes.
-/// The result of this is unused imported attributes.
+// This will break with nested sub types.
+// The last bit will remove the annotations in the generated code
+// because the generated code cannot reference the attributes.
+// The result of this is unused imported attributes.
 // TODO also remove those unused imports, in the generated code
 #[proc_macro_attribute]
 pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
-  // print_token_stream("all: ", input.clone());
+  print_token_stream("all: ", input.clone());
 
   let struct_clone = input.clone();
   // all parse_macro_input! macro have to happen inside a proc_macro_attribute(d) function
@@ -354,11 +355,15 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
 
   let attr_args = parse_macro_input!(args as AttributeArgs);
   let mut id = id::IdUid::zero();
-  id.update_from_nested_metas(attr_args.iter());
+
+  if !attr_args.is_empty() {
+    id.update_from_nested_metas(attr_args.iter());
+  }
 
   let entity = Entity::from_entity_name_and_fields(id, struct_info);
   entity.serialize().write();
-  // println!("{:#?}", entity);
+  
+  dbg!(entity);
 
   input.into_iter().map(|x| {
     if let proc_macro::TokenTree::Group (group) = x {

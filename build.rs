@@ -3,6 +3,8 @@ extern crate bindgen;
 use std::env;
 use std::path::PathBuf;
 
+use glob::glob;
+
 fn main() {
     // Tell cargo to tell rustc to link the objectbox shared library.
     println!("cargo:rustc-link-lib=objectbox");
@@ -36,4 +38,17 @@ fn main() {
 
     // Read <entity>.objectbox.info and consolidate into
     // objectbox-model.json & objectbox-generated.rs
+
+    let glob_path = format!("{}.objectbox.info", out_path.to_str().unwrap_or_default());
+    for entry in glob(&glob_path).expect("Failed to read glob pattern") {
+        match entry {
+            Ok(path) => {
+                let file = format!("{:?}", path.display());
+                
+            }
+            Err(e) => {
+                panic!("{:?}", e)
+            }
+        }
+    }
 }

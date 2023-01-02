@@ -1,0 +1,9 @@
+[package]
+name = "example"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cargo-make = "0.36.3"
+objectbox_macros = { path = "../objectbox_macros" }
+objectbox = { path = "../" }

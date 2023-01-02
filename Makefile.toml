@@ -1,0 +1,28 @@
+[tasks.format]
+description = "Runs the cargo rustfmt plugin."
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt", "--", "--write-mode=overwrite"]
+
+# run 'cargo doc --no-deps' first
+[tasks.copy-apidocs]
+description = "Copies the generated documentation to the docs/api directory."
+script = [
+    "mkdir -p ./docs/api",
+    "mv ./target/doc/* ./docs/api"
+]
+
+# TODO
+#[tasks.version-bump]
+#script = [
+#]
+# 0. write release notes
+# 1. read previous version
+# 2. bump previous version
+# 3. git tag
+
+# TODO
+#[tasks.release]
+#dependencies = [
+#  
+#]

@@ -1,0 +1,7 @@
+#[tasks.generate-bindings]
+#description = "Generate objectbox.g.dart / objectbox-model.rs"
+#install_crate = "..."
+#command = "..."
+#args = ["..", "--", "--..-..=..."]
+
+

@@ -1,7 +1,7 @@
-extern crate builder;
+extern crate objectbox_macros;
 extern crate chrono;
 
-use builder::{entity, index, transient, unique, sync};
+use objectbox_macros::{entity, index, transient, unique, sync};
 use chrono::{DateTime, Utc};
 
 /*
