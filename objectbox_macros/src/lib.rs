@@ -347,7 +347,7 @@ impl id::IdUid {
 // TODO also remove those unused imports, in the generated code
 #[proc_macro_attribute]
 pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
-  print_token_stream("all: ", input.clone());
+  // print_token_stream("all: ", input.clone());
 
   let struct_clone = input.clone();
   // all parse_macro_input! macro have to happen inside a proc_macro_attribute(d) function

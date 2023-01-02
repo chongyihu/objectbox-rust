@@ -47,13 +47,22 @@ impl Entity {
     // }
 
     pub fn write(&mut self) {
-      let out_dir = env::var_os("OUT_DIR").unwrap();
-      let dest_path = Path::new(&out_dir).join(format!("{}.objectbox.info", self.name.clone()));
-      fs::write(
-          &dest_path,
-          format!("{}", serde_json::to_string(self).unwrap()),
-          ).unwrap();
-  }
+        if let Some(out_dir) = env::var_os("OUT_DIR") {
+            let dest_path = Path::new(&out_dir).join(format!("{}.objectbox.info", self.name.clone()));
+            if let Ok(json) = serde_json::to_string(self) {
+                let result = fs::write(
+                    &dest_path,
+                    format!("{}", json),
+                    );
+                match result {
+                    Err(error) => panic!("{}", error),
+                    _ => {}
+                }
+            }
+        }else {
+            panic!("Missing OUT_DIR environment variable, due to missing build.rs script");
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
