@@ -1,0 +1,13 @@
+[package]
+name = "objectbox-generator"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+glob = "0.3"
+rand = "0.8"
+serde = "1.0"
+serde_json = "1.0"
+serde_derive = "1.0"
+substring = "1.4"
+proc-macro2 = { version = "1.0", default-features = false }

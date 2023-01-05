@@ -4,15 +4,11 @@ version = "0.1.0"
 authors = [""]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-objectbox_macros = { path = "objectbox_macros" }
+objectbox-macros = { path = "macros" }
+objectbox-generator = { path = "generator" }
 chrono = "0.4"
 
 [build-dependencies]
-fbs = "^0.6"
 bindgen = "^0.51"
-glob = "0.3.0"
-
 

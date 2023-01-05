@@ -1,7 +1,6 @@
-extern crate objectbox_macros;
 extern crate objectbox;
 
-use objectbox_macros::{entity, index};
+use objectbox::macros::{entity, index};
 
 #[entity]
 struct Entity {

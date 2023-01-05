@@ -15,11 +15,8 @@ use syn::{AttributeArgs, DeriveInput, parse_macro_input};
 use std::option::Option;
 use std::vec::Vec;
 
-#[path = "./objectbox-model-serde.rs"]
-mod json;
-
-#[path = "./id.rs"]
-mod id;
+use objectbox_generator::model_json;
+use objectbox_generator::id;
 
 // For lack of the Debug trait in certain tokens (that I know of, in this version)
 // Only available in Debug mode
@@ -129,7 +126,7 @@ impl Field {
           match m {
             // single parameter
             syn::Meta::NameValue(mnv) => {
-              id.update_from_scan(&mnv);
+              update_from_scan(&mut id, &mnv);
               (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
             },
             // multiple parameters
@@ -137,7 +134,7 @@ impl Field {
               meta_list.nested.into_iter().for_each(|nm| {
                 if let syn::NestedMeta::Meta(meta) = nm {
                   if let syn::Meta::NameValue(mnv) = meta {
-                    id.update_from_scan(&mnv);
+                    update_from_scan(&mut id, &mnv);
                     (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
                   }
                 }
@@ -272,11 +269,11 @@ impl Entity {
     id::IdUid::zero()
   }
 
-  fn get_properties(&self) -> Vec<json::Property> {
-    let mut v: Vec<json::Property> = Vec::new();
+  fn get_properties(&self) -> Vec<model_json::Property> {
+    let mut v: Vec<model_json::Property> = Vec::new();
     for f in self.fields.iter() {
       let flags = if f.flags == 0 { None } else { Some(f.flags) };
-      let p = json::Property {
+      let p = model_json::Property {
         id: f.id.to_string(),
         name: f.name.clone(),
         type_field: f.field_type,
@@ -287,8 +284,8 @@ impl Entity {
     v
   }
 
-  fn serialize(&self) -> json::Entity {
-    json::Entity {
+  fn serialize(&self) -> model_json::Entity {
+    model_json::Entity {
       id: self.id.to_string(),
         last_property_id: self.get_last_property_id().to_string(),
         name: self.name.clone(),
@@ -300,44 +297,39 @@ impl Entity {
   }
 }
 
-impl id::IdUid {
-
-  fn zero() -> Self { id::IdUid{ id: 0, uid: 0 } }
-
-  fn update_from_scan (&mut self, mnv: &syn::MetaNameValue) {
-    if let syn::Lit::Int(li) = &mnv.lit {
-      let result = li.base10_parse::<u64>();
-      if let Ok(value) = result {
-        if let Some(ident) = mnv.path.get_ident() {
-          let param_name: &str = &ident.to_string();
-          match param_name {
-            "uid" => {
-              if self.uid == 0 {
-                self.uid = value
-              }
-            },
-            "id"  => {
-              if self.id == 0 {
-                self.id = value
-              }
-            },
-            _ => {}
-          }
+fn update_from_scan (id: &mut id::IdUid, mnv: &syn::MetaNameValue) {
+  if let syn::Lit::Int(li) = &mnv.lit {
+    let result = li.base10_parse::<u64>();
+    if let Ok(value) = result {
+      if let Some(ident) = mnv.path.get_ident() {
+        let param_name: &str = &ident.to_string();
+        match param_name {
+          "uid" => {
+            if id.uid == 0 {
+              id.uid = value
+            }
+          },
+          "id"  => {
+            if id.id == 0 {
+              id.id = value
+            }
+          },
+          _ => {}
         }
       }
     }
   }
+}
 
-  fn update_from_nested_metas(&mut self, iter: core::slice::Iter::<syn::NestedMeta>) {
-    iter.for_each(|nm| {
-      match nm {
-        syn::NestedMeta::Meta(NameValue(mnv)) => {
-          self.update_from_scan(mnv);
-        },
-        _ => {}
-      }
-    });
-  }
+fn update_from_nested_metas(id: &mut id::IdUid, iter: core::slice::Iter::<syn::NestedMeta>) {
+  iter.for_each(|nm| {
+    match nm {
+      syn::NestedMeta::Meta(NameValue(mnv)) => {
+        update_from_scan(id, mnv);
+      },
+      _ => {}
+    }
+  });
 }
 
 // This will break with nested sub types.
@@ -357,7 +349,7 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   let mut id = id::IdUid::zero();
 
   if !attr_args.is_empty() {
-    id.update_from_nested_metas(attr_args.iter());
+    update_from_nested_metas(&mut id, attr_args.iter());
   }
 
   let entity = Entity::from_entity_name_and_fields(id, struct_info);
