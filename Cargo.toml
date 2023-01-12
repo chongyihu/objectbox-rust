@@ -8,6 +8,7 @@ edition = "2018"
 objectbox-macros = { path = "macros" }
 objectbox-generator = { path = "generator" }
 chrono = "0.4"
+flatbuffers = "22.10.26"
 
 [build-dependencies]
 bindgen = "^0.51"
