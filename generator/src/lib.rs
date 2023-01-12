@@ -107,7 +107,7 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     }
 
     if entities.len() != 0 {
-        model_json::Root::from_entities(entities).write(&cargo_manifest_dir);
+        model_json::ModelInfo::from_entities(entities).write(&cargo_manifest_dir);
     }
     
     // objectbox-generated.rs

@@ -7,7 +7,7 @@ use std::path::{PathBuf, Path};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Root {
+pub struct ModelInfo {
     #[serde(rename = "_note1")]
     pub note1: String,
     #[serde(rename = "_note2")]
@@ -28,10 +28,10 @@ pub struct Root {
     pub version: i64,
 }
 
-impl Root {
+impl ModelInfo {
     pub fn from_entities(entities: Vec<Entity>) -> Self {
       let last_entity = entities.last().unwrap();
-      Root {
+      ModelInfo {
         note1: String::from("KEEP THIS FILE! Check it into a version control system (VCS) like git."),
         note2: String::from("ObjectBox manages crucial IDs for your object model. See docs for details."),
         note3: String::from("If you have VCS merge conflicts, you must resolve them according to ObjectBox docs."),
