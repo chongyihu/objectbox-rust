@@ -72,7 +72,7 @@ pub struct ModelEntity {
     pub id: String, // iduid = "1:12341820347123498124"
     pub last_property_id: String,
     pub name: String,
-    pub properties: Vec<Property>,
+    pub properties: Vec<ModelProperty>,
     pub relations: Vec<Value>, // TODO
     // #[serde(skip_serializing_if="Option::is_none")]
     // pub path: Option<String>,
@@ -105,7 +105,7 @@ impl ModelEntity {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Property {
+pub struct ModelProperty {
     pub id: String, // iduid = "1:12341820347123498124"
     pub name: String,
     #[serde(rename = "type")]

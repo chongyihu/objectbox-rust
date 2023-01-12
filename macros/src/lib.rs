@@ -269,11 +269,11 @@ impl Entity {
     id::IdUid::zero()
   }
 
-  fn get_properties(&self) -> Vec<model_json::Property> {
-    let mut v: Vec<model_json::Property> = Vec::new();
+  fn get_properties(&self) -> Vec<model_json::ModelProperty> {
+    let mut v: Vec<model_json::ModelProperty> = Vec::new();
     for f in self.fields.iter() {
       let flags = if f.flags == 0 { None } else { Some(f.flags) };
-      let p = model_json::Property {
+      let p = model_json::ModelProperty {
         id: f.id.to_string(),
         name: f.name.clone(),
         type_field: f.field_type,
