@@ -126,7 +126,7 @@ impl Field {
           match m {
             // single parameter
             syn::Meta::NameValue(mnv) => {
-              update_from_scan(&mut id, &mnv);
+              id.update_from_scan(&mnv);
               (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
             },
             // multiple parameters
@@ -134,7 +134,7 @@ impl Field {
               meta_list.nested.into_iter().for_each(|nm| {
                 if let syn::NestedMeta::Meta(meta) = nm {
                   if let syn::Meta::NameValue(mnv) = meta {
-                    update_from_scan(&mut id, &mnv);
+                    id.update_from_scan(&mnv);
                     (obx_property_type, obx_property_flags) = Self::scan_obx_property_type_and_flags(&mnv);
                   }
                 }
@@ -297,39 +297,47 @@ impl Entity {
   }
 }
 
-fn update_from_scan (id: &mut id::IdUid, mnv: &syn::MetaNameValue) {
-  if let syn::Lit::Int(li) = &mnv.lit {
-    let result = li.base10_parse::<u64>();
-    if let Ok(value) = result {
-      if let Some(ident) = mnv.path.get_ident() {
-        let param_name: &str = &ident.to_string();
-        match param_name {
-          "uid" => {
-            if id.uid == 0 {
-              id.uid = value
+// extension trait for IdUid, boilerplatey, but doable
+trait IdUidMacroHelper {
+  fn update_from_scan(&mut self, mnv: &syn::MetaNameValue);
+  fn update_from_nested_metas(&mut self, iter: core::slice::Iter::<syn::NestedMeta>);
+}
+
+impl IdUidMacroHelper for id::IdUid {
+    fn update_from_scan(&mut self, mnv: &syn::MetaNameValue) {
+      if let syn::Lit::Int(li) = &mnv.lit {
+        let result = li.base10_parse::<u64>();
+        if let Ok(value) = result {
+          if let Some(ident) = mnv.path.get_ident() {
+            let param_name: &str = &ident.to_string();
+            match param_name {
+              "uid" => {
+                if self.uid == 0 {
+                  self.uid = value
+                }
+              },
+              "id"  => {
+                if self.id == 0 {
+                  self.id = value
+                }
+              },
+              _ => {}
             }
-          },
-          "id"  => {
-            if id.id == 0 {
-              id.id = value
-            }
-          },
-          _ => {}
+          }
         }
       }
     }
-  }
-}
 
-fn update_from_nested_metas(id: &mut id::IdUid, iter: core::slice::Iter::<syn::NestedMeta>) {
-  iter.for_each(|nm| {
-    match nm {
-      syn::NestedMeta::Meta(NameValue(mnv)) => {
-        update_from_scan(id, mnv);
-      },
-      _ => {}
+    fn update_from_nested_metas(&mut self, iter: core::slice::Iter::<syn::NestedMeta>) {
+      iter.for_each(|nm| {
+        match nm {
+          syn::NestedMeta::Meta(NameValue(mnv)) => {
+            self.update_from_scan(mnv);
+          },
+          _ => {}
+        }
+      });
     }
-  });
 }
 
 // This will break with nested sub types.
@@ -349,7 +357,7 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   let mut id = id::IdUid::zero();
 
   if !attr_args.is_empty() {
-    update_from_nested_metas(&mut id, attr_args.iter());
+    id.update_from_nested_metas(attr_args.iter());
   }
 
   let entity = Entity::from_entity_name_and_fields(id, struct_info);
