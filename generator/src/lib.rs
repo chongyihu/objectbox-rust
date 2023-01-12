@@ -79,11 +79,11 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     let pbs = glob_generated_json(out_path);
 
     // read what is provided by the user
-    let mut entities = Vec::<model_json::Entity>::new();
+    let mut entities = Vec::<model_json::ModelEntity>::new();
     for pb in pbs.iter() {
         let path = pb.as_path();
         let string = fs::read_to_string(path).expect("Unable to read file");
-        if let Ok(r) = serde_json::from_str::<model_json::Entity>(&string) {
+        if let Ok(r) = serde_json::from_str::<model_json::ModelEntity>(&string) {
             entities.push(r);
         }
     }

@@ -14,7 +14,7 @@ pub struct ModelInfo {
     pub note2: String,
     #[serde(rename = "_note3")]
     pub note3: String,
-    pub entities: Vec<Entity>,
+    pub entities: Vec<ModelEntity>,
     pub last_entity_id: String,
     pub last_index_id: String,
     pub last_relation_id: String,
@@ -29,7 +29,7 @@ pub struct ModelInfo {
 }
 
 impl ModelInfo {
-    pub fn from_entities(entities: Vec<Entity>) -> Self {
+    pub fn from_entities(entities: Vec<ModelEntity>) -> Self {
       let last_entity = entities.last().unwrap();
       ModelInfo {
         note1: String::from("KEEP THIS FILE! Check it into a version control system (VCS) like git."),
@@ -68,7 +68,7 @@ impl ModelInfo {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Entity {
+pub struct ModelEntity {
     pub id: String, // iduid = "1:12341820347123498124"
     pub last_property_id: String,
     pub name: String,
@@ -78,7 +78,7 @@ pub struct Entity {
     // pub path: Option<String>,
 }
 
-impl Entity {
+impl ModelEntity {
     // pub fn set_path(&mut self, path: Option<String>) -> &mut Self {
     //     self.path = path;
     //     self

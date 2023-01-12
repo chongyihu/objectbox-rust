@@ -284,8 +284,8 @@ impl Entity {
     v
   }
 
-  fn serialize(&self) -> model_json::Entity {
-    model_json::Entity {
+  fn serialize(&self) -> model_json::ModelEntity {
+    model_json::ModelEntity {
       id: self.id.to_string(),
         last_property_id: self.get_last_property_id().to_string(),
         name: self.name.clone(),
