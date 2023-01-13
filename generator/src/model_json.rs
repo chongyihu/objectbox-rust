@@ -29,27 +29,27 @@ pub struct ModelInfo {
 }
 
 impl ModelInfo {
-    pub fn from_entities(entities: Vec<ModelEntity>) -> Self {
-      let last_entity = entities.last().unwrap();
+    pub fn from_entities(entities: &[ModelEntity]) -> Self {
+      let last_entity = entities.last().unwrap(); // TODO remove unwrap, unpack result and return proper error
+      let last_entity_id = last_entity.id.as_str();
       ModelInfo {
         note1: String::from("KEEP THIS FILE! Check it into a version control system (VCS) like git."),
         note2: String::from("ObjectBox manages crucial IDs for your object model. See docs for details."),
         note3: String::from("If you have VCS merge conflicts, you must resolve them according to ObjectBox docs."),
-        entities: entities.clone(),
-        last_entity_id: (last_entity.id).clone(),
-        last_index_id: String::from(""),
-        last_relation_id: String::from(""),
-        last_sequence_id: String::from(""),
+        entities: entities.to_vec(), // rehydrate from slice to vec for JSON des, all of this without cloning
+        last_entity_id: last_entity_id.to_string(),
+        last_index_id: String::from(""), // TODO
+        last_relation_id: String::from(""), // TODO
+        last_sequence_id: String::from(""), // TODO
         model_version: 5,
         model_version_parser_minimum: 5,
-        retired_entity_uids: Vec::new(),
-        retired_index_uids: Vec::new(),
-        retired_property_uids: Vec::new(),
-        retired_relation_uids: Vec::new(),
+        retired_entity_uids: Vec::new(), // TODO
+        retired_index_uids: Vec::new(), // TODO
+        retired_property_uids: Vec::new(), // TODO
+        retired_relation_uids: Vec::new(), // TODO
         version: 1,
       }
     }
-
 
     pub fn write(&mut self, cargo_manifest_dir: &PathBuf) {
         let dest_path = cargo_manifest_dir.as_path().join("src/objectbox-model.json");
