@@ -19,13 +19,13 @@ pub struct ModelInfo {
     pub last_index_id: String,
     pub last_relation_id: String,
     pub last_sequence_id: String,
-    pub model_version: i64,
-    pub model_version_parser_minimum: i64,
-    pub retired_entity_uids: Vec<Value>,
-    pub retired_index_uids: Vec<Value>,
-    pub retired_property_uids: Vec<Value>,
-    pub retired_relation_uids: Vec<Value>,
-    pub version: i64,
+    pub model_version: u64,
+    pub model_version_parser_minimum: u64,
+    pub retired_entity_uids: Vec<u64>,
+    pub retired_index_uids: Vec<u64>,
+    pub retired_property_uids: Vec<u64>,
+    pub retired_relation_uids: Vec<u64>,
+    pub version: u64,
 }
 
 impl ModelInfo {

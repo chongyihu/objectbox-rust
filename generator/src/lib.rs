@@ -88,7 +88,8 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
         }
     }
 
-    // fill in the gaps
+    // TODO harmonize values from existing objectbox-model.json (figure out exact requirements first)
+    // fill in the missing id:uids
     let mut counter: u64 = 0;
     for e in entities.iter_mut() {
         let id = parse_comma_separated_integers(&e.id, counter);
