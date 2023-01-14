@@ -9,7 +9,10 @@ pub mod model_json;
 #[path = "./id.rs"]
 pub mod id;
 
-fn parse_comma_separated_integers(some_id: &String, counter: u64) -> (u64, u64) {
+// TODO implement collision detection and evasion with predefined id and uid
+// TODO general idea: maintain a set of id and uid, when incrementing the counter,
+// TODO check for collision, if yes, increment/generate again, if no, assign value
+fn parse_colon_separated_integers(some_id: &String, counter: u64) -> (u64, u64) {
     use substring::Substring;
     let mut id: u64 = 0;
     let mut uid: u64 = 0;
@@ -56,6 +59,27 @@ fn parse_comma_separated_integers(some_id: &String, counter: u64) -> (u64, u64) 
     (id, uid)
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::parse_colon_separated_integers;
+
+    #[test]
+    fn colon_separated_integers() {
+        {
+            let result = parse_colon_separated_integers(&String::from("1:1337"), 0);
+            assert_eq!(result, (1,1337));
+        }
+        {
+            let result = parse_colon_separated_integers(&String::from(":1337"), 0);
+            assert_eq!(result, (1,1337));    
+        }
+        {
+            let result = parse_colon_separated_integers(&String::from("7:"), 0);
+            assert_eq!(result.0, 7);
+        }
+    }
+}
+
 fn glob_generated_json(out_path: &PathBuf) -> Vec<PathBuf> {
     let suffix = "*.objectbox.info";
     let glob_path = format!("{}/{}", out_path.to_str().unwrap_or_default(), suffix);
@@ -92,13 +116,13 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     // fill in the missing id:uids
     let mut counter: u64 = 0;
     for e in entities.iter_mut() {
-        let id = parse_comma_separated_integers(&e.id, counter);
+        let id = parse_colon_separated_integers(&e.id, counter);
         counter = id.0;
         e.id = format!("{}:{}", id.0, id.1);
 
         let mut counter_p: u64 = 0;
         for v in e.properties.iter_mut() {
-            let id = parse_comma_separated_integers(&v.id, counter_p);
+            let id = parse_colon_separated_integers(&v.id, counter_p);
             counter_p = id.0;
             v.id = format!("{}:{}", id.0, id.1);
         }
