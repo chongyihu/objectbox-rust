@@ -1,17 +1,11 @@
 // TODO see if uid type = u64 can be parameterized with generics e.g. 0x... 0b... etc.
+// note: literals can be typed: 1_u8
 // TODO see quote::format_ident
-// TODO replace with serde
-use rand::rngs::ThreadRng;
-use rand::Rng;
 
 #[derive(Default, Debug, Clone)]
 pub struct IdUid {
   pub id: u64,
   pub uid: u64
-}
-
-fn get_uid(rng: &mut ThreadRng) -> u64 {
-  rng.gen::<u64>()
 }
 
 impl IdUid {

@@ -9,6 +9,7 @@ objectbox-macros = { path = "macros" }
 objectbox-generator = { path = "generator" }
 chrono = "0.4"
 flatbuffers = "22.10.26"
+bytebuffer = "2.0.1"
 
 [build-dependencies]
 bindgen = "^0.51"

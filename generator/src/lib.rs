@@ -4,10 +4,7 @@ use model_json::{ModelEntity, ModelInfo};
 use rand::Rng;
 extern crate rand;
 
-#[path = "./model_json.rs"]
 pub mod model_json;
-
-#[path = "./id.rs"]
 pub mod id;
 
 // TODO implement collision detection and evasion with predefined id and uid
@@ -142,11 +139,12 @@ impl EntityVecHelper for Vec<ModelEntity> {
 }
 
 trait InfoHelper {
-    fn write_ob_rs_file(&self, path: &Path);
+    fn generate_code(&self, path: &Path);
 }
 
 impl InfoHelper for ModelInfo {
-    fn write_ob_rs_file(&self, path: &Path) {
+    fn generate_code(&self, path: &Path) {
+        // mod code_gen;
 
     }
 } 
@@ -174,6 +172,6 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
 
     // Exports everything a user needs from objectbox, fully generated
     let ob_dest_path = cargo_manifest_dir.as_path().join("src/objectbox.rs");
-    ModelInfo::from_json_file(&json_dest_path).write_ob_rs_file(&ob_dest_path);
+    ModelInfo::from_json_file(&json_dest_path).generate_code(&ob_dest_path);
 
 }
