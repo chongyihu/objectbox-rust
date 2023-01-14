@@ -20,11 +20,4 @@ impl IdUid {
   pub fn to_string(&self) -> String {
     format!("{}:{}", self.id, self.uid)
   }
-
-  fn from_rng_and_previous_id(&mut self, prev_id: u64, rng: &mut ThreadRng) {
-    let id = if self.id == 0 { prev_id + 1 } else { self.id };
-    let uid = if self.uid == 0 { get_uid(rng) } else { self.uid };
-    self.id = id;
-    self.uid = uid;
-  }
 }
