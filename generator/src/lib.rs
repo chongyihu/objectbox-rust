@@ -13,27 +13,27 @@ pub mod id;
 // TODO implement collision detection and evasion with predefined id and uid
 // TODO general idea: maintain a set of id and uid, when incrementing the counter,
 // TODO check for collision, if yes, increment/generate again, if no, assign value
-fn parse_colon_separated_integers(some_id: &String, counter: u64) -> (u64, u64) {
+fn parse_colon_separated_integers(str: &String, counter: u64) -> (u64, u64) {
     use substring::Substring;
     let mut id: u64 = 0;
     let mut uid: u64 = 0;
-    if !some_id.is_empty() {
-        if some_id.starts_with(":") {
-            let right = some_id.substring(1, some_id.len());
+    if !str.is_empty() {
+        if str.starts_with(":") {
+            let right = str.substring(1, str.len());
             if let Ok(u) = str::parse::<u64>(right) {
                 uid = u;
             }else {
                 panic!("A u64 could not be parsed from this string");
             }
-        }else if some_id.ends_with(":") {
-            let left = some_id.substring(0, some_id.len()-1);
+        }else if str.ends_with(":") {
+            let left = str.substring(0, str.len()-1);
             if let Ok(u) = str::parse::<u64>(left) {
                 id = u;
             }else {
                 panic!("A u64 could not be parsed from this string");
             }
         }else {
-            let collect: Vec<&str> = some_id.split(":").collect();
+            let collect: Vec<&str> = str.split(":").collect();
             if collect.len() == 2 {
               let left = collect[0];
               let right = collect[1];
@@ -142,11 +142,11 @@ impl EntityVecHelper for Vec<ModelEntity> {
 }
 
 trait InfoHelper {
-    fn write_ob(&self, path: &Path);
+    fn write_ob_rs_file(&self, path: &Path);
 }
 
 impl InfoHelper for ModelInfo {
-    fn write_ob(&self, path: &Path) {
+    fn write_ob_rs_file(&self, path: &Path) {
 
     }
 } 
@@ -174,6 +174,6 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
 
     // Exports everything a user needs from objectbox, fully generated
     let ob_dest_path = cargo_manifest_dir.as_path().join("src/objectbox.rs");
-    ModelInfo::from_json_file(&json_dest_path).write_ob(&ob_dest_path);
+    ModelInfo::from_json_file(&json_dest_path).write_ob_rs_file(&ob_dest_path);
 
 }
