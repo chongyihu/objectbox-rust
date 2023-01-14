@@ -51,17 +51,24 @@ impl ModelInfo {
       }
     }
 
-    pub fn write(&mut self, cargo_manifest_dir: &PathBuf) {
-        let dest_path = cargo_manifest_dir.as_path().join("src/objectbox-model.json");
+    pub fn write_json(&mut self, dest_path: &PathBuf) {
         if let Ok(json) = serde_json::to_string_pretty(self) {
-            let result = fs::write(
-                &dest_path,
-                format!("{}", json),
-                );
-            match result {
-                Err(error) => panic!("{}", error),
+            match fs::write(&dest_path, json) {
+                Err(error) => panic!("Problem writing the objectbox-model.json file: {:?}", error),
                 _ => {}
             }
+        }
+    }
+
+    pub fn from_json_file(path: &Path) -> Self {
+        match fs::read_to_string(path) {
+            Ok(content) => {
+                match serde_json::from_str(content.as_str()) {
+                    Ok(json) => json,
+                    Err(error) => panic!("Problem parsing the json: {:?}", error),
+                }
+            }
+            Err(error) => panic!("Problem reading the json file: {:?}", error),
         }
     }
 }
@@ -90,7 +97,7 @@ impl ModelEntity {
             if let Ok(json) = serde_json::to_string(self) {
                 let result = fs::write(
                     &dest_path,
-                    format!("{}", json),
+                    json.as_str(),
                     );
                 match result {
                     Err(error) => panic!("{}", error),
@@ -98,7 +105,7 @@ impl ModelEntity {
                 }
             }
         }else {
-            panic!("Missing OUT_DIR environment variable, due to missing build.rs script");
+            panic!("Missing OUT_DIR environment variable, due to calling this function outside of build.rs");
         }
     }
 }

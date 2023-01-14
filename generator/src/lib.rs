@@ -1,5 +1,6 @@
-use std::{path::PathBuf, fs};
+use std::{path::{PathBuf, Path}, fs};
 use glob::glob;
+use model_json::{ModelEntity, ModelInfo};
 use rand::Rng;
 extern crate rand;
 
@@ -98,44 +99,81 @@ fn glob_generated_json(out_path: &PathBuf) -> Vec<PathBuf> {
     pbs
 }
 
+trait EntityVecHelper {
+    fn add_entities_to_model(&mut self, path_buffers: &[PathBuf]) -> &mut Self;
+    fn assign_id_to_entities(&mut self) -> &mut Self;
+}
+
+impl EntityVecHelper for Vec<ModelEntity> {
+    fn add_entities_to_model(&mut self, path_buffers: &[PathBuf]) -> &mut Self {
+        for pb in path_buffers.iter() {
+            let path = pb.as_path();
+            let string = fs::read_to_string(path).expect("Unable to read file");
+            if let Ok(r) = serde_json::from_str::<ModelEntity>(&string) {
+                self.push(r);
+            }
+        }
+        self
+    }
+
+    fn assign_id_to_entities(&mut self) -> &mut Self {
+        // TODO harmonize values from existing objectbox-model.json (figure out exact requirements first)
+        // fill in the missing id:uids
+        let mut counter: u64 = 0;
+        for e in self.iter_mut() {
+            let id = parse_colon_separated_integers(&e.id, counter);
+            counter = id.0;
+            e.id = format!("{}:{}", id.0, id.1);
+    
+            let mut counter_p: u64 = 0;
+            for v in e.properties.iter_mut() {
+                let id = parse_colon_separated_integers(&v.id, counter_p);
+                counter_p = id.0;
+                v.id = format!("{}:{}", id.0, id.1);
+            }
+    
+            let last_property = e.properties.last().unwrap();
+            e.last_property_id = last_property.id.clone();
+        }
+        // sort by entity name
+        self.sort_by(|a, b| b.name.cmp(&a.name));
+        self
+    }
+}
+
+trait InfoHelper {
+    fn write_ob(&self, path: &Path);
+}
+
+impl InfoHelper for ModelInfo {
+    fn write_ob(&self, path: &Path) {
+
+    }
+} 
+
 pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     // Read <entity>.objectbox.info and consolidate into
     let pbs = glob_generated_json(out_path);
 
-    // read what is provided by the user
-    let mut entities = Vec::<model_json::ModelEntity>::new();
-    for pb in pbs.iter() {
-        let path = pb.as_path();
-        let string = fs::read_to_string(path).expect("Unable to read file");
-        if let Ok(r) = serde_json::from_str::<model_json::ModelEntity>(&string) {
-            entities.push(r);
-        }
+    if !pbs.is_empty() {
+        println!("cargo:warning=No entities declared!");
+        return
     }
 
-    // TODO harmonize values from existing objectbox-model.json (figure out exact requirements first)
-    // fill in the missing id:uids
-    let mut counter: u64 = 0;
-    for e in entities.iter_mut() {
-        let id = parse_colon_separated_integers(&e.id, counter);
-        counter = id.0;
-        e.id = format!("{}:{}", id.0, id.1);
+    let json_dest_path = cargo_manifest_dir.as_path().join("src/objectbox-model.json");
+    if !json_dest_path.exists() {
+        let mut entities = Vec::<ModelEntity>::new();
 
-        let mut counter_p: u64 = 0;
-        for v in e.properties.iter_mut() {
-            let id = parse_colon_separated_integers(&v.id, counter_p);
-            counter_p = id.0;
-            v.id = format!("{}:{}", id.0, id.1);
-        }
-
-        let last_property = e.properties.last().unwrap();
-        e.last_property_id = last_property.id.clone();
-    }
-
-    if entities.len() != 0 {
-        entities.sort_by(|a, b| b.name.cmp(&a.name));
-        model_json::ModelInfo::from_entities(entities.as_slice()).write(&cargo_manifest_dir);
-    }
+        // read what is provided by the user
+        entities
+            .add_entities_to_model(pbs.as_slice())
+            .assign_id_to_entities();
     
-    // objectbox-generated.rs
-    // TODO now write the rest of the code
+        ModelInfo::from_entities(entities.as_slice()).write_json(&json_dest_path);
+    }
+
+    // Exports everything a user needs from objectbox, fully generated
+    let ob_dest_path = cargo_manifest_dir.as_path().join("src/objectbox.rs");
+    ModelInfo::from_json_file(&json_dest_path).write_ob(&ob_dest_path);
+
 }
