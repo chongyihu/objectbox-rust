@@ -108,6 +108,7 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     }
 
     if entities.len() != 0 {
+        entities.sort_by(|a, b| b.name.cmp(&a.name));
         model_json::ModelInfo::from_entities(entities.as_slice()).write(&cargo_manifest_dir);
     }
     
