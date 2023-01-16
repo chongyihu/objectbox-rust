@@ -16,9 +16,6 @@ pub trait IdExt {
   fn set_id(&mut self, id: model::SchemaID);
 }
 
-// TODO determine if we need an ext trait for determining the TypeId,
-// the compiler should warn if an entity type doesn't 
-
 // TODO
 /*
 pub trait RelationExt {
@@ -30,8 +27,23 @@ pub trait RelationExt {
 }
 */
 
-trait OBBlanket: IdExt + FBOBBridge {}
+pub trait OBBlanket: IdExt + FBOBBridge {}
 impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
+
+use bytebuffer::ByteBuffer;
+pub trait FactoryHelper<T: ?Sized> {
+  fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> T;
+}
+// #[derive(Clone, Copy)]
+pub struct Factory<T> { silence_unused_param_compiler_error: Option<T> }
+
+pub fn make_from_trait<T>(map: anymap::AnyMap, store: &mut store::Store, byte_buffer: &ByteBuffer)
+-> Option<T> where T: 'static {
+  if let Some(f) = map.get::<Box<dyn FactoryHelper<T>>>() {
+    return Some(f.make(store, byte_buffer));
+  }
+  None
+}
 
 #[cfg(test)]
 #[test]
@@ -50,6 +62,7 @@ fn blanket_directly_applied_on_entity_type() {
     // fn from_FB(store: &mut store::Store, byte_buffer: &ByteBuffer) -> Self {
     //   SomeEntity { id: 1 }
     // }
+    // update: the from_fb function will be executed by the make_from_trait function
   }
 
   impl IdExt for SomeEntity {
@@ -92,12 +105,6 @@ fn blanket_directly_applied_on_entity_type() {
 fn entity_factories() {
   use bytebuffer::ByteBuffer;
   {
-    trait FactoryHelper<T: ?Sized> {
-      fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> T;
-    }
-    // #[derive(Clone, Copy)]
-    struct Factory<T> { silence_unused_param_compiler_error: Option<T> }
-
     struct Entity0 { id: model::SchemaID }
     struct Entity1 { id: model::SchemaID }
     struct Entity2 { id: model::SchemaID }
@@ -159,14 +166,6 @@ fn entity_factories() {
 
     // experiment boxed factories
     {
-      fn make_from_trait<T>(map: anymap::AnyMap, store: &mut store::Store, byte_buffer: &ByteBuffer)
-      -> Option<T> where T: 'static {
-        if let Some(f) = map.get::<Box<dyn FactoryHelper<T>>>() {
-          return Some(f.make(store, byte_buffer));
-        }
-        None
-      }
-
       let mut map = anymap::AnyMap::new();
       let f0 = Factory::<Entity0> { silence_unused_param_compiler_error: None };
       
