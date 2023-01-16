@@ -1,7 +1,7 @@
 # Generator
 
-This is required to generate the `objectbox-model.json` and `objectbox.rs`
-for a crate.
+This crate along with the macros crate are required to generate the `src/objectbox-model.json` and `src/objectbox.rs`
+for your project's crate.
 
 Applied on `cargo.toml`:
 
