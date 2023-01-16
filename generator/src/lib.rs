@@ -143,16 +143,16 @@ use genco::prelude::*;
 use genco::quote_in;
 
 trait CodeGenEntityExt {
-    fn generate_traits(&self, tokens: &mut Tokens<Rust>);
+    fn generate_traits(&self) -> Tokens<Rust>;
 }
 
 impl CodeGenEntityExt for ModelEntity {
-    fn generate_traits(&self, tokens: &mut Tokens<Rust>) {
+    fn generate_traits(&self) -> Tokens<Rust> {
         let entity = &rust::import("crate", &self.name);
         let schema_id = rust::import("objectbox::model", "SchemaID");
         let bridge_trait = rust::import("objectbox::traits", "FBOBBridge");
         let id_trait = rust::import("objectbox::traits", "IdExt");
-        quote_in! ( *tokens =>
+        quote! {
             impl $bridge_trait for $entity {
                 fn to_fb(self /* TODO, builder: &fb.Builder */) {
 
@@ -166,7 +166,7 @@ impl CodeGenEntityExt for ModelEntity {
             // fn set_id(&mut self, id: model::SchemaID) {
             // }
             }
-        );
+        }
     }
 }
 
@@ -179,10 +179,25 @@ impl CodeGenExt for ModelInfo {
   fn generate_code(&self, path: &Path) {
     let tokens = &mut rust::Tokens::new();
     for e in self.entities.iter() {
-        e.generate_traits(tokens);
+        tokens.append(e.generate_traits());
     }
 
-    if let Ok(str) = tokens.to_file_string() {
+    // Vec<u8> implements std::io::Write
+    let mut w = fmt::IoWriter::new(Vec::<u8>::new());
+
+    let fmt = fmt::Config::from_lang::<Rust>();
+    let config = rust::Config::default();
+    // Default format state for Rust.
+    let format = rust::Format::default();
+
+    if let Err(error) = tokens.format(&mut w.as_formatter(&fmt), &config, &format) {
+        // println!("cargo:warning={:?}", error);
+        panic!("{:?}", error);
+    }
+    let vector = w.into_inner();
+    let utf_result = std::str::from_utf8(&vector);
+
+    if let Ok(str) = utf_result {
         match fs::write(&path, str) {
             Err(error) => panic!("Problem writing the objectbox.rs file: {:?}", error),
             Ok(_) => {},
