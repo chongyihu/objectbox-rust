@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -eu
 
-cLibVersion=0.17.0
+cLibVersion=0.18.0
 os=$(uname)
 
 # if there's no tty this is probably part of a docker build - therefore we install the c-api explicitly
@@ -10,4 +10,4 @@ if [[ "$os" != MINGW* ]] && [[ "$os" != CYGWIN* ]]; then
   tty -s || cLibArgs="${cLibArgs} --install"
 fi
 
-bash <(curl -s https://raw.githubusercontent.com/objectbox/objectbox-c/master/download.sh) ${cLibArgs} ${cLibVersion}
+bash <(curl -s https://raw.githubusercontent.com/objectbox/objectbox-c/main/download.sh) ${cLibArgs} ${cLibVersion}
