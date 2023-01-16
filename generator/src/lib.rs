@@ -138,40 +138,109 @@ impl EntityVecHelper for Vec<ModelEntity> {
     }
 }
 
-trait InfoHelper {
+use genco::fmt;
+use genco::prelude::*;
+use genco::quote_in;
+
+trait CodeGenEntityExt {
+    fn generate_traits(&self, tokens: &mut Tokens<Rust>);
+}
+
+impl CodeGenEntityExt for ModelEntity {
+    fn generate_traits(&self, tokens: &mut Tokens<Rust>) {
+        let entity = &rust::import("crate", &self.name);
+        let schema_id = rust::import("objectbox::model", "SchemaID");
+        let bridge_trait = rust::import("objectbox::traits", "FBOBBridge");
+        let id_trait = rust::import("objectbox::traits", "IdExt");
+        quote_in! ( *tokens =>
+            impl $bridge_trait for $entity {
+                fn to_fb(self /* TODO, builder: &fb.Builder */) {
+
+                }            
+            }
+            
+            impl $id_trait for $entity {
+                fn get_id(&self) -> $schema_id {
+                    1
+                }
+            // fn set_id(&mut self, id: model::SchemaID) {
+            // }
+            }
+        );
+    }
+}
+
+trait CodeGenExt {
+    // fn generate_model(&self) -> Tokens<Rust>; // TODO
     fn generate_code(&self, path: &Path);
 }
 
-impl InfoHelper for ModelInfo {
-    fn generate_code(&self, path: &Path) {
-        // mod code_gen;
-
+impl CodeGenExt for ModelInfo {
+  fn generate_code(&self, path: &Path) {
+    let tokens = &mut rust::Tokens::new();
+    for e in self.entities.iter() {
+        e.generate_traits(tokens);
     }
-} 
+
+    if let Ok(str) = tokens.to_file_string() {
+        match fs::write(&path, str) {
+            Err(error) => panic!("Problem writing the objectbox.rs file: {:?}", error),
+            Ok(_) => {},
+        }    
+    }
+  }
+
+  // TODO
+    // fn generate_model(&self) -> Tokens<Rust> {
+    //     let bridgeTrait = rust::import("objectbox::traits", "FBOBBridge");
+    //     let idTrait = rust::import("objectbox::traits", "IdExt");
+    //     let tokens: rust::Tokens = quote! {
+    //         impl $bridgeTrait for Entity {
+    //             fn to_fb(self /* TODO, builder: &fb.Builder */) {
+
+    //             }            
+    //         }
+            
+    //         impl $idTrait for SomeEntity {
+    //             fn get_id(&self) -> model::SchemaID {
+    //                 1
+    //             }
+    //         // fn set_id(&mut self, id: model::SchemaID) {
+    //         // }
+    //         }
+    //     };
+    //     tokens
+    // }
+}
 
 pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     // Read <entity>.objectbox.info and consolidate into
     let pbs = glob_generated_json(out_path);
 
-    if !pbs.is_empty() {
+    if pbs.is_empty() {
         println!("cargo:warning=No entities declared!");
         return
     }
 
-    let json_dest_path = cargo_manifest_dir.as_path().join("src/objectbox-model.json");
-    if !json_dest_path.exists() {
-        let mut entities = Vec::<ModelEntity>::new();
-
-        // read what is provided by the user
-        entities
-            .add_entities_to_model(pbs.as_slice())
-            .assign_id_to_entities();
-    
-        ModelInfo::from_entities(entities.as_slice()).write_json(&json_dest_path);
+    let json_dest_path = &cargo_manifest_dir.as_path().join("src/objectbox-model.json");
+    let ob_dest_path = &cargo_manifest_dir.as_path().join("src/objectbox.rs");
+    if let Ok(exists) = json_dest_path.try_exists() {
+        // Exports everything a user needs from objectbox, fully generated
+        if exists {
+            ModelInfo::from_json_file(json_dest_path).generate_code(ob_dest_path);
+            return;    
+        }
     }
 
-    // Exports everything a user needs from objectbox, fully generated
-    let ob_dest_path = cargo_manifest_dir.as_path().join("src/objectbox.rs");
-    ModelInfo::from_json_file(&json_dest_path).generate_code(&ob_dest_path);
+    let mut entities = Vec::<ModelEntity>::new();
+
+    // read what is provided by the user
+    entities
+        .add_entities_to_model(pbs.as_slice())
+        .assign_id_to_entities();
+
+    ModelInfo::from_entities(entities.as_slice())
+    .write_json(json_dest_path)
+    .generate_code(ob_dest_path);
 
 }

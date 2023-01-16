@@ -51,20 +51,21 @@ impl ModelInfo {
       }
     }
 
-    pub fn write_json(&mut self, dest_path: &PathBuf) {
+    pub fn write_json(&mut self, dest_path: &PathBuf) -> &mut Self {
         if let Ok(json) = serde_json::to_string_pretty(self) {
             match fs::write(&dest_path, json) {
                 Err(error) => panic!("Problem writing the objectbox-model.json file: {:?}", error),
-                _ => {}
+                _ => {},
             }
         }
+        self
     }
 
     pub fn from_json_file(path: &Path) -> Self {
         match fs::read_to_string(path) {
             Ok(content) => {
                 match serde_json::from_str(content.as_str()) {
-                    Ok(json) => json,
+                    Ok(json) => return json,
                     Err(error) => panic!("Problem parsing the json: {:?}", error),
                 }
             }

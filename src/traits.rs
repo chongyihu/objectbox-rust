@@ -27,6 +27,7 @@ pub trait RelationExt {
 }
 */
 
+// Reference from Store and Box with this type
 pub trait OBBlanket: IdExt + FBOBBridge {}
 impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
 

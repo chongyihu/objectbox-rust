@@ -15,3 +15,4 @@ anymap = "0.12.1"
 [build-dependencies]
 bindgen = "^0.51"
 
+# in an imaginary world, ob can be completely rewritten in rust, and safer_ffi can be used to export to other language targets

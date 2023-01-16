@@ -6,3 +6,5 @@ lib
 .vs*
 
 .idea
+example/src/objectbox.rs
+example/src/objectbox-model.json
