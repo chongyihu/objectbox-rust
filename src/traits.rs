@@ -35,7 +35,7 @@ impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
 
 #[cfg(test)]
 #[test]
-fn tuck_blanket() {
+fn blanket_directly_applied_on_entity_type() {
   // imagine this were an external struct
   // from a different package / crate / module etc.
 
@@ -87,120 +87,112 @@ fn tuck_blanket() {
   assert_eq!(r3.get_id(), 6);
 }
 
-
-use bytebuffer::ByteBuffer;
-use std::any::Any;
-
-
 #[cfg(test)]
 #[test]
-fn build_factories_with_closures_nope() {
-  use std::{collections::HashMap, any::TypeId};
-
-  // won't work, because Store and Box need to know the enum
-  // ahead of time
+fn entity_factories() {
+  use bytebuffer::ByteBuffer;
   {
-    struct EntityA { id: model::SchemaID }
-    struct EntityB { id: model::SchemaID }
+    trait FactoryHelper<T: ?Sized> {
+      fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> T;
+    }
+    // #[derive(Clone, Copy)]
+    struct Factory<T> { silence_unused_param_compiler_error: Option<T> }
 
-    enum EntityTypes {
-      EntityA(Box<fn() -> EntityA>),
-      EntityB(Box<fn() -> EntityB>),
+    struct Entity0 { id: model::SchemaID }
+    struct Entity1 { id: model::SchemaID }
+    struct Entity2 { id: model::SchemaID }
+
+    impl FactoryHelper<Entity0> for Factory<Entity0> {
+      fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> Entity0 {
+          Entity0{ id: 0 }
+      }
     }
 
-    let a = EntityTypes::EntityA(Box::new(|| EntityA { id: 0 } ));
-    let b = EntityTypes::EntityB(Box::new(|| EntityB { id: 1 } ));
+    impl FactoryHelper<Entity1> for Factory<Entity1> {
+      fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> Entity1 {
+          Entity1{ id: 1 }
+      }
+    }
 
-    let mut map = HashMap::<model::SchemaID, EntityTypes>::new();
+    impl FactoryHelper<Entity2> for Factory<Entity2> {
+      fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> Entity2 {
+          Entity2{ id: 2 }
+      }
+    }
 
+    let store = &mut store::Store {};
+    let byte_buffer = &ByteBuffer::new();
+
+    // this should be const boxed where it is generated
+    let f0 = Factory::<Entity0> { silence_unused_param_compiler_error: None };
+    let f1 = Factory::<Entity1> { silence_unused_param_compiler_error: None };
+    let f2 = Factory::<Entity2> { silence_unused_param_compiler_error: None };
+
+    let e0 = f0.make(store, byte_buffer);
+    let e1 = f1.make(store, byte_buffer);
+    let e2 = f2.make(store, byte_buffer);
+
+    assert_eq!(e0.id, 0);
+    assert_eq!(e1.id, 1);
+    assert_eq!(e2.id, 2);
+
+    // AnyMap experiment
+    {
+      let mut map = anymap::AnyMap::new();
+
+      map.insert(f0);
+      map.insert(f1);
+      map.insert(f2);
+
+      let f0 = map.get::<Factory<Entity0>>();
+      let f1 = map.get::<Factory<Entity1>>();
+      let f2 = map.get::<Factory<Entity2>>();
+
+      let e0 = f0.unwrap().make(store, byte_buffer);
+      let e1 = f1.unwrap().make(store, byte_buffer);
+      let e2 = f2.unwrap().make(store, byte_buffer);
+  
+      assert_eq!(e0.id, 0);
+      assert_eq!(e1.id, 1);
+      assert_eq!(e2.id, 2);
+    }
+
+    // experiment boxed factories
+    {
+      fn make_from_trait<T>(map: anymap::AnyMap, store: &mut store::Store, byte_buffer: &ByteBuffer)
+      -> Option<T> where T: 'static {
+        if let Some(f) = map.get::<Box<dyn FactoryHelper<T>>>() {
+          return Some(f.make(store, byte_buffer));
+        }
+        None
+      }
+
+      let mut map = anymap::AnyMap::new();
+      let f0 = Factory::<Entity0> { silence_unused_param_compiler_error: None };
+      
+      map.insert(Box::new(f0) as Box<dyn FactoryHelper<Entity0>>);
+      
+      let e0 = make_from_trait::<Entity0>(map, store, byte_buffer);
+      assert_eq!(e0.is_some(), true); // \o/
+    }
+
+    // experiment ref'ed factories
+    {
+      fn make_from_ref<T>(map: anymap::AnyMap, store: &mut store::Store, byte_buffer: &ByteBuffer)
+      -> Option<T> where T: 'static {
+        if let Some(f) = map.get::<Factory<T>>() {
+          // return f.make (nope, unknown trait)
+        }
+        None
+      }
+
+      let mut map = anymap::AnyMap::new();
+      let f0: &'static Factory<Entity0> = &Factory::<Entity0> { silence_unused_param_compiler_error: None };
+      map.insert(f0);
+      
+      let e0 = make_from_ref::<Entity0>(map, store, byte_buffer);
+      assert_ne!(e0.is_some(), true); // :(
+    }
   }
-
-  // {
-  //   trait Factory<T: ?Sized> {
-  //     fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> T;
-  //   }
-
-  //   let mut map = HashMap::<u32, Box<dyn Factory<T>>>::new();
-
-  //   struct Entity0 { id: model::SchemaID }
-  //   struct Factory0;
-
-  //   struct Entity1 { id: model::SchemaID }
-  //   struct Factory1;
-
-  //   impl Factory<Entity0> for Factory0 {
-  //     fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> Entity0 {
-  //         Entity0{ id: 0 }
-  //     }
-  //   }
-  //   impl Factory<Entity1> for Factory1 {
-  //     fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> Entity1 {
-  //       Entity1{ id: 1 }
-  //   }
-  // }
-
-  //   map.insert(0, Box::new(Factory0{}));
-  //   map.insert(1, Box::new(Factory1{}));
-
-  //   let store = store::Store {};
-  //   let byte_buffer = ByteBuffer::new();
-  //   let e0 = map.get(0).unwrap().make(&mut store, &byte_buffer) as Entity0;
-  //   let e1 = map.get(1).unwrap().make(&mut store, &byte_buffer) as Entity1;
-  //   assert_eq!(e0.id, 0);
-  //   assert_eq!(e1.id, 1);
-  // }
-
-  // {
-  //   struct Entity0 { id: model::SchemaID }
-  //   struct Entity1 { id: model::SchemaID }
-
-  //   let mut map = HashMap::<model::SchemaID, Box<dyn Fn(&mut store::Store, &ByteBuffer) -> dyn Any>>::new();
-  //   map.insert(0, Box::new(|store, bb| Entity0 { id : 0}) as Box<dyn Any>);
-  //   map.insert(1, Box::new(|store, bb| Entity1 { id : 1}) as Box<dyn Any>);
-  //   let store = store::Store {};
-  //   let byte_buffer = ByteBuffer::new();
-  //   let e0 = map.get(0).unwrap()(&mut store, &byte_buffer) as Entity0;
-  //   let e1 = map.get(1).unwrap()(&mut store, &byte_buffer) as Entity1;
-  //   assert_eq!(e0.id, 0);
-  //   assert_eq!(e1.id, 1);
-  // }
 }
 
-
-// struct Factory<T> {
-//     pub maker: fn(store: &mut store::Store, byte_buffer: &ByteBuffer) -> T,
-// }
-
-// #[cfg(test)]
-// #[test]
-// fn build_factories_with_closures_nope() {
-//   use std::collections::HashMap;
-//   let mut map = HashMap::new();
-
-//   let f1 = Factory {
-//     maker: |s, bb| String::from("new"),
-//   };
-
-//   let f2 = Factory {
-//     maker: |s, bb| 32_u32,
-//   };
-
-//   // map.insert(
-//   //   0_u32,
-//   //   Box::new(f1),
-//   // );
-
-//   map.insert(
-//     1_u32,
-//     Box::new(f2),
-//   );
-
-//   // let result0 = map.get(&0_u32).unwrap();
-//   let result1 = map.get(&1_u32).unwrap();
-
-//   let store = &mut store::Store {};
-//   let bb = bytebuffer::ByteBuffer::new();
-
-//   // assert_eq!((result0.builder)(store, &bb).as_str(), "new");
-//   assert_eq!((result1.maker)(store, &bb), 32_u32);
-// }
