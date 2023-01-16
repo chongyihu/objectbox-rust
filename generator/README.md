@@ -1,0 +1,39 @@
+# Generator
+
+This is required to generate the `objectbox-model.json` and `objectbox.rs`
+for a crate.
+
+Applied on `cargo.toml`:
+
+```toml
+[package]
+name = "my objectbox project"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+cargo-make = "0.36.3"
+#objectbox = { path = "./objectbox" }
+objectbox = "0.1.0"
+
+[build-dependencies]
+#objectbox = { path = "./objectbox" }
+objectbox = "0.1.0" # whichever is appropriate
+glob = "0.3"
+```
+
+Applied on your crate's `build.rs` to kickstart code generation:
+
+```rust
+use objectbox::generator as gen;
+use std::path::PathBuf;
+use std::env;
+
+fn main() {
+  let cargo_manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+  let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+  gen::generate_assets(&out_dir, &cargo_manifest_dir);
+}
+```
+
+Please check the example crate for more details.
