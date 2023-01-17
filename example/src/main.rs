@@ -7,6 +7,8 @@ use objectbox_gen as ob;
 
 #[entity]
 pub struct Entity {
+  #[id]
+  id: u32,
   #[index]
   index: u64,
   t_bool : bool,
@@ -14,6 +16,7 @@ pub struct Entity {
   t_i8 : i8,
   t_i16: i16,
   t_u16: u16,
+  #[unique]
   t_char: char,
   t_i32: i32,
   t_u32: u32,

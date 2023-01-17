@@ -1,3 +1,4 @@
+use core::panic;
 use std::fs;
 use std::path::Path;
 
@@ -7,12 +8,27 @@ use genco::quote_in;
 
 use crate::model_json::ModelEntity;
 use crate::model_json::ModelInfo;
+use crate::model_json::ModelProperty;
 
 trait CodeGenEntityExt {
+  fn get_id_property(&self) -> Option<&ModelProperty>;
   fn generate_traits(&self) -> Tokens<Rust>;
 }
 
 impl CodeGenEntityExt for ModelEntity {
+  // TODO throw error during macro parsing
+  // TODO if no ID, or multiple are defined
+  fn get_id_property(&self) -> Option<&ModelProperty> {
+    for p in self.properties.iter() {
+      if let Some(flags) = p.flags {
+        if flags & 1 == 1 {
+          return Some(&p);
+        }
+      }
+    }
+    None
+  }
+
   fn generate_traits(&self) -> Tokens<Rust> {
       let entity = &rust::import("crate", &self.name);
       let schema_id = &rust::import("objectbox::model", "SchemaID");
@@ -25,15 +41,25 @@ impl CodeGenEntityExt for ModelEntity {
       //     }            
       // }
 
-      let (entity_id, _) = crate::parse_colon_separated_integers(&self.id, 0);
+      // let (entity_id, _) = crate::parse_colon_separated_integers(&self.id, 0);
+
+      // #![feature(is_some_and)] // yuck
+      // self.properties.iter().filter(|p| p.flags.is_some_and(|v| (v & 1) == 1));
+      let id = self.get_id_property();
+
+      let p = if let Some(p) = id {
+        p
+      }else {
+        panic!("No ID was defined for {}", self.name);
+      };
 
       quote! {
         impl $id_trait for $entity {
             fn get_id(&self) -> $schema_id {
-              $entity_id
+              self.$(p.name.as_str())
             }
             fn set_id(&mut self, id: $schema_id) {
-
+              self.$(p.name.as_str()) = id;
             }
         }
       }
