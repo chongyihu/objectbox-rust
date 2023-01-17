@@ -1,8 +1,9 @@
 use crate::store::Store;
 use crate::model::SchemaID;
+use flatbuffers::FlatBufferBuilder;
 
 pub trait FBOBBridge {
-  fn to_fb(self /* TODO, builder: &fb.Builder */);
+  fn to_fb(self, builder: &FlatBufferBuilder);
 
   // This is object-safe, but can't be dispatched on a (casted) trait object
   // fn from_FB(store: &mut store::Store, byte_buffer: &ByteBuffer) -> Self; // factory method
@@ -54,7 +55,7 @@ fn blanket_directly_applied_on_entity_type() {
   }
 
   impl FBOBBridge for SomeEntity {
-    fn to_fb(self /* TODO, builder: &fb.Builder */) {}
+    fn to_fb(self, builder: &FlatBufferBuilder) {}
 
     // non-member method, static(?) factory function, can't dispatch on a trait
     // fn from_FB(store: &mut store::Store, byte_buffer: &ByteBuffer) -> Self {
