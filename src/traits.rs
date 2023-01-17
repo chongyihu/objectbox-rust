@@ -1,8 +1,10 @@
-#[path = "./store.rs"]
+#[path = "./store.rs"] // TODO test on windows
 pub mod store;
+use store::Store;
 
-#[path = "./model.rs"]
+#[path = "./model.rs"] // TODO test on windows
 mod model;
+use model::SchemaID;
 
 pub trait FBOBBridge {
   fn to_fb(self /* TODO, builder: &fb.Builder */);
@@ -12,8 +14,8 @@ pub trait FBOBBridge {
 }
 
 pub trait IdExt {
-  fn get_id(&self) -> model::SchemaID;
-  fn set_id(&mut self, id: model::SchemaID);
+  fn get_id(&self) -> SchemaID;
+  fn set_id(&mut self, id: SchemaID);
 }
 
 // TODO
@@ -32,13 +34,14 @@ pub trait OBBlanket: IdExt + FBOBBridge {}
 impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
 
 use bytebuffer::ByteBuffer;
+
 pub trait FactoryHelper<T: ?Sized> {
-  fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> T;
+  fn make(&self, store: &mut Store, byte_buffer: &ByteBuffer) -> T;
 }
 // #[derive(Clone, Copy)]
 pub struct Factory<T> { silence_unused_param_compiler_error: Option<T> }
 
-pub fn make_from_trait<T>(map: anymap::AnyMap, store: &mut store::Store, byte_buffer: &ByteBuffer)
+pub fn make_from_trait<T>(map: anymap::AnyMap, store: &mut Store, byte_buffer: &ByteBuffer)
 -> Option<T> where T: 'static {
   if let Some(f) = map.get::<Box<dyn FactoryHelper<T>>>() {
     return Some(f.make(store, byte_buffer));
@@ -53,7 +56,7 @@ fn blanket_directly_applied_on_entity_type() {
   // from a different package / crate / module etc.
 
   struct SomeEntity {
-    id: model::SchemaID
+    id: SchemaID
   }
 
   impl FBOBBridge for SomeEntity {
@@ -67,10 +70,10 @@ fn blanket_directly_applied_on_entity_type() {
   }
 
   impl IdExt for SomeEntity {
-    fn get_id(&self) -> model::SchemaID {
+    fn get_id(&self) -> SchemaID {
       self.id
     }
-    fn set_id(&mut self, id: model::SchemaID) {
+    fn set_id(&mut self, id: SchemaID) {
       self.id = id;
     }
   }
@@ -106,29 +109,29 @@ fn blanket_directly_applied_on_entity_type() {
 fn entity_factories() {
   use bytebuffer::ByteBuffer;
   {
-    struct Entity0 { id: model::SchemaID }
-    struct Entity1 { id: model::SchemaID }
-    struct Entity2 { id: model::SchemaID }
+    struct Entity0 { id: SchemaID }
+    struct Entity1 { id: SchemaID }
+    struct Entity2 { id: SchemaID }
 
     impl FactoryHelper<Entity0> for Factory<Entity0> {
-      fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> Entity0 {
+      fn make(&self, store: &mut Store, byte_buffer: &ByteBuffer) -> Entity0 {
           Entity0{ id: 0 }
       }
     }
 
     impl FactoryHelper<Entity1> for Factory<Entity1> {
-      fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> Entity1 {
+      fn make(&self, store: &mut Store, byte_buffer: &ByteBuffer) -> Entity1 {
           Entity1{ id: 1 }
       }
     }
 
     impl FactoryHelper<Entity2> for Factory<Entity2> {
-      fn make(&self, store: &mut store::Store, byte_buffer: &ByteBuffer) -> Entity2 {
+      fn make(&self, store: &mut Store, byte_buffer: &ByteBuffer) -> Entity2 {
           Entity2{ id: 2 }
       }
     }
 
-    let store = &mut store::Store {};
+    let store = &mut Store {};
     let byte_buffer = &ByteBuffer::new();
 
     // this should be const boxed where it is generated
@@ -178,7 +181,7 @@ fn entity_factories() {
 
     // experiment ref'ed factories
     {
-      fn make_from_ref<T>(map: anymap::AnyMap, store: &mut store::Store, byte_buffer: &ByteBuffer)
+      fn make_from_ref<T>(map: anymap::AnyMap, store: &mut Store, byte_buffer: &ByteBuffer)
       -> Option<T> where T: 'static {
         if let Some(f) = map.get::<Factory<T>>() {
           // return f.make (nope, unknown trait)
