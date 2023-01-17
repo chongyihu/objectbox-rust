@@ -166,13 +166,14 @@ impl Property {
           if rust_type.starts_with("u") {
             *obx_property_flags |= ob_consts::OBXPropertyFlags_UNSIGNED;
           }
+          // C's char is 1 byte, Rust's is 4 bytes (aka a vector, n=4 bytes, OBXPropertyType_ByteVector)
           *obx_property_type = match rust_type {
             "bool" => 1,
             "u8" => 2,
             "i8" => 2,
             "i16" => 3,
             "u16" => 3,
-            "char" => 4,
+            "char" => 23, // Future: pack 4 bytes in a u32? Efficient?
             "u32" => 5,
             "i32" => 5,
             "u64" => 6,
@@ -183,10 +184,10 @@ impl Property {
             _ => {
               // ignore scoping
               let map = maplit::hashmap! {
-                "Vec<u8>" => 23,
-                "bytes" => 23,
-                "ByteArray" => 23,
-                "Vec<String>" => 30,
+                "Vec<u8>" => 23, // TODO test
+                "bytes" => 23, // TODO test
+                "ByteArray" => 23, // TODO test
+                "Vec<String>" => 30, // TODO test
               };
               let mut ends_with = 0;
               for ele in map {

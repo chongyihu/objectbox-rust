@@ -8,6 +8,7 @@ use genco::prelude::*;
 use crate::model_json::ModelEntity;
 use crate::model_json::ModelInfo;
 use crate::model_json::ModelProperty;
+use crate::ob_consts;
 
 // use flatbuffers::FlatBufferBuilder;
 
@@ -15,6 +16,21 @@ trait CodeGenEntityExt {
   fn get_id_property(&self) -> Option<&ModelProperty>;
   fn generate_id_trait(&self) -> Tokens<Rust>;
   fn generate_fb_trait(&self) -> Tokens<Rust>;
+}
+
+fn decide_fb_encoding(field_type: u32, i: usize, name: &String) -> String {
+  match field_type {
+    ob_consts::OBXPropertyType_ByteVector => {
+      // format!("builder.push_slot_always({}, builder.create_vector({}));", i, name)
+      format!("// not available atm, because Vec<String>, char, Vec<u64>, could be all stored the same way")
+    },
+    ob_consts::OBXPropertyType_String => {
+      format!("let str = builder.create_string(self.{}.as_str());\nbuilder.push_slot_always({}, str);", name, i)
+    },
+    _ => {
+      format!("builder.push_slot_always({}, self.{});", i, name)
+    }
+  }
 }
 
 impl CodeGenEntityExt for ModelEntity {
@@ -61,16 +77,19 @@ impl CodeGenEntityExt for ModelEntity {
     let bridge_trait = &rust::import("objectbox::traits", "FBOBBridge");
     let flatbuffer_builder = &rust::import("objectbox::flatbuffers", "FlatBufferBuilder");
 
-    let builder_props: Vec<String> = self.properties.iter().enumerate().map(|(i, p)| { format!("builder.push_slot_always({}, self.{});", i, p.name) }).collect();
+    // Caveat! When decoding/encoding flatbuffers note that
+    // C's char is 1 byte, Rust's is 4 bytes (aka a vector, n=4 bytes)
+    let builder_props: Vec<String> = self.properties.iter().enumerate().map(|(i, p)| decide_fb_encoding(p.type_field, i, &p.name) ).collect();
     let props = builder_props.join("\n");
     
     quote! {
       impl $bridge_trait for $entity {
-        fn to_fb(self, builder: &$flatbuffer_builder) {
+        fn to_fb(self, builder: &mut $flatbuffer_builder) {
           let wip_offset_unfinished = builder.start_table();
           $(props.as_str())
-          builder.finish_minimal(builder.end_table(wip_offset_unfinished));
-        }            
+          let wip_offset_finished = builder.end_table(wip_offset_unfinished);
+          builder.finish_minimal(wip_offset_finished);
+        }
       }
     }
   }

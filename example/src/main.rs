@@ -17,7 +17,7 @@ pub struct Entity {
   t_i16: i16,
   t_u16: u16,
   #[unique]
-  t_char: char,
+  // t_char: char, // TODO support WiP
   t_i32: i32,
   t_u32: u32,
   t_u64: u64,

@@ -3,7 +3,7 @@ use crate::model::SchemaID;
 use flatbuffers::FlatBufferBuilder;
 
 pub trait FBOBBridge {
-  fn to_fb(self, builder: &FlatBufferBuilder);
+  fn to_fb(self, builder: &mut FlatBufferBuilder);
 
   // This is object-safe, but can't be dispatched on a (casted) trait object
   // fn from_FB(store: &mut store::Store, byte_buffer: &ByteBuffer) -> Self; // factory method
