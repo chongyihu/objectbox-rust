@@ -15,23 +15,27 @@ trait CodeGenEntityExt {
 impl CodeGenEntityExt for ModelEntity {
   fn generate_traits(&self) -> Tokens<Rust> {
       let entity = &rust::import("crate", &self.name);
-      let schema_id = rust::import("objectbox::model", "SchemaID");
-      let bridge_trait = rust::import("objectbox::traits", "FBOBBridge");
-      let id_trait = rust::import("objectbox::traits", "IdExt");
-      quote! {
-          impl $bridge_trait for $entity {
-              fn to_fb(self /* TODO, builder: &fb.Builder */) {
+      let schema_id = &rust::import("objectbox::model", "SchemaID");
+      let bridge_trait = &rust::import("objectbox::traits", "FBOBBridge");
+      let id_trait = &rust::import("objectbox::traits", "IdExt");
 
-              }            
-          }
-          
-          impl $id_trait for $entity {
-              fn get_id(&self) -> $schema_id {
-                  1
-              }
-          // fn set_id(&mut self, id: model::SchemaID) {
-          // }
-          }
+      // impl $bridge_trait for $entity {
+      //     fn to_fb(self /* TODO, builder: &fb.Builder */) {
+
+      //     }            
+      // }
+
+      let (entity_id, _) = crate::parse_colon_separated_integers(&self.id, 0);
+
+      quote! {
+        impl $id_trait for $entity {
+            fn get_id(&self) -> $schema_id {
+              $entity_id
+            }
+            fn set_id(&mut self, id: $schema_id) {
+
+            }
+        }
       }
   }
 }
@@ -52,23 +56,23 @@ fn generate_code(&self, path: &Path) {
   // Vec<u8> implements std::io::Write
   let mut w = fmt::IoWriter::new(Vec::<u8>::new());
 
-  let fmt = fmt::Config::from_lang::<Rust>();
-  let config = rust::Config::default();
-  // Default format state for Rust.
-  let format = rust::Format::default();
+  let fmt = fmt::Config::from_lang::<Rust>().with_indentation(fmt::Indentation::Space(4));
+  let config = rust::Config::default()
+  // Prettier imports and use.
+  .with_default_import(rust::ImportMode::Qualified);
 
-  if let Err(error) = tokens.format(&mut w.as_formatter(&fmt), &config, &format) {
-      // println!("cargo:warning={:?}", error);
-      panic!("{:?}", error);
+  // TODO test assumption: I suspect indentation is fubar without nightly
+  if let Err(error) = tokens.format_file(&mut w.as_formatter(&fmt), &config) {
+    panic!("{:?}", error);
   }
+
   let vector = w.into_inner();
   let utf_result = std::str::from_utf8(&vector);
 
   if let Ok(str) = utf_result {
-      match fs::write(&path, str) {
-          Err(error) => panic!("Problem writing the objectbox.rs file: {:?}", error),
-          Ok(_) => {},
-      }    
+      if let Err(error) = fs::write(&path, str) {
+          panic!("Problem writing the objectbox.rs file: {:?}", error);
+      }
   }
 }
 

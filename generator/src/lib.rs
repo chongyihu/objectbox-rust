@@ -1,16 +1,17 @@
-use std::{path::{PathBuf, Path}, fs};
+pub mod id;
+pub mod model_json;
+pub mod ob_consts;
+
+use std::{path::PathBuf, fs};
 use glob::glob;
 use model_json::{ModelEntity, ModelInfo};
 use rand::Rng;
-extern crate rand;
-
-pub mod model_json;
-pub mod id;
+use rand;
 
 // TODO implement collision detection and evasion with predefined id and uid
 // TODO general idea: maintain a set of id and uid, when incrementing the counter,
 // TODO check for collision, if yes, increment/generate again, if no, assign value
-fn parse_colon_separated_integers(str: &String, counter: u64) -> (u64, u64) {
+pub fn parse_colon_separated_integers(str: &String, counter: u64) -> (u64, u64) {
     use substring::Substring;
     let mut id: u64 = 0;
     let mut uid: u64 = 0;
@@ -151,7 +152,7 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     }
 
     let json_dest_path = &cargo_manifest_dir.as_path().join("src/objectbox-model.json");
-    let ob_dest_path = &cargo_manifest_dir.as_path().join("src/objectbox.rs");
+    let ob_dest_path = &cargo_manifest_dir.as_path().join("src/objectbox_gen.rs");
     if let Ok(exists) = json_dest_path.try_exists() {
         // Exports everything a user needs from objectbox, fully generated
         if exists {
@@ -171,4 +172,15 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     .write_json(json_dest_path)
     .generate_code(ob_dest_path);
 
+    // format rust code with prettyplease
+    // {
+    //     let contents = fs::read_to_string(ob_dest_path)
+    //         .expect("Should have been able to read the file");
+    //     if let Ok(result) = syn::parse_file(&contents) {
+    //         let formatted = prettyplease::unparse(&result);
+    //         if let Err(error) = fs::write(ob_dest_path, formatted) {
+    //             panic!("Problem writing the objectbox.rs file: {:?}", error);
+    //         }    
+    //     }
+    // }
 }

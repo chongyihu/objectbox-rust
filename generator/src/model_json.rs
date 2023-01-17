@@ -5,6 +5,8 @@ use std::env;
 use std::fs;
 use std::path::{PathBuf, Path};
 
+use crate::ob_consts;
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelInfo {
@@ -117,7 +119,7 @@ pub struct ModelProperty {
     pub id: String, // iduid = "1:12341820347123498124"
     pub name: String,
     #[serde(rename = "type")]
-    pub type_field: u16,
+    pub type_field: ob_consts::OBXPropertyType,
     #[serde(skip_serializing_if="Option::is_none")]
-    pub flags: Option<u16>,
+    pub flags: Option<ob_consts::OBXPropertyFlags>,
 }

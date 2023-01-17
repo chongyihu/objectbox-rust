@@ -2,8 +2,11 @@ extern crate objectbox;
 
 use objectbox::macros::{entity, index};
 
+mod objectbox_gen;
+use objectbox_gen as ob;
+
 #[entity]
-struct Entity {
+pub struct Entity {
   #[index]
   index: u64,
   t_bool : bool,

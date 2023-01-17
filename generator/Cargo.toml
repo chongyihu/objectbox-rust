@@ -13,3 +13,5 @@ substring = "1.4"
 proc-macro2 = { version = "1.0", default-features = false }
 genco = "0.17.3"
 flatbuffers = "22.10.26"
+prettyplease = "0.1.23"
+syn = { version = "1", default-features = false, features = ["full", "parsing"] }
