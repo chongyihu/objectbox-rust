@@ -33,8 +33,7 @@ use bytebuffer::ByteBuffer;
 pub trait FactoryHelper<T: ?Sized> {
   fn make(&self, store: &mut Store, byte_buffer: &ByteBuffer) -> T;
 }
-// #[derive(Clone, Copy)]
-pub struct Factory<T> { silence_unused_param_compiler_error: Option<T> }
+pub struct Factory<T> { required_for_generic_trait: Option<T> }
 
 pub fn make_from_trait<T>(map: anymap::AnyMap, store: &mut Store, byte_buffer: &ByteBuffer)
 -> Option<T> where T: 'static {
@@ -130,9 +129,9 @@ fn entity_factories() {
     let byte_buffer = &ByteBuffer::new();
 
     // this should be const boxed where it is generated
-    let f0 = Factory::<Entity0> { silence_unused_param_compiler_error: None };
-    let f1 = Factory::<Entity1> { silence_unused_param_compiler_error: None };
-    let f2 = Factory::<Entity2> { silence_unused_param_compiler_error: None };
+    let f0 = Factory::<Entity0> { required_for_generic_trait: None };
+    let f1 = Factory::<Entity1> { required_for_generic_trait: None };
+    let f2 = Factory::<Entity2> { required_for_generic_trait: None };
 
     let e0 = f0.make(store, byte_buffer);
     let e1 = f1.make(store, byte_buffer);
@@ -166,7 +165,7 @@ fn entity_factories() {
     // experiment boxed factories
     {
       let mut map = anymap::AnyMap::new();
-      let f0 = Factory::<Entity0> { silence_unused_param_compiler_error: None };
+      let f0 = Factory::<Entity0> { required_for_generic_trait: None };
       
       map.insert(Box::new(f0) as Box<dyn FactoryHelper<Entity0>>);
       
@@ -185,7 +184,7 @@ fn entity_factories() {
       }
 
       let mut map = anymap::AnyMap::new();
-      let f0: &'static Factory<Entity0> = &Factory::<Entity0> { silence_unused_param_compiler_error: None };
+      let f0: &'static Factory<Entity0> = &Factory::<Entity0> { required_for_generic_trait: None };
       map.insert(f0);
       
       let e0 = make_from_ref::<Entity0>(map, store, byte_buffer);
