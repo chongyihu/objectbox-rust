@@ -60,6 +60,9 @@ impl CodeGenEntityExt for ModelEntity {
         panic!("No ID was defined for {}", self.name);
       };
 
+      // TODO char = 4x bytes = Vec<u8>... as_slice()
+      // TODO Vec<String>, vec anything... as_slice()
+      // TODO Factory<>, FactoryHelper<>, map.insert...boxed factory as factory helper
       quote! {
         impl $id_trait for $entity {
           fn get_id(&self) -> $schema_id {
