@@ -1,10 +1,5 @@
-#[path = "./store.rs"] // TODO test on windows
-pub mod store;
-use store::Store;
-
-#[path = "./model.rs"] // TODO test on windows
-mod model;
-use model::SchemaID;
+use crate::store::Store;
+use crate::model::SchemaID;
 
 pub trait FBOBBridge {
   fn to_fb(self /* TODO, builder: &fb.Builder */);

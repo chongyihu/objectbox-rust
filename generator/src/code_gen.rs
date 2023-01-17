@@ -36,6 +36,7 @@ impl CodeGenEntityExt for ModelEntity {
   }
 }
 
+// TODO Fix visibility on all the trait extensions
 pub(crate) trait CodeGenExt {
   // fn generate_model(&self) -> Tokens<Rust>; // TODO
   fn generate_code(&self, path: &Path);
