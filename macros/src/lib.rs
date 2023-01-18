@@ -35,21 +35,21 @@ fn print_token_stream(label: &str, stream: TokenStream) {
 // For lack of the Debug trait in certain tokens (that I know of, in this version)
 // TODO Figure out how to make this generic, since TokenStream2 inherits from TokenStream
 // TODO maybe a simple 'x as proc_macro::TokenStream' might suffice
-// fn print_token_stream2(label: &str, stream: proc_macro2::TokenStream) {
-//   if cfg!(debug_assertions) {
-//     stream.into_iter()
-//       .for_each(|x| {
-//         println!("{} {:#?}", label, x);
-//       });
-//     println!("{}", "///");
-//   }
-// }
+fn print_token_stream2(label: &str, stream: proc_macro2::TokenStream) {
+  if cfg!(debug_assertions) {
+    stream.into_iter()
+      .for_each(|x| {
+        println!("{} {:#?}", label, x);
+      });
+    println!("{}", "///");
+  }
+}
 
-// fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
-//   let field_ts = field.to_token_stream();
-//   let  debug_label = format!("field({}) token_stream", field_ident_str);
-//   // print_token_stream2(&debug_label, field_ts);
-// }
+fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
+  let field_ts = quote::ToTokens::to_token_stream(&field);
+  let  debug_label = format!("field({}) token_stream", field_ident_str);
+  print_token_stream2(&debug_label, field_ts);
+}
 
 // TODO implement flags, reference: https://github.com/objectbox/objectbox-dart/blob/main/generator/lib/src/entity_resolver.dart#L23-L30
 #[derive(Debug)]
@@ -105,7 +105,7 @@ impl Property {
       let new_name = ident.to_string();
       name.push_str(&new_name);
 
-      // print_field_token_stream(field, new_name);
+      print_field_token_stream(field, new_name);
 
       // TODO Document: for the minimal demo, make sure entities are
       // TODO declared on the src/lib.rs or src/main.rs and are pub
@@ -159,10 +159,11 @@ impl Property {
       // TODO Skip type determination if provided in attribute
       // TODO anything can be in a 'Box'
       // TODO Auto-map values based on likely OBXPropertyType correspondence
-      // TODO Display warning if type is unmappable
+      // TODO currently there is an issue with any field that contains an aggregate type, i.e. Vec
       if let (syn::Type::Path(p), true) = (&field.ty, *obx_property_type == 0) {
         if let Some(ident) = p.path.get_ident() {
           let rust_type: &str = &ident.to_string();
+          println!("rust type: {}", rust_type);
           if rust_type.starts_with("u") {
             *obx_property_flags |= consts::OBXPropertyFlags_UNSIGNED;
           }
@@ -184,8 +185,8 @@ impl Property {
             "f32" => consts::OBXPropertyType_Float,
             "f64" => consts::OBXPropertyType_Double,
             "String" => consts::OBXPropertyType_String,
-            "Vec<u8>" => consts::OBXPropertyType_ByteVector,
-            "Vec<String>" => consts::OBXPropertyType_StringVector,
+            "Vec<u8>" => consts::OBXPropertyType_ByteVector, // TODO parsing is broken
+            "Vec<String>" => consts::OBXPropertyType_StringVector, // TODO parsing is broken
             _ => 0
         }
       }

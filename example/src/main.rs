@@ -2,8 +2,8 @@ extern crate objectbox;
 
 use objectbox::macros::{entity, index};
 
-mod objectbox_gen;
-use objectbox_gen as ob;
+// mod objectbox_gen;
+// use objectbox_gen as ob;
 
 #[entity]
 pub struct Entity {
@@ -17,8 +17,6 @@ pub struct Entity {
   t_i16: i16,
   t_u16: u16,
   #[unique]
-  t_char: char,
-  t_vec_string: Vec<String>,
   t_i32: i32,
   t_u32: u32,
   t_u64: u64,
@@ -26,6 +24,9 @@ pub struct Entity {
   t_f32: f32,
   t_f64: f64,
   t_string: String,
+  t_char: char,
+  t_vec_string: Vec<String>,
+  t_vec_bytes: Vec<u8>,
 }
 
 fn main() {
