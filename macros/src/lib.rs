@@ -9,16 +9,16 @@ use proc_macro::TokenStream;
 
 use quote::__private::ext::RepToTokensExt;
 // use quote::ToTokens;
-use syn::punctuated::Pair;
+
 use syn::Meta::NameValue;
 use syn::{AttributeArgs, DeriveInput, parse_macro_input};
 
 use std::option::Option;
-use std::vec::Vec;
+use syn::punctuated::Pair;
 
 use objectbox_generator::model_json;
 use objectbox_generator::id;
-use objectbox_generator::ob_consts;
+use objectbox_generator::ob_consts as consts;
 
 // For lack of the Debug trait in certain tokens (that I know of, in this version)
 // Only available in Debug mode
@@ -55,9 +55,9 @@ fn print_token_stream(label: &str, stream: TokenStream) {
 #[derive(Debug)]
 struct Property {
   name: String,
-  field_type: ob_consts::OBXPropertyType,
+  field_type: consts::OBXPropertyType,
   id: id::IdUid,
-  flags: ob_consts::OBXPropertyFlags,
+  flags: consts::OBXPropertyFlags,
 }
 
 impl Property {
@@ -71,12 +71,12 @@ impl Property {
     }
   }
 
-  fn scan_obx_property_type_and_flags (mnv: &syn::MetaNameValue) -> (ob_consts::OBXPropertyType, ob_consts::OBXPropertyFlags) {
-    let mut obx_property_type: ob_consts::OBXPropertyType = 0;
-    let mut obx_property_flags: ob_consts::OBXPropertyFlags = 0;
+  fn scan_obx_property_type_and_flags (mnv: &syn::MetaNameValue) -> (consts::OBXPropertyType, consts::OBXPropertyFlags) {
+    let mut obx_property_type: consts::OBXPropertyType = 0;
+    let mut obx_property_flags: consts::OBXPropertyFlags = 0;
 
     if let syn::Lit::Int(li) = &mnv.lit {
-      let result = li.base10_parse::<ob_consts::OBXPropertyFlags>();
+      let result = li.base10_parse::<consts::OBXPropertyFlags>();
       if let Ok(value) = result {
         if let Some(ident) = mnv.path.get_ident() {
           let param_name: &str = &ident.to_string();
@@ -117,9 +117,9 @@ impl Property {
           // TODO add safety precaution measures
           // TODO add extra parameters
           match attr_name {
-            "id" => { *obx_property_flags |= ob_consts::OBXPropertyFlags_ID }
-            "index" => { *obx_property_flags |= ob_consts::OBXPropertyFlags_INDEXED }, // id, uid, type
-            "unique" => { *obx_property_flags |= ob_consts::OBXPropertyFlags_UNIQUE }, // id, uid, type
+            "id" => { *obx_property_flags |= consts::OBXPropertyFlags_ID }
+            "index" => { *obx_property_flags |= consts::OBXPropertyFlags_INDEXED }, // id, uid, type
+            "unique" => { *obx_property_flags |= consts::OBXPropertyFlags_UNIQUE }, // id, uid, type
             "backlink" => {},
             "transient" => { a.next(); }, // TODO test if this really skips
             "property" => {}, // id, uid, type, flags
@@ -164,56 +164,35 @@ impl Property {
         if let Some(ident) = p.path.get_ident() {
           let rust_type: &str = &ident.to_string();
           if rust_type.starts_with("u") {
-            *obx_property_flags |= ob_consts::OBXPropertyFlags_UNSIGNED;
+            *obx_property_flags |= consts::OBXPropertyFlags_UNSIGNED;
           }
           // C's char is 1 byte, Rust's is 4 bytes (aka a vector, n=4 bytes, OBXPropertyType_ByteVector)
           *obx_property_type = match rust_type {
-            "bool" => 1,
-            "u8" => 2,
-            "i8" => 2,
-            "i16" => 3,
-            "u16" => 3,
-            "char" => 23, // Future: pack 4 bytes in a u32? Efficient?
-            "u32" => 5,
-            "i32" => 5,
-            "u64" => 6,
-            "i64" => 6,
-            "f32" => 7,
-            "f64" => 8,
-            "String" => 9,
-            _ => {
-              // ignore scoping
-              let map = maplit::hashmap! {
-                "Vec<u8>" => 23, // TODO test
-                "bytes" => 23, // TODO test
-                "ByteArray" => 23, // TODO test
-                "Vec<String>" => 30, // TODO test
-              };
-              let mut ends_with = 0;
-              for ele in map {
-                  if rust_type.ends_with(ele.0) {
-                    ends_with = ele.1;
-                    break;
-                  }
-              }
-              // Note: this will not work if the type is aliased in any way
-              if rust_type.contains("DateTime") {
-                ends_with = 12
-              }
-              if ends_with == 0 {
-                eprintln!("Warning: Unknown translation of rust type {}", rust_type);
-              }
-              ends_with
-            }
-          };
+            "bool" => consts::OBXPropertyType_Bool,
+            "u8" => consts::OBXPropertyType_Byte,
+            "i8" => consts::OBXPropertyType_Byte,
+            "i16" => consts::OBXPropertyType_Short,
+            "u16" => consts::OBXPropertyType_Short,
+            // TODO ob: char ==> u8
+            // TODO rust: char ==> 4*u8 ==> u32
+            // TODO what could go wrong?
+            "char" => consts::OBXPropertyType_Char, 
+            "u32" => consts::OBXPropertyType_Int,
+            "i32" => consts::OBXPropertyType_Int,
+            "u64" => consts::OBXPropertyType_Long,
+            "i64" => consts::OBXPropertyType_Long,
+            "f32" => consts::OBXPropertyType_Float,
+            "f64" => consts::OBXPropertyType_Double,
+            "String" => consts::OBXPropertyType_String,
+            "Vec<u8>" => consts::OBXPropertyType_ByteVector,
+            "Vec<String>" => consts::OBXPropertyType_StringVector,
+            _ => 0
         }
-
       }
-
       return Some(property);
     }
-
-    Option::None
+    }
+    None
   }
 }
 
@@ -240,6 +219,9 @@ impl Entity {
                 Pair::Punctuated(t, _) => {
                   // TODO check for attribute: #[transient]
                   if let Some(f) = Property::from_syn_field(t) {
+                    if f.field_type == 0 {
+                      println!("Warning: There is a field {} with an unmappable type", f.name);
+                    }
                     fields.push(f);
                   }
                 },

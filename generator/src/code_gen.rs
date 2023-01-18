@@ -12,25 +12,64 @@ use crate::ob_consts;
 
 // use flatbuffers::FlatBufferBuilder;
 
+fn tokens_to_string(tokens: &Tokens<Rust>) -> Vec<u8> {
+  // Vec<u8> implements std::io::Write
+  let mut w = fmt::IoWriter::new(Vec::<u8>::new());
+
+  let fmt = fmt::Config::from_lang::<Rust>().with_indentation(fmt::Indentation::Space(4));
+  let config = rust::Config::default()
+  // Prettier imports and use.
+  .with_default_import(rust::ImportMode::Qualified);
+
+  // TODO test assumption: I suspect indentation is fubar without nightly
+  if let Err(error) = tokens.format_file(&mut w.as_formatter(&fmt), &config) {
+    panic!("{:?}", error);
+  }
+
+  w.into_inner()
+}
+
 trait CodeGenEntityExt {
   fn get_id_property(&self) -> Option<&ModelProperty>;
   fn generate_id_trait(&self) -> Tokens<Rust>;
   fn generate_fb_trait(&self) -> Tokens<Rust>;
 }
 
-fn decide_fb_encoding(field_type: u32, i: usize, name: &String) -> String {
-  match field_type {
-    ob_consts::OBXPropertyType_ByteVector => {
-      // format!("builder.push_slot_always({}, builder.create_vector({}));", i, name)
-      format!("// not available atm, because Vec<String>, char, Vec<u64>, could be all stored the same way")
+// fn from_u32(n: u32) -> Option<char> {
+//   std::char::from_u32(n)
+// }
+
+// fn to_u32(c: char) -> u32 {
+//   c as u32
+// }
+
+fn encode_to_fb(field_type: u32, i: usize, name: &String) -> Tokens<Rust> {
+  let new_tokens: Tokens<Rust> = match field_type {
+    ob_consts::OBXPropertyType_StringVector => {
+      quote! {
+        let strings_vec = builder.create_vector(&self.$name);
+        builder.push_slot_always($i, string_vec);
+      }
     },
     ob_consts::OBXPropertyType_String => {
-      format!("let str = builder.create_string(self.{}.as_str());\nbuilder.push_slot_always({}, str);", name, i)
+      quote! {
+        let str = builder.create_string(self.$name.as_str());
+        builder.push_slot_always($i, str);
+      }
+    },
+    ob_consts::OBXPropertyType_Char => {
+      // TODO test endianness
+      quote! {
+        builder.push_slot_always($i, self.$name as u32);
+      }
     },
     _ => {
-      format!("builder.push_slot_always({}, self.{});", i, name)
+      quote! {
+        builder.push_slot_always($i, self.$name);
+      }
     }
-  }
+  };
+  new_tokens
 }
 
 impl CodeGenEntityExt for ModelEntity {
@@ -60,9 +99,6 @@ impl CodeGenEntityExt for ModelEntity {
         panic!("No ID was defined for {}", self.name);
       };
 
-      // TODO char = 4x bytes = Vec<u8>... as_slice()
-      // TODO Vec<String>, vec anything... as_slice()
-      // TODO Factory<>, FactoryHelper<>, map.insert...boxed factory as factory helper
       quote! {
         impl $id_trait for $entity {
           fn get_id(&self) -> $schema_id {
@@ -75,21 +111,20 @@ impl CodeGenEntityExt for ModelEntity {
       }
   }
 
+  // TODO Factory<>, FactoryHelper<>, map.insert...boxed factory as factory helper
   fn generate_fb_trait(&self) -> Tokens<Rust> {
     let entity = &rust::import("crate", &self.name);
     let bridge_trait = &rust::import("objectbox::traits", "FBOBBridge");
     let flatbuffer_builder = &rust::import("objectbox::flatbuffers", "FlatBufferBuilder");
 
-    // Caveat! When decoding/encoding flatbuffers note that
-    // C's char is 1 byte, Rust's is 4 bytes (aka a vector, n=4 bytes)
-    let builder_props: Vec<String> = self.properties.iter().enumerate().map(|(i, p)| decide_fb_encoding(p.type_field, i, &p.name) ).collect();
-    let props = builder_props.join("\n");
+    let props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
+    .map(|(i, p)| encode_to_fb(p.type_field, i, &p.name) ).collect();
     
     quote! {
       impl $bridge_trait for $entity {
         fn to_fb(self, builder: &mut $flatbuffer_builder) {
           let wip_offset_unfinished = builder.start_table();
-          $(props.as_str())
+          $props
           let wip_offset_finished = builder.end_table(wip_offset_unfinished);
           builder.finish_minimal(wip_offset_finished);
         }
@@ -107,27 +142,14 @@ pub(crate) trait CodeGenExt {
 impl CodeGenExt for ModelInfo {
   fn generate_code(&self, path: &Path) {
     let tokens = &mut rust::Tokens::new();
-    for (i, e) in self.entities.iter().enumerate() {
+    for e in self.entities.iter() {
         tokens.append(e.generate_id_trait());
         tokens.append(e.generate_fb_trait());
     }
 
-    // Vec<u8> implements std::io::Write
-    let mut w = fmt::IoWriter::new(Vec::<u8>::new());
+    let vector = tokens_to_string(tokens);
 
-    let fmt = fmt::Config::from_lang::<Rust>().with_indentation(fmt::Indentation::Space(4));
-    let config = rust::Config::default()
-    // Prettier imports and use.
-    .with_default_import(rust::ImportMode::Qualified);
-
-    // TODO test assumption: I suspect indentation is fubar without nightly
-    if let Err(error) = tokens.format_file(&mut w.as_formatter(&fmt), &config) {
-      panic!("{:?}", error);
-    }
-
-    let vector = w.into_inner();
-    let utf_result = std::str::from_utf8(&vector);
-
+    let utf_result = std::str::from_utf8(vector.as_slice());
     if let Ok(str) = utf_result {
         if let Err(error) = fs::write(&path, str) {
             panic!("Problem writing the objectbox.rs file: {:?}", error);
