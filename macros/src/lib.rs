@@ -209,10 +209,16 @@ struct Entity {
   fields: Vec<Property>,
 }
 
+fn warn_transient(entity_name: &str, field_name: &str) {
+  println!("Warning: There is a field {}.{} with an unmappable type", entity_name, field_name);
+  println!("Warning: {}.{} will be considered as a transient", entity_name, field_name);
+}
+
 impl Entity {
   /// Unnamed fields are ignored, e.g. nested anonymous unions / structs, like in C.
   fn from_entity_name_and_fields(id : id::IdUid, derive_input: DeriveInput) -> Entity {
     let mut fields = Vec::<Property>::new();
+    let entity_name = derive_input.ident.to_string();
     if let syn::Data::Struct(ds) = derive_input.data {
         match ds.fields {
           syn::Fields::Named(fields_named) => {
@@ -222,15 +228,20 @@ impl Entity {
                   // TODO check for attribute: #[transient]
                   if let Some(f) = Property::from_syn_field(t) {
                     if f.field_type == 0 {
-                      println!("Warning: There is a field {} with an unmappable type", f.name);
+                      warn_transient(&entity_name, &f.name);
+                    }else {
+                      fields.push(f);
                     }
-                    fields.push(f);
                   }
                 },
                 Pair::End(t) => {
                   // TODO check for attribute: #[transient]
                   if let Some(f) = Property::from_syn_field(t) {
-                    fields.push(f);
+                    if f.field_type == 0 {
+                      warn_transient(&entity_name, &f.name);
+                    }else {
+                      fields.push(f);
+                    }
                   }
                 }
               }
@@ -245,7 +256,7 @@ impl Entity {
       panic!("Structs must have at least one attribute / property!");
     }
     Entity {
-      name: derive_input.ident.to_string(),
+      name: entity_name,
       id: id,
       fields: fields
     }

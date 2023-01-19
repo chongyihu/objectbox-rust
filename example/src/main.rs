@@ -29,6 +29,7 @@ pub struct Entity {
   t_char: char,
   t_vec_string: Vec<String>,
   t_vec_bytes: Vec<u8>,
+  transient: Option<bool>
 }
 
 fn main() {
