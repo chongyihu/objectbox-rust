@@ -10,6 +10,16 @@ use crate::model_json::ModelInfo;
 use crate::model_json::ModelProperty;
 use crate::ob_consts;
 
+trait StringHelper {
+  fn as_comma_separated_str(&self) -> String;
+}
+
+impl StringHelper for String {
+    fn as_comma_separated_str(&self) -> String {
+      self.replace(",", ".").to_string()
+    }
+}
+
 fn tokens_to_string(tokens: &Tokens<Rust>) -> Vec<u8> {
   let mut w = fmt::IoWriter::new(Vec::<u8>::new());
 
@@ -29,6 +39,7 @@ trait CodeGenEntityExt {
   fn get_id_property(&self) -> Option<&ModelProperty>;
   fn generate_id_trait(&self) -> Tokens<Rust>;
   fn generate_fb_trait(&self) -> Tokens<Rust>;
+  fn generate_ob_model_fluent_builder(&self) -> Tokens<Rust>;
 }
 
 // fn from_u32(n: u32) -> Option<char> {
@@ -135,11 +146,54 @@ impl CodeGenEntityExt for ModelEntity {
       }
     }
   }
+
+  fn generate_ob_model_fluent_builder(&self) -> Tokens<Rust> {
+    /*
+      impl FactoryHelper<Entity0> for Factory<Entity0> {
+        fn make(&self, store: &mut Store, byte_buffer: &ByteBuffer) -> Entity0 {
+          Entity0{ id: 0 }
+        }
+        fn make_model(&self) -> Model { Model::new() }
+      }
+    */
+    let fb_table = &rust::import("objectbox::flatbuffers", "Table");
+    let factory = &rust::import("objectbox::traits", "Factory");
+    let factory_helper = &rust::import("objectbox::traits", "FactoryHelper");
+    let entity = &rust::import("crate", &self.name);
+    let model = &rust::import("objectbox::model", "Model");
+    let model_entity = &rust::import("objectbox::model", "Entity");
+    let store = &rust::import("objectbox::store", "Store");
+
+    let entity_name = &self.name;
+    let entity_id = self.id.as_comma_separated_str();
+    let id_property_iduid = self.get_id_property().unwrap().id.as_comma_separated_str();
+    let last_property_iduid = self.properties.last().unwrap().id.as_comma_separated_str();
+
+    let props_as_fluent_builder_invoc = self.properties.iter().map(|p|p.as_fluent_builder_invocation()).collect::<Vec<String>>();
+    
+    /*
+        $model::new()
+        .entity($(format!("\"{}\"", entity_name)), $entity_id)
+        $(for p in props_as_fluent_builder_invoc => $p$[' '])
+        .property_index($id_property_iduid)
+        .last_property_id($last_property_iduid)     
+    */
+
+    quote! {
+      impl $factory_helper<$entity> for $factory<$entity> {
+        fn make(&self, store: &mut $store, table: &$fb_table) -> $entity {
+          todo!();
+        }
+        fn make_model(&self) -> $model_entity {
+          $model_entity::new()
+        }
+      }
+    }
+  }
 }
 
 // TODO Fix visibility on all the trait extensions
 pub(crate) trait CodeGenExt {
-  // fn generate_model(&self) -> Tokens<Rust>; // TODO
   fn generate_code(&self, path: &Path);
 }
 
@@ -149,6 +203,7 @@ impl CodeGenExt for ModelInfo {
     for e in self.entities.iter() {
         tokens.append(e.generate_id_trait());
         tokens.append(e.generate_fb_trait());
+        tokens.append(e.generate_ob_model_fluent_builder());
     }
 
     let vector = tokens_to_string(tokens);

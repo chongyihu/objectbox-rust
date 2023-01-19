@@ -123,3 +123,22 @@ pub struct ModelProperty {
     #[serde(skip_serializing_if="Option::is_none")]
     pub flags: Option<ob_consts::OBXPropertyFlags>,
 }
+
+impl ModelProperty {
+    pub fn as_fluent_builder_invocation(&self) -> String {
+        let flags = if let Some(f) = self.flags { f } else { 0 };
+        format!(".property({}, {}, {}, {})", self.name, self.type_field, flags, self.id.replace(":", ","))
+    }
+}
+
+#[cfg(test)]
+#[test]
+fn model_property_fluent_builder_test() {
+    let output = ModelProperty {
+        id: "1:2".to_owned(),
+        name: "name".to_owned(),
+        type_field: 0,
+        flags: Some(0)
+    }.as_fluent_builder_invocation();
+    assert_eq!(output, ".property(name, 0, 0, 1,2)");
+}

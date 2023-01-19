@@ -65,6 +65,10 @@ impl Model {
 }
 
 impl Entity {
+    pub fn new() -> Self {
+        Entity { model: Model::new() }
+    }
+
     /// Inform the model about the last property that was ever defined on the entity.
     /// Finishes building the entity, returning the parent Model.
     pub fn last_property_id(self, id: SchemaID, uid: SchemaUID) -> Model {
@@ -82,6 +86,7 @@ impl Entity {
     pub fn property(
         mut self,
         name: &str,
+        // type === typedef, is a reserved keyword, intentional
         typ: c::OBXPropertyType,
         flags: c::OBXPropertyFlags,
         id: SchemaID,
