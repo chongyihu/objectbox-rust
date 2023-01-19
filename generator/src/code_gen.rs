@@ -44,17 +44,27 @@ trait CodeGenEntityExt {
 // }
 
 fn encode_to_fb(field_type: u32, i: usize, name: &String) -> Tokens<Rust> {
+  let wip_offset = &rust::import("flatbuffers", "WIPOffset");
   let new_tokens: Tokens<Rust> = match field_type {
     ob_consts::OBXPropertyType_StringVector => {
       quote! {
-        let strings_vec = builder.create_vector(&self.$name);
-        builder.push_slot_always($i, string_vec);
+        let strs_vec_$i = self.$name.iter()
+        .map(|s|builder.create_string(s.as_str()))
+        .collect::<Vec<$wip_offset<&str>>>();
+        let vec_$i = builder.create_vector(strs_vec_$i.as_slice());
+        builder.push_slot_always($i, vec_$i);
+      }
+    },
+    ob_consts::OBXPropertyType_ByteVector => {
+      quote! {
+        let byte_vec_$i = builder.create_vector(&self.$name.as_slice());
+        builder.push_slot_always($i, byte_vec_$i);
       }
     },
     ob_consts::OBXPropertyType_String => {
       quote! {
-        let str = builder.create_string(self.$name.as_str());
-        builder.push_slot_always($i, str);
+        let str_$i = builder.create_string(self.$name.as_str());
+        builder.push_slot_always($i, str_$i);
       }
     },
     ob_consts::OBXPropertyType_Char => {
