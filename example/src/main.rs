@@ -7,6 +7,9 @@ use objectbox::macros::{entity, index};
 mod objectbox_gen;
 use objectbox_gen as ob;
 
+// hard assumption: your Entity must be on the crate's
+// ground-level, so the generated code can access it
+// via crate::Entity
 #[entity]
 pub struct Entity {
   #[id]
