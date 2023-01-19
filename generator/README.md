@@ -39,7 +39,9 @@ fn main() {
 Please check the example crate for more details.
 
 ## TODO
+* Check rust char conversion back and fro is correct in relation with OB
 * Support `Option<primitive>` types, e.g. Option<u32>, Option<String> etc.
+* Implement relations, and everything else, roadmap?
 ## Other interesting avenues of research
 * leverage macro (see macros package)
   * -> generate .fbs (maybe requires extending genco), simple use-case with fb tables
