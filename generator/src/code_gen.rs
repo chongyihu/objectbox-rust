@@ -149,11 +149,21 @@ impl CodeGenExt for ModelInfo {
 
     let vector = tokens_to_string(tokens);
 
-    let utf_result = std::str::from_utf8(vector.as_slice());
-    if let Ok(str) = utf_result {
-        if let Err(error) = fs::write(&path, str) {
-            panic!("Problem writing the objectbox.rs file: {:?}", error);
-        }
+    let utf = match std::str::from_utf8(vector.as_slice()) {
+      Ok(utf) => utf,
+      Err(error) => panic!("There is a problem with converting bytes to utf8: {}", error)
+    };
+
+    let syntax_tree = match syn::parse_file(utf) {
+      Ok(parsed) => parsed,
+      Err(error) => panic!("There is a problem with parsing the generated rust code: {}", error)
+    };
+
+    // it seems that genco's code formatting is broken on stable
+    let formatted = prettyplease::unparse(&syntax_tree);
+
+    if let Err(error) = fs::write(&path, formatted.as_str()) {
+        panic!("There is a problem writing the generated rust code: {:?}", error);
     }
   }
 }
