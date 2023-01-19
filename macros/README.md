@@ -29,3 +29,7 @@ struct Entity {
   t_string: String,
 }
 ```
+
+## TODO
+* Support `Option<primitive>` types, e.g. Option<u32>, Option<String> etc.
+  afaik OB supports nullable fields
