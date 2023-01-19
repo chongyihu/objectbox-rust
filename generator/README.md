@@ -37,3 +37,8 @@ fn main() {
 ```
 
 Please check the example crate for more details.
+
+# Other interesting avenues of research
+* leverage macro (see macros package)
+  * -> generate .fbs (maybe requires extending genco), simple use-case with fb tables
+  * -> generate .rs accessors with the [flatc-rust](https://github.com/frol/flatc-rust)

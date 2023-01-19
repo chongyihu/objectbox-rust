@@ -2,8 +2,10 @@ extern crate objectbox;
 
 use objectbox::macros::{entity, index};
 
-// mod objectbox_gen;
-// use objectbox_gen as ob;
+// uncomment the next two lines
+// when the mod hasn't been generated yet
+mod objectbox_gen;
+use objectbox_gen as ob;
 
 #[entity]
 pub struct Entity {
