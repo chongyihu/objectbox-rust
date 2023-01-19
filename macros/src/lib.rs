@@ -217,8 +217,12 @@ fn warn_transient(entity_name: &str, field_name: &str) {
 impl Entity {
   /// Unnamed fields are ignored, e.g. nested anonymous unions / structs, like in C.
   fn from_entity_name_and_fields(id : id::IdUid, derive_input: DeriveInput) -> Entity {
-    let mut fields = Vec::<Property>::new();
-    let entity_name = derive_input.ident.to_string();
+    let mut entity = Entity {
+      name: derive_input.ident.to_string(),
+      id: id,
+      fields: Vec::<Property>::new()
+    };
+    let Entity { name: entity_name, id: _, fields} = &mut entity;
     if let syn::Data::Struct(ds) = derive_input.data {
         match ds.fields {
           syn::Fields::Named(fields_named) => {
@@ -255,11 +259,7 @@ impl Entity {
     if fields.is_empty() {
       panic!("Structs must have at least one attribute / property!");
     }
-    Entity {
-      name: entity_name,
-      id: id,
-      fields: fields
-    }
+    entity
   }
 
   fn get_last_property_id(&self) -> id::IdUid {
