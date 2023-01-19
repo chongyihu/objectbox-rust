@@ -10,10 +10,7 @@ use crate::model_json::ModelInfo;
 use crate::model_json::ModelProperty;
 use crate::ob_consts;
 
-// use flatbuffers::FlatBufferBuilder;
-
 fn tokens_to_string(tokens: &Tokens<Rust>) -> Vec<u8> {
-  // Vec<u8> implements std::io::Write
   let mut w = fmt::IoWriter::new(Vec::<u8>::new());
 
   let fmt = fmt::Config::from_lang::<Rust>().with_indentation(fmt::Indentation::Space(4));
@@ -21,7 +18,6 @@ fn tokens_to_string(tokens: &Tokens<Rust>) -> Vec<u8> {
   // Prettier imports and use.
   .with_default_import(rust::ImportMode::Qualified);
 
-  // TODO test assumption: I suspect indentation is fubar without nightly
   if let Err(error) = tokens.format_file(&mut w.as_formatter(&fmt), &config) {
     panic!("{:?}", error);
   }
@@ -83,8 +79,6 @@ fn encode_to_fb(field_type: u32, i: usize, name: &String) -> Tokens<Rust> {
 }
 
 impl CodeGenEntityExt for ModelEntity {
-  // TODO throw error during macro parsing
-  // TODO if no ID, or multiple are defined
   fn get_id_property(&self) -> Option<&ModelProperty> {
     for p in self.properties.iter() {
       if let Some(flags) = p.flags {

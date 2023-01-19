@@ -171,16 +171,4 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     ModelInfo::from_entities(entities.as_slice())
     .write_json(json_dest_path)
     .generate_code(ob_dest_path);
-
-    // format rust code with prettyplease
-    // {
-    //     let contents = fs::read_to_string(ob_dest_path)
-    //         .expect("Should have been able to read the file");
-    //     if let Ok(result) = syn::parse_file(&contents) {
-    //         let formatted = prettyplease::unparse(&result);
-    //         if let Err(error) = fs::write(ob_dest_path, formatted) {
-    //             panic!("Problem writing the objectbox.rs file: {:?}", error);
-    //         }    
-    //     }
-    // }
 }
