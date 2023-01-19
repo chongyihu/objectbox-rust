@@ -20,36 +20,38 @@ use objectbox_generator::model_json;
 use objectbox_generator::id;
 use objectbox_generator::ob_consts as consts;
 
+mod path_visitor;
+
 // For lack of the Debug trait in certain tokens (that I know of, in this version)
 // Only available in Debug mode
-fn print_token_stream(label: &str, stream: TokenStream) {
-  if cfg!(debug_assertions) {
-    stream.into_iter()
-      .for_each(|x| {
-        println!("{} {:#?}", label, x);
-      });
-    println!("{}", "///");
-  }
-}  
+// fn print_token_stream(label: &str, stream: TokenStream) {
+//   if cfg!(debug_assertions) {
+//     stream.into_iter()
+//       .for_each(|x| {
+//         println!("{} {:#?}", label, x);
+//       });
+//     println!("{}", "///");
+//   }
+// }  
 
 // For lack of the Debug trait in certain tokens (that I know of, in this version)
 // TODO Figure out how to make this generic, since TokenStream2 inherits from TokenStream
 // TODO maybe a simple 'x as proc_macro::TokenStream' might suffice
-fn print_token_stream2(label: &str, stream: proc_macro2::TokenStream) {
-  if cfg!(debug_assertions) {
-    stream.into_iter()
-      .for_each(|x| {
-        println!("{} {:#?}", label, x);
-      });
-    println!("{}", "///");
-  }
-}
+// fn print_token_stream2(label: &str, stream: proc_macro2::TokenStream) {
+//   if cfg!(debug_assertions) {
+//     stream.into_iter()
+//       .for_each(|x| {
+//         println!("{} {:#?}", label, x);
+//       });
+//     println!("{}", "///");
+//   }
+// }
 
-fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
-  let field_ts = quote::ToTokens::to_token_stream(&field);
-  let  debug_label = format!("field({}) token_stream", field_ident_str);
-  print_token_stream2(&debug_label, field_ts);
-}
+// fn print_field_token_stream(field: &syn::Field, field_ident_str: String) {
+//   let field_ts = quote::ToTokens::to_token_stream(&field);
+//   let  debug_label = format!("field({}) token_stream", field_ident_str);
+//   print_token_stream2(&debug_label, field_ts);
+// }
 
 // TODO implement flags, reference: https://github.com/objectbox/objectbox-dart/blob/main/generator/lib/src/entity_resolver.dart#L23-L30
 #[derive(Debug)]
@@ -105,7 +107,7 @@ impl Property {
       let new_name = ident.to_string();
       name.push_str(&new_name);
 
-      print_field_token_stream(field, new_name);
+      // print_field_token_stream(field, new_name);
 
       // TODO Document: for the minimal demo, make sure entities are
       // TODO declared on the src/lib.rs or src/main.rs and are pub
@@ -155,43 +157,42 @@ impl Property {
           }
         }
       }
+
+      let idents = path_visitor::get_idents_from_path(&field.ty);
+      let ident_joined = idents.iter().map(|i|i.to_string()).collect::<String>();
+      let ident = ident_joined.as_str();
+
+      *obx_property_type = match ident {
+        "bool" => consts::OBXPropertyType_Bool,
+        "i8" => consts::OBXPropertyType_Byte,
+        "i16" => consts::OBXPropertyType_Short,
+        "u16" => consts::OBXPropertyType_Short,
+        // TODO ob: char ==> u8
+        // TODO rust: char ==> 4*u8 ==> u32
+        // TODO what could go wrong?
+        "char" => consts::OBXPropertyType_Char, 
+        "u32" => consts::OBXPropertyType_Int,
+        "i32" => consts::OBXPropertyType_Int,
+        "u64" => consts::OBXPropertyType_Long,
+        "i64" => consts::OBXPropertyType_Long,
+        "f32" => consts::OBXPropertyType_Float,
+        "f64" => consts::OBXPropertyType_Double,
+        "u8" => consts::OBXPropertyType_Byte,
+        "String" => consts::OBXPropertyType_String,
+        "VecString" => consts::OBXPropertyType_StringVector,
+        "Vecu8" => consts::OBXPropertyType_ByteVector,
+        _ => 0
+      };
+
+      *obx_property_flags |= match ident {
+        "u8" => consts::OBXPropertyFlags_UNSIGNED,
+        "u16" => consts::OBXPropertyFlags_UNSIGNED,
+        "u32" => consts::OBXPropertyFlags_UNSIGNED,
+        "u64" => consts::OBXPropertyFlags_UNSIGNED,
+        _ => 0
+      };
       
-      // TODO Skip type determination if provided in attribute
-      // TODO anything can be in a 'Box'
-      // TODO Auto-map values based on likely OBXPropertyType correspondence
-      // TODO currently there is an issue with any field that contains an aggregate type, i.e. Vec
-      if let (syn::Type::Path(p), true) = (&field.ty, *obx_property_type == 0) {
-        if let Some(ident) = p.path.get_ident() {
-          let rust_type: &str = &ident.to_string();
-          println!("rust type: {}", rust_type);
-          if rust_type.starts_with("u") {
-            *obx_property_flags |= consts::OBXPropertyFlags_UNSIGNED;
-          }
-          // C's char is 1 byte, Rust's is 4 bytes (aka a vector, n=4 bytes, OBXPropertyType_ByteVector)
-          *obx_property_type = match rust_type {
-            "bool" => consts::OBXPropertyType_Bool,
-            "u8" => consts::OBXPropertyType_Byte,
-            "i8" => consts::OBXPropertyType_Byte,
-            "i16" => consts::OBXPropertyType_Short,
-            "u16" => consts::OBXPropertyType_Short,
-            // TODO ob: char ==> u8
-            // TODO rust: char ==> 4*u8 ==> u32
-            // TODO what could go wrong?
-            "char" => consts::OBXPropertyType_Char, 
-            "u32" => consts::OBXPropertyType_Int,
-            "i32" => consts::OBXPropertyType_Int,
-            "u64" => consts::OBXPropertyType_Long,
-            "i64" => consts::OBXPropertyType_Long,
-            "f32" => consts::OBXPropertyType_Float,
-            "f64" => consts::OBXPropertyType_Double,
-            "String" => consts::OBXPropertyType_String,
-            "Vec<u8>" => consts::OBXPropertyType_ByteVector, // TODO parsing is broken
-            "Vec<String>" => consts::OBXPropertyType_StringVector, // TODO parsing is broken
-            _ => 0
-        }
-      }
       return Some(property);
-    }
     }
     None
   }
@@ -353,7 +354,7 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   let entity = Entity::from_entity_name_and_fields(id, struct_info);
   entity.serialize().write();
   
-  dbg!(entity);
+  // dbg!(entity);
 
   input.into_iter().map(|x| {
     if let proc_macro::TokenTree::Group (group) = x {

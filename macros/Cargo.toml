@@ -15,6 +15,6 @@ rand = "0.8"
 maplit = "1.0"
 codegen = "0.2.0"
 proc-macro2 = { version = "1.0", default-features = false }
-syn = "1.0" # syn = { version = "1.0.90", default-features = false, features = ["full"] }
+syn = "1.0" # syn = { version = "1.0.107", default-features = false, features = ["full"] }
 quote = "1.0"
 prettyplease = "0.1.20"
