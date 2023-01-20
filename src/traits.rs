@@ -30,11 +30,10 @@ pub trait OBBlanket: IdExt + FBOBBridge {}
 impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
 
 use flatbuffers::Table;
-use crate::model::Entity;
+use crate::model::Model;
 
 pub trait FactoryHelper<T: ?Sized> {
   fn make(&self, store: &mut Store, table: &Table) -> T;
-  fn make_model(&self) -> Entity;
 }
 pub struct Factory<T> { _required_for_generic_trait: Option<T> }
 
@@ -113,26 +112,24 @@ fn entity_factories() {
       fn make(&self, store: &mut Store, table: &Table) -> Entity0 {
           Entity0{ id: 0 }
       }
-      fn make_model(&self) -> Entity { Entity::new() }
     }
 
     impl FactoryHelper<Entity1> for Factory<Entity1> {
       fn make(&self, store: &mut Store, table: &Table) -> Entity1 {
           Entity1{ id: 1 }
       }
-      fn make_model(&self) -> Entity { Entity::new() }
     }
 
     impl FactoryHelper<Entity2> for Factory<Entity2> {
       fn make(&self, store: &mut Store, table: &Table) -> Entity2 {
           Entity2{ id: 2 }
       }
-      fn make_model(&self) -> Entity { Entity::new() }
     }
 
-    let store = &mut Store {};
+    let store = &mut Store {
+        model_callback: None,
+    };
 
-    // TODO how not to propagate unsafe throughout the code base
     let table = &Table::new(&[0u8], 0);
 
     // this should be const boxed where it is generated

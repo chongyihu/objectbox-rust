@@ -124,21 +124,33 @@ pub struct ModelProperty {
     pub flags: Option<ob_consts::OBXPropertyFlags>,
 }
 
+fn split_id(input: &str) -> (&str, &str) {
+    let v: Vec<&str> = input.split(':').collect();
+    (v[0], v[1])
+}
+
 impl ModelProperty {
-    pub fn as_fluent_builder_invocation(&self) -> String {
+    pub fn as_fluent_builder_invocation(&self) -> genco::Tokens<genco::lang::Rust> {
         let flags = if let Some(f) = self.flags { f } else { 0 };
-        format!(".property({}, {}, {}, {})", self.name, self.type_field, flags, self.id.replace(":", ","))
+        let (id, uid) = split_id(&self.id);
+
+        genco::quote! {
+            .property(
+                $(genco::tokens::quoted(self.name.as_str())), $(self.type_field),
+                $flags, $id, $uid
+            )
+        }
     }
 }
 
 #[cfg(test)]
 #[test]
 fn model_property_fluent_builder_test() {
-    let output = ModelProperty {
+    let Ok(str) = ModelProperty {
         id: "1:2".to_owned(),
         name: "name".to_owned(),
         type_field: 0,
         flags: Some(0)
-    }.as_fluent_builder_invocation();
-    assert_eq!(output, ".property(name, 0, 0, 1,2)");
+    }.as_fluent_builder_invocation().to_string();
+    assert_eq!(str, ".property(name, 0, 0, 1, 2)");
 }
