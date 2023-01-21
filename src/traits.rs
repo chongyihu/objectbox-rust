@@ -30,7 +30,6 @@ pub trait OBBlanket: IdExt + FBOBBridge {}
 impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
 
 use flatbuffers::Table;
-use crate::model::Model;
 
 pub trait FactoryHelper<T: ?Sized> {
   fn make(&self, store: &mut Store, table: &Table) -> T;

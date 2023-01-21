@@ -154,7 +154,7 @@ impl CodeGenEntityExt for ModelEntity {
     let factory_helper = &rust::import("objectbox::traits", "FactoryHelper");
     let entity = &rust::import("crate", &self.name);
     let model = &rust::import("objectbox::model", "Model");
-    // let model_entity = &rust::import("objectbox::model", "Entity");
+    
     let store = &rust::import("objectbox::store", "Store");
 
     let entity_name = &self.name;
@@ -178,6 +178,22 @@ pub(crate) trait CodeGenExt {
   fn generate_code(&self, path: &Path);
 }
 
+// fn generate_entities_fn(model_info: &ModelInfo) -> Tokens<Rust> {
+//   let tokens = &mut Tokens::<Rust>::new();
+//   model_info.entities.iter()
+//     .map(|e|e.to_tokens())
+//     .for_each(|t|tokens.append(t));
+//   let model_entity = &rust::import("objectbox::generator::model_json", "ModelEntity");
+//   quote! {
+//     fn make_entities() -> Vec<$model_entity> {
+//       vec!
+//       [
+//         $(tokens.clone())
+//       ]
+//     }
+//   }
+// }
+
 fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   let model = &rust::import("objectbox::model", "Model");
 
@@ -197,7 +213,6 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
       .property_index($id_property_iduid)
       .last_property_id($last_property_iduid)  
     };
-
     tokens.append(quote);
   }
 
@@ -205,12 +220,10 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   let last_index_id = last_entity.get_id_property().unwrap().id.as_comma_separated_str();
   let last_entity_id = last_entity.id.as_comma_separated_str();
 
-  let new_tokens: Tokens<Rust> = tokens.clone();
-
   quote! {
     fn make_model() -> $model {
       $model::new()
-      $new_tokens
+      $(tokens.clone())
       .last_entity_id($last_entity_id)
       .last_index_id($last_index_id)
     }
@@ -229,6 +242,7 @@ impl CodeGenExt for ModelInfo {
     }
 
     tokens.append(generate_model_fn(self));
+    // tokens.append(generate_entities_fn(self));
 
     let vector = tokens_to_string(tokens);
 

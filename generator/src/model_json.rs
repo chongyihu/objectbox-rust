@@ -1,3 +1,9 @@
+use genco::prelude::Rust;
+use genco::prelude::rust;
+use genco::tokens;
+use genco::tokens::quoted;
+use genco::quote;
+use genco::Tokens;
 use serde_derive::{Deserialize,Serialize};
 use serde_json::Value;
 
@@ -111,6 +117,25 @@ impl ModelEntity {
             panic!("Missing OUT_DIR environment variable, due to calling this function outside of build.rs");
         }
     }
+
+    // pub fn to_tokens(&self) -> Tokens<Rust> {
+    //     let model_entity = &rust::import("objectbox::generator::model_json", "ModelEntity");
+    //     let tokens = &mut Tokens::<Rust>::new();
+    //     self.properties.iter()
+    //     .map(|p|p.to_tokens())
+    //     .for_each(|t|tokens.append(t));
+    //     quote! {
+    //         $model_entity {
+    //             id: $(qu&self.id),
+    //             last_property_id: $(&self.last_property_id),
+    //             name: String::from($(&self.name)),
+    //             properties: vec![
+    //                 $(tokens.clone())
+    //             ],
+    //             relations: [].to_vec()
+    //         }
+    //     }
+    // }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -130,17 +155,32 @@ fn split_id(input: &str) -> (&str, &str) {
 }
 
 impl ModelProperty {
-    pub fn as_fluent_builder_invocation(&self) -> genco::Tokens<genco::lang::Rust> {
+    pub fn as_fluent_builder_invocation(&self) -> Tokens<Rust> {
         let flags = if let Some(f) = self.flags { f } else { 0 };
         let (id, uid) = split_id(&self.id);
 
-        genco::quote! {
+        quote! {
             .property(
-                $(genco::tokens::quoted(self.name.as_str())), $(self.type_field),
+                $(quoted(self.name.as_str())), $(self.type_field),
                 $flags, $id, $uid
             )
         }
     }
+
+    // pub fn to_tokens(&self) -> Tokens<Rust> {
+    //     let model_property = &rust::import("objectbox::generator::model_json", "ModelProperty");
+    //     quote! {
+    //         $model_property {
+    //             id: $(quoted(&self.id)),
+    //             name: String::from($(quoted(&self.name))),
+    //             type_field: $(self.type_field),
+    //             flags: $(match self.flags {
+    //                 Some(f) => $(format!("Some({})", f)),
+    //                 None => $("None")
+    //             }),
+    //         },
+    //     }
+    // }
 }
 
 #[cfg(test)]
