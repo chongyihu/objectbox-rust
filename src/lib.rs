@@ -7,6 +7,7 @@ pub mod version;
 pub mod store;
 pub mod r#box; // escape keyword
 pub mod traits;
+pub mod entity_builder;
 
 pub extern crate objectbox_generator as generator;
 pub extern crate objectbox_macros as macros;

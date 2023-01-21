@@ -118,24 +118,24 @@ impl ModelEntity {
         }
     }
 
-    // pub fn to_tokens(&self) -> Tokens<Rust> {
-    //     let model_entity = &rust::import("objectbox::generator::model_json", "ModelEntity");
-    //     let tokens = &mut Tokens::<Rust>::new();
-    //     self.properties.iter()
-    //     .map(|p|p.to_tokens())
-    //     .for_each(|t|tokens.append(t));
-    //     quote! {
-    //         $model_entity {
-    //             id: $(qu&self.id),
-    //             last_property_id: $(&self.last_property_id),
-    //             name: String::from($(&self.name)),
-    //             properties: vec![
-    //                 $(tokens.clone())
-    //             ],
-    //             relations: [].to_vec()
-    //         }
-    //     }
-    // }
+    pub fn to_tokens(&self) -> Tokens<Rust> {
+        let tokens = &mut Tokens::<Rust>::new();
+        self.properties.iter()
+        .map(|p|p.to_tokens())
+        .for_each(|t|tokens.append(t));
+
+        let (id, uid) = split_id(&self.id);
+
+        // .add_entity (
+        // $(quoted(&self.name)),
+        // $id,
+        // $uid,
+        // )
+        // $(tokens.clone())
+        quote! {
+            xxx
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -167,20 +167,22 @@ impl ModelProperty {
         }
     }
 
-    // pub fn to_tokens(&self) -> Tokens<Rust> {
-    //     let model_property = &rust::import("objectbox::generator::model_json", "ModelProperty");
-    //     quote! {
-    //         $model_property {
-    //             id: $(quoted(&self.id)),
-    //             name: String::from($(quoted(&self.name))),
-    //             type_field: $(self.type_field),
-    //             flags: $(match self.flags {
-    //                 Some(f) => $(format!("Some({})", f)),
-    //                 None => $("None")
-    //             }),
-    //         },
-    //     }
-    // }
+    pub fn to_tokens(&self) -> Tokens<Rust> {
+        let (id, uid) = split_id(&self.id);
+        /*
+                    .add_property (
+                $(quoted(&self.name)), $id, $uid, $(self.type_field),
+                $(match self.flags {
+                    Some(f) => $f,
+                    None => 0
+                }),
+            )
+
+        */
+        quote! {
+
+        }
+    }
 }
 
 #[cfg(test)]

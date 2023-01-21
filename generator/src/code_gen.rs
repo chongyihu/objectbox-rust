@@ -178,21 +178,22 @@ pub(crate) trait CodeGenExt {
   fn generate_code(&self, path: &Path);
 }
 
-// fn generate_entities_fn(model_info: &ModelInfo) -> Tokens<Rust> {
-//   let tokens = &mut Tokens::<Rust>::new();
-//   model_info.entities.iter()
-//     .map(|e|e.to_tokens())
-//     .for_each(|t|tokens.append(t));
-//   let model_entity = &rust::import("objectbox::generator::model_json", "ModelEntity");
-//   quote! {
-//     fn make_entities() -> Vec<$model_entity> {
-//       vec!
-//       [
-//         $(tokens.clone())
-//       ]
-//     }
-//   }
-// }
+fn generate_entities_fn(model_info: &ModelInfo) -> Tokens<Rust> {
+  let tokens = &mut Tokens::<Rust>::new();
+  model_info.entities.iter()
+    .map(|e|e.to_tokens())
+    .for_each(|t|tokens.append(t));
+  let entity = &rust::import("objectbox::entity_builder", "Entity");
+  let builder = &rust::import("objectbox::entity_builder", "EntityBuilder");
+
+  quote! {
+    fn make_entities() -> Vec<$entity> {
+      let mut builder = $builder::new();
+      // $(tokens.clone())
+      builder.entities
+    }
+  }
+}
 
 fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   let model = &rust::import("objectbox::model", "Model");
@@ -242,7 +243,7 @@ impl CodeGenExt for ModelInfo {
     }
 
     tokens.append(generate_model_fn(self));
-    // tokens.append(generate_entities_fn(self));
+    tokens.append(generate_entities_fn(self));
 
     let vector = tokens_to_string(tokens);
 
