@@ -91,7 +91,7 @@ impl Entity {
         flags: c::OBXPropertyFlags,
         id: SchemaID,
         uid: SchemaUID,
-    ) -> Entity {
+    ) -> Self {
         if self.model.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
             self.model.error = c::call(unsafe {
@@ -105,7 +105,7 @@ impl Entity {
                 c::call(unsafe { c::obx_model_property_flags(self.model.c_ptr, flags) }).err();
         }
 
-        return self;
+        self
     }
 
     /// Declare an index on the last created property.
@@ -114,7 +114,7 @@ impl Entity {
             self.model.error =
                 c::call(unsafe { c::obx_model_property_index_id(self.model.c_ptr, id, uid) }).err();
         }
-        return self;
+        self
     }
 
     /// Declare a to-one relation on the last created property.
@@ -124,7 +124,7 @@ impl Entity {
         target_entity_name: &str,
         index_id: SchemaID,
         index_uid: SchemaUID,
-    ) -> Entity {
+    ) -> Self {
         if self.model.error.is_none() {
             let c_name = ffi::CString::new(target_entity_name).unwrap();
             self.model.error = c::call(unsafe {
@@ -137,7 +137,7 @@ impl Entity {
             })
             .err();
         }
-        return self;
+        self
     }
 
     /// Declare a standalone to-many relation between this entity and another one
@@ -147,7 +147,7 @@ impl Entity {
         relation_uid: SchemaUID,
         target_entity_id: SchemaID,
         target_entity_uid: SchemaUID,
-    ) -> Entity {
+    ) -> Self {
         if self.model.error.is_none() {
             self.model.error = c::call(unsafe {
                 c::obx_model_relation(
@@ -160,7 +160,7 @@ impl Entity {
             })
             .err();
         }
-        return self;
+        self
     }
 }
 
