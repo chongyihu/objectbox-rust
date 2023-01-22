@@ -86,11 +86,11 @@ impl Entity {
     pub fn property(
         mut self,
         name: &str,
+        id: SchemaID,
+        uid: SchemaUID,
         // type === typedef, is a reserved keyword, intentional
         typ: c::OBXPropertyType,
         flags: c::OBXPropertyFlags,
-        id: SchemaID,
-        uid: SchemaUID,
     ) -> Self {
         if self.model.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();

@@ -32,11 +32,11 @@ impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
 use flatbuffers::Table;
 
 pub trait FactoryHelper<T: ?Sized> {
-  fn make(&self, store: &mut Store, table: &Table) -> T;
+  fn make(&self, store: &mut Store, table: &mut Table) -> T;
 }
 pub struct Factory<T> { _required_for_generic_trait: Option<T> }
 
-pub fn make_from_trait<T>(map: anymap::AnyMap, store: &mut Store, table: &Table)
+pub fn make_from_trait<T>(map: anymap::AnyMap, store: &mut Store, table: &mut Table)
 -> Option<T> where T: 'static {
   if let Some(f) = map.get::<Box<dyn FactoryHelper<T>>>() {
     return Some(f.make(store, table));
@@ -108,19 +108,19 @@ fn entity_factories() {
     struct Entity2 { id: SchemaID }
 
     impl FactoryHelper<Entity0> for Factory<Entity0> {
-      fn make(&self, store: &mut Store, table: &Table) -> Entity0 {
+      fn make(&self, store: &mut Store, table: &mut Table) -> Entity0 {
           Entity0{ id: 0 }
       }
     }
 
     impl FactoryHelper<Entity1> for Factory<Entity1> {
-      fn make(&self, store: &mut Store, table: &Table) -> Entity1 {
+      fn make(&self, store: &mut Store, table: &mut Table) -> Entity1 {
           Entity1{ id: 1 }
       }
     }
 
     impl FactoryHelper<Entity2> for Factory<Entity2> {
-      fn make(&self, store: &mut Store, table: &Table) -> Entity2 {
+      fn make(&self, store: &mut Store, table: &mut Table) -> Entity2 {
           Entity2{ id: 2 }
       }
     }

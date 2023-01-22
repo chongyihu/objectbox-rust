@@ -126,14 +126,9 @@ impl ModelEntity {
 
         let (id, uid) = split_id(&self.id);
 
-        // .add_entity (
-        // $(quoted(&self.name)),
-        // $id,
-        // $uid,
-        // )
-        // $(tokens.clone())
         quote! {
-            xxx
+            .add_entity ($(quoted(&self.name)), $id, $uid)
+            $(tokens.clone())
         }
     }
 }
@@ -161,26 +156,24 @@ impl ModelProperty {
 
         quote! {
             .property(
-                $(quoted(self.name.as_str())), $(self.type_field),
-                $flags, $id, $uid
+                $(quoted(self.name.as_str())),
+                $id, $uid,
+                $(self.type_field),
+                $flags
             )
         }
     }
 
     pub fn to_tokens(&self) -> Tokens<Rust> {
         let (id, uid) = split_id(&self.id);
-        /*
-                    .add_property (
+        quote! {
+            .add_property (
                 $(quoted(&self.name)), $id, $uid, $(self.type_field),
                 $(match self.flags {
                     Some(f) => $f,
                     None => 0
-                }),
+                })
             )
-
-        */
-        quote! {
-
         }
     }
 }

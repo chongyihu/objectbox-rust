@@ -164,7 +164,7 @@ impl CodeGenEntityExt for ModelEntity {
 
     quote! {
       impl $factory_helper<$entity> for $factory<$entity> {
-        fn make(&self, store: &mut $store, table: &$fb_table) -> $entity {
+        fn make(&self, store: &mut $store, table: &mut $fb_table) -> $entity {
           todo!();
         }
       }
@@ -189,7 +189,8 @@ fn generate_entities_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   quote! {
     fn make_entities() -> Vec<$entity> {
       let mut builder = $builder::new();
-      // $(tokens.clone())
+      &builder
+      $(tokens.clone());
       builder.entities
     }
   }
