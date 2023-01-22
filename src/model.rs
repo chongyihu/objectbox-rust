@@ -1,4 +1,4 @@
-use crate::{c, error::Error};
+use crate::{entity_builder::EntityBuilder, c, error::Error};
 use std::{ffi, ptr};
 
 pub type SchemaID = u32;
@@ -8,78 +8,66 @@ pub type SchemaUID = u64;
 pub struct Model {
     c_ptr: *mut c::OBX_model,
     error: Option<Error>,
-}
-
-pub struct Entity {
-    model: Model,
+    builder: Box<EntityBuilder>
 }
 
 impl Model {
-    pub fn new() -> Model {
+    pub fn new(builder: Box<EntityBuilder>) -> Self {
         match c::new_mut(unsafe { c::obx_model() }) {
-            Ok(c_ptr) => Model { c_ptr, error: None },
+            Ok(c_ptr) => Model { c_ptr, error: None, builder },
             Err(e) => Model {
                 c_ptr: ptr::null_mut(),
                 error: Some(e),
+                builder
             },
         }
     }
 
     /// Create an entity.
-    pub fn entity(mut self, name: &str, id: SchemaID, uid: SchemaUID) -> Entity {
+    pub fn entity(mut self, name: &str, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
             self.error =
                 c::call(unsafe { c::obx_model_entity(self.c_ptr, c_name.as_ptr(), id, uid) }).err();
         }
-
-        return Entity { model: self };
+        self.builder.as_mut().add_entity(name, id, uid);
+        self
     }
 
     /// Inform the model about the last entity that was ever defined in the model.
-    pub fn last_entity_id(self, id: SchemaID, uid: SchemaUID) -> Model {
+    pub fn last_entity_id(self, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
             unsafe { c::obx_model_last_entity_id(self.c_ptr, id, uid) }
         }
-
-        return self;
+        self
     }
 
     /// Inform the model about the last index that was ever defined in the model.
-    pub fn last_index_id(self, id: SchemaID, uid: SchemaUID) -> Model {
+    pub fn last_index_id(self, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
             unsafe { c::obx_model_last_index_id(self.c_ptr, id, uid) }
         }
-
-        return self;
+        self
     }
 
     /// Inform the model about the last relation that was ever defined in the model.
-    pub fn last_relation_id(self, id: SchemaID, uid: SchemaUID) -> Model {
+    pub fn last_relation_id(self, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
             unsafe { c::obx_model_last_relation_id(self.c_ptr, id, uid) }
         }
-
-        return self;
-    }
-}
-
-impl Entity {
-    pub fn new() -> Self {
-        Entity { model: Model::new() }
+        self
     }
 
     /// Inform the model about the last property that was ever defined on the entity.
     /// Finishes building the entity, returning the parent Model.
-    pub fn last_property_id(self, id: SchemaID, uid: SchemaUID) -> Model {
-        let mut model = self.model;
-        if model.error.is_none() {
-            model.error =
-                c::call(unsafe { c::obx_model_entity_last_property_id(model.c_ptr, id, uid) })
+    pub fn last_property_id(mut self, id: SchemaID, uid: SchemaUID) -> Self {
+        if self.error.is_none() {
+            self.error =
+                c::call(unsafe { c::obx_model_entity_last_property_id(self.c_ptr, id, uid) })
                     .err();
         }
 
-        return model;
+        self
     }
 
     /// Create a property.
@@ -92,27 +80,29 @@ impl Entity {
         typ: c::OBXPropertyType,
         flags: c::OBXPropertyFlags,
     ) -> Self {
-        if self.model.error.is_none() {
+        if self.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
-            self.model.error = c::call(unsafe {
-                c::obx_model_property(self.model.c_ptr, c_name.as_ptr(), typ, id, uid)
+            self.error = c::call(unsafe {
+                c::obx_model_property(self.c_ptr, c_name.as_ptr(), typ, id, uid)
             })
             .err();
         }
 
-        if flags > 0 && self.model.error.is_none() {
-            self.model.error =
-                c::call(unsafe { c::obx_model_property_flags(self.model.c_ptr, flags) }).err();
+        if flags > 0 && self.error.is_none() {
+            self.error =
+                c::call(unsafe { c::obx_model_property_flags(self.c_ptr, flags) }).err();
         }
+
+        self.builder.as_mut().add_property(name, id, uid, typ, flags);
 
         self
     }
 
     /// Declare an index on the last created property.
-    pub fn property_index(mut self, id: SchemaID, uid: SchemaUID) -> Entity {
-        if self.model.error.is_none() {
-            self.model.error =
-                c::call(unsafe { c::obx_model_property_index_id(self.model.c_ptr, id, uid) }).err();
+    pub fn property_index(mut self, id: SchemaID, uid: SchemaUID) -> Self {
+        if self.error.is_none() {
+            self.error =
+                c::call(unsafe { c::obx_model_property_index_id(self.c_ptr, id, uid) }).err();
         }
         self
     }
@@ -125,11 +115,11 @@ impl Entity {
         index_id: SchemaID,
         index_uid: SchemaUID,
     ) -> Self {
-        if self.model.error.is_none() {
+        if self.error.is_none() {
             let c_name = ffi::CString::new(target_entity_name).unwrap();
-            self.model.error = c::call(unsafe {
+            self.error = c::call(unsafe {
                 c::obx_model_property_relation(
-                    self.model.c_ptr,
+                    self.c_ptr,
                     c_name.as_ptr(),
                     index_id,
                     index_uid,
@@ -148,10 +138,10 @@ impl Entity {
         target_entity_id: SchemaID,
         target_entity_uid: SchemaUID,
     ) -> Self {
-        if self.model.error.is_none() {
-            self.model.error = c::call(unsafe {
+        if self.error.is_none() {
+            self.error = c::call(unsafe {
                 c::obx_model_relation(
-                    self.model.c_ptr,
+                    self.c_ptr,
                     relation_id,
                     relation_uid,
                     target_entity_id,
@@ -170,14 +160,15 @@ mod tests {
 
     #[test]
     fn model_builder_positive() {
-        let model = Model::new()
+        let builder = Box::new(EntityBuilder::new());
+        let model = Model::new(builder)
             .entity("A", 1, 1)
             .property(
                 "id",
-                c::OBXPropertyType_Long,
-                c::OBXPropertyFlags_ID,
                 1,
                 101,
+                c::OBXPropertyType_Long,
+                c::OBXPropertyFlags_ID,
             )
             .property("text", c::OBXPropertyType_String, 0, 2, 102)
             .property_index(1, 1021)
@@ -185,10 +176,10 @@ mod tests {
             .entity("B", 2, 2)
             .property(
                 "id",
-                c::OBXPropertyType_Long,
-                c::OBXPropertyFlags_ID,
                 1,
                 201,
+                c::OBXPropertyType_Long,
+                c::OBXPropertyFlags_ID,
             )
             .property("number", c::OBXPropertyType_Int, 0, 2, 202)
             .last_property_id(2, 202)
@@ -196,11 +187,14 @@ mod tests {
             .last_index_id(1, 1021);
 
         assert!(model.error.is_none());
+        // assert_eq!(model.builder.entities.len(), 1);
+        // assert_eq!(model.builder.entities.first().unwrap().properties.len(), 17);
     }
 
     #[test]
     fn model_builder_negative() {
-        let model = Model::new().entity("A", 1, 1).last_property_id(0, 0);
+        let builder = Box::new(EntityBuilder::new());
+        let model = Model::new(builder).entity("A", 1, 1).last_property_id(0, 0);
 
         let expected_err = format!(
             "{} Argument condition \"property_id\" not met",

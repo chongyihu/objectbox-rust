@@ -5,7 +5,7 @@ pub struct Entity {
   name: String,
   id: SchemaID,
   uid: SchemaUID,
-  properties: Vec<Property>,
+  pub properties: Vec<Property>,
 }
 
 

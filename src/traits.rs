@@ -129,7 +129,7 @@ fn entity_factories() {
         model_callback: None,
     };
 
-    let table = &Table::new(&[0u8], 0);
+    let table = &mut Table::new(&[0u8], 0);
 
     // this should be const boxed where it is generated
     let f0 = Factory::<Entity0> { _required_for_generic_trait: None };

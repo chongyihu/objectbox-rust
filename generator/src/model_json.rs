@@ -1,6 +1,4 @@
 use genco::prelude::Rust;
-use genco::prelude::rust;
-use genco::tokens;
 use genco::tokens::quoted;
 use genco::quote;
 use genco::Tokens;
@@ -90,16 +88,9 @@ pub struct ModelEntity {
     pub name: String,
     pub properties: Vec<ModelProperty>,
     pub relations: Vec<Value>, // TODO
-    // #[serde(skip_serializing_if="Option::is_none")]
-    // pub path: Option<String>,
 }
 
 impl ModelEntity {
-    // pub fn set_path(&mut self, path: Option<String>) -> &mut Self {
-    //     self.path = path;
-    //     self
-    // }
-
     pub fn write(&mut self) {
         if let Some(out_dir) = env::var_os("OUT_DIR") {
             let dest_path = Path::new(&out_dir).join(format!("{}.objectbox.info", self.name.clone()));
@@ -115,20 +106,6 @@ impl ModelEntity {
             }
         }else {
             panic!("Missing OUT_DIR environment variable, due to calling this function outside of build.rs");
-        }
-    }
-
-    pub fn to_tokens(&self) -> Tokens<Rust> {
-        let tokens = &mut Tokens::<Rust>::new();
-        self.properties.iter()
-        .map(|p|p.to_tokens())
-        .for_each(|t|tokens.append(t));
-
-        let (id, uid) = split_id(&self.id);
-
-        quote! {
-            .add_entity ($(quoted(&self.name)), $id, $uid)
-            $(tokens.clone())
         }
     }
 }
@@ -160,19 +137,6 @@ impl ModelProperty {
                 $id, $uid,
                 $(self.type_field),
                 $flags
-            )
-        }
-    }
-
-    pub fn to_tokens(&self) -> Tokens<Rust> {
-        let (id, uid) = split_id(&self.id);
-        quote! {
-            .add_property (
-                $(quoted(&self.name)), $id, $uid, $(self.type_field),
-                $(match self.flags {
-                    Some(f) => $f,
-                    None => 0
-                })
             )
         }
     }
