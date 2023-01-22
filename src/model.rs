@@ -170,25 +170,25 @@ mod tests {
                 c::OBXPropertyType_Long,
                 c::OBXPropertyFlags_ID,
             )
-            .property("text", c::OBXPropertyType_String, 0, 2, 102)
-            .property_index(1, 1021)
-            .last_property_id(2, 102)
+            .property("text", 2, 202, c::OBXPropertyType_String, 102)
+            .property_index(1, 101)
+            .last_property_id(2, 202)
             .entity("B", 2, 2)
             .property(
                 "id",
                 1,
-                201,
+                301,
                 c::OBXPropertyType_Long,
                 c::OBXPropertyFlags_ID,
             )
-            .property("number", c::OBXPropertyType_Int, 0, 2, 202)
+            .property("number", 2, 202, c::OBXPropertyType_Int, 0)
             .last_property_id(2, 202)
             .last_entity_id(2, 2)
-            .last_index_id(1, 1021);
+            .last_index_id(1, 301);
 
         assert!(model.error.is_none());
-        // assert_eq!(model.builder.entities.len(), 1);
-        // assert_eq!(model.builder.entities.first().unwrap().properties.len(), 17);
+        assert_eq!(model.builder.entities.len(), 2);
+        assert_eq!(model.builder.entities.first().unwrap().properties.len(), 2);
     }
 
     #[test]
