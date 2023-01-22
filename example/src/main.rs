@@ -4,12 +4,26 @@ use objectbox::macros::{entity, index};
 
 // uncomment the next two lines
 // when the mod hasn't been generated yet
-mod objectbox_gen;
-use objectbox_gen as ob;
+// mod objectbox_gen;
+// use objectbox_gen as ob;
 
 // hard assumption: your Entity must be on the crate's
 // ground-level, so the generated code can access it
 // via crate::Entity
+#[entity]
+pub struct Entity3 {
+  #[id]
+  id: u32,
+}
+
+  #[entity]
+pub struct Entity2 {
+  #[id]
+  id: u32,
+  #[index]
+  index: u64,
+}
+  
 #[entity]
 pub struct Entity {
   #[id]

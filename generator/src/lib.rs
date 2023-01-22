@@ -156,8 +156,14 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     if let Ok(exists) = json_dest_path.try_exists() {
         // Exports everything a user needs from objectbox, fully generated
         if exists {
-            ModelInfo::from_json_file(json_dest_path).generate_code(ob_dest_path);
-            return;    
+            let model_info_from_one_file = ModelInfo::from_json_file(json_dest_path);
+
+            if model_info_from_one_file.entities.len() != pbs.len() {
+                println!("cargo:warning=The number of entities have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json");
+            }        
+
+            model_info_from_one_file.generate_code(ob_dest_path);
+            return;
         }
     }
 
