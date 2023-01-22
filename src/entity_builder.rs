@@ -1,7 +1,7 @@
 use crate::c::{OBXPropertyFlags, OBXPropertyType};
 use crate::model::{SchemaID, SchemaUID};
 
-pub struct Entity {
+pub(crate) struct Entity {
   name: String,
   id: SchemaID,
   uid: SchemaUID,
@@ -9,7 +9,7 @@ pub struct Entity {
 }
 
 
-pub struct Property {
+pub(crate) struct Property {
   name: String,
   id: SchemaID,
   uid: SchemaUID,
@@ -18,7 +18,7 @@ pub struct Property {
 }
 
 pub struct EntityBuilder {
-  pub entities: Vec<Entity>,
+  pub(crate) entities: Vec<Entity>,
 }
 
 impl EntityBuilder {
@@ -28,7 +28,7 @@ impl EntityBuilder {
       }
   }
 
-  pub fn add_entity(&mut self, name: &str, id: SchemaID, uid: SchemaUID) -> &mut Self {
+  pub(crate) fn add_entity(&mut self, name: &str, id: SchemaID, uid: SchemaUID) -> &mut Self {
       let entity = Entity {
           name: name.to_string(),
           properties: Vec::new(),
@@ -39,7 +39,7 @@ impl EntityBuilder {
       self
   }
 
-  pub fn add_property(&mut self, name: &str, id: SchemaID, uid: SchemaUID, typ: OBXPropertyType, flags: OBXPropertyFlags) -> &mut Self {
+  pub(crate) fn add_property(&mut self, name: &str, id: SchemaID, uid: SchemaUID, typ: OBXPropertyType, flags: OBXPropertyFlags) -> &mut Self {
       let property = Property {
           name: name.to_string(),
           id,
