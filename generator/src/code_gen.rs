@@ -43,14 +43,6 @@ trait CodeGenEntityExt {
   fn generate_ob_trait(&self) -> Tokens<Rust>;
 }
 
-// fn from_u32(n: u32) -> Option<char> {
-//   std::char::from_u32(n)
-// }
-
-// fn to_u32(c: char) -> u32 {
-//   c as u32
-// }
-
 fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
   let wip_offset = &rust::import("flatbuffers", "WIPOffset");
   let new_tokens: Tokens<Rust> = match field_type {

@@ -1,4 +1,4 @@
-use crate::c::{OBXPropertyFlags, OBXPropertyType};
+use crate::c::{OBXPropertyFlags, OBXPropertyType, self};
 use crate::model::{SchemaID, SchemaUID};
 
 pub(crate) struct Entity {
@@ -40,12 +40,32 @@ impl EntityBuilder {
   }
 
   pub(crate) fn add_property(&mut self, name: &str, id: SchemaID, uid: SchemaUID, typ: OBXPropertyType, flags: OBXPropertyFlags) -> &mut Self {
-      let property = Property {
+      // let property = 
+      //   Property {
+      //     name: name.to_string(),
+      //     id,
+      //     uid,
+      //     typ,
+      //     flags
+      //   };
+      // On the OBX side of things, pretend char is u32
+      let property = if typ == c::OBXPropertyType_Char {
+        Property {
           name: name.to_string(),
           id,
           uid,
           typ,
           flags
+        }
+      } else {
+        // don't actually use char on ob
+        Property {
+          name: name.to_string(),
+          id,
+          uid,
+          typ: c::OBXPropertyType_Int,
+          flags: flags | c::OBXOrderFlags_UNSIGNED
+        }
       };
       let last = &mut self.entities.last_mut();
       match last {

@@ -82,15 +82,22 @@ impl Model {
     ) -> Self {
         if self.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
-            self.error = c::call(unsafe {
-                c::obx_model_property(self.c_ptr, c_name.as_ptr(), typ, id, uid)
-            })
-            .err();
-        }
 
-        if flags > 0 && self.error.is_none() {
-            self.error =
-                c::call(unsafe { c::obx_model_property_flags(self.c_ptr, flags) }).err();
+            let (new_type, new_flags) = if typ == c::OBXPropertyType_Char {
+                (c::OBXPropertyType_Int, flags & c::OBXPropertyFlags_UNSIGNED)
+            }else {
+                (typ, flags)
+            };
+
+            self.error = c::call(unsafe {
+                    c::obx_model_property(self.c_ptr, c_name.as_ptr(), new_type, id, uid)
+                })
+                .err();
+
+            self.error = c::call(unsafe {
+                    c::obx_model_property_flags(self.c_ptr, new_flags)
+                })
+                .err()
         }
 
         self.builder.as_mut().add_property(name, id, uid, typ, flags);
