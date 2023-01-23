@@ -171,6 +171,7 @@ impl CodeGenEntityExt for ModelEntity {
     quote! {
       impl $bridge_trait for $entity {
         fn to_fb(self, builder: &mut $flatbuffer_builder) {
+          builder.reset(); // TODO reusing the builder is probably not thread-safe
           let wip_offset_unfinished = builder.start_table();
           $props
           let wip_offset_finished = builder.end_table(wip_offset_unfinished);
@@ -185,14 +186,8 @@ impl CodeGenEntityExt for ModelEntity {
     let factory = &rust::import("objectbox::traits", "Factory");
     let factory_helper = &rust::import("objectbox::traits", "FactoryHelper");
     let entity = &rust::import("crate", &self.name);
-    // let model = &rust::import("objectbox::model", "Model");
     
     let store = &rust::import("objectbox::store", "Store");
-
-    // let entity_name = &self.name;
-    // let entity_id = self.id.as_comma_separated_str();
-    // let id_property_iduid = self.get_id_property().unwrap().id.as_comma_separated_str();
-    // let last_property_iduid = self.properties.last().unwrap().id.as_comma_separated_str();
 
     let destructured_props = self.properties.iter().map(|p| p.as_struct_property_default() );
     let assigned_props = self.properties.iter().map(|p| p.as_assigned_property() );
