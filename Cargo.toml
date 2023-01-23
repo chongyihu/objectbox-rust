@@ -2,7 +2,7 @@
 name = "objectbox"
 version = "0.1.0"
 authors = [""]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 objectbox-macros = { path = "macros" }
