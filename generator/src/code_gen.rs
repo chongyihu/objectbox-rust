@@ -166,6 +166,8 @@ impl CodeGenEntityExt for ModelEntity {
     let props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
     .map(|(i, p)| encode_to_fb(p.type_field, p.flags, i, &p.name) ).collect();
     
+
+    // TODO call builder.finished_data() from Store? Box? when put/put_many
     quote! {
       impl $bridge_trait for $entity {
         fn to_fb(self, builder: &mut $flatbuffer_builder) {
