@@ -36,6 +36,10 @@ pub trait FactoryHelper<T: ?Sized> {
 }
 pub struct Factory<T> { _required_for_generic_trait: Option<T> }
 
+unsafe fn make_table(buf: &[u8], loc: usize) -> Table {
+  Table::new(buf, loc)
+}
+
 pub fn make_from_trait<T>(map: anymap::AnyMap, store: &mut Store, table: &mut Table)
 -> Option<T> where T: 'static {
   if let Some(f) = map.get::<Box<dyn FactoryHelper<T>>>() {

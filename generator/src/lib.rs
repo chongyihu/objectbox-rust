@@ -11,7 +11,7 @@ use rand;
 // TODO implement collision detection and evasion with predefined id and uid
 // TODO general idea: maintain a set of id and uid, when incrementing the counter,
 // TODO check for collision, if yes, increment/generate again, if no, assign value
-pub fn parse_colon_separated_integers(str: &String, counter: u64) -> (u64, u64) {
+fn parse_colon_separated_integers(str: &String, counter: u64) -> (u64, u64) {
     use substring::Substring;
     let mut id: u64 = 0;
     let mut uid: u64 = 0;
