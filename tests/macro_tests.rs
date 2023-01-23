@@ -27,10 +27,10 @@ struct TypeTestAgain {
   // ha, the attribute survived in spite of being a reserved keyword
   #[unique(type=12)] 
   t_i64 : i64,
-  #[index] 
-  t_datetime : DateTime<Utc>,
-  #[transient]
-  t_ignored : u32,
+  // #[index] 
+  // t_datetime : DateTime<Utc>,
+  // #[transient]
+  // t_ignored : u32,
 }
 
 #[entity]

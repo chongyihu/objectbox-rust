@@ -16,8 +16,8 @@ pub(crate) struct Entity {
 }
 
 fn warn_transient(entity_name: &str, field_name: &str) {
-  println!("Warning: There is a field {}.{} with an unmappable type", entity_name, field_name);
-  println!("Warning: {}.{} will be considered as a transient", entity_name, field_name);
+  panic!("Error: There is a field {}.{} with an unmappable type", entity_name, field_name);
+  // println!("Warning: {}.{} will be considered as a transient", entity_name, field_name);
 }
 
 impl Entity {

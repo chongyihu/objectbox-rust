@@ -51,39 +51,69 @@ trait CodeGenEntityExt {
 //   c as u32
 // }
 
-fn encode_to_fb(field_type: u32, i: usize, name: &String) -> Tokens<Rust> {
+fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
   let wip_offset = &rust::import("flatbuffers", "WIPOffset");
   let new_tokens: Tokens<Rust> = match field_type {
     ob_consts::OBXPropertyType_StringVector => {
       quote! {
-        let strs_vec_$i = self.$name.iter()
+        let strs_vec_$offset = self.$name.iter()
         .map(|s|builder.create_string(s.as_str()))
         .collect::<Vec<$wip_offset<&str>>>();
-        let vec_$i = builder.create_vector(strs_vec_$i.as_slice());
-        builder.push_slot_always($i, vec_$i);
+        let vec_$offset = builder.create_vector(strs_vec_$offset.as_slice());
+        builder.push_slot_always($offset, vec_$offset);
       }
     },
     ob_consts::OBXPropertyType_ByteVector => {
       quote! {
-        let byte_vec_$i = builder.create_vector(&self.$name.as_slice());
-        builder.push_slot_always($i, byte_vec_$i);
+        let byte_vec_$offset = builder.create_vector(&self.$name.as_slice());
+        builder.push_slot_always($offset, byte_vec_$offset);
       }
     },
     ob_consts::OBXPropertyType_String => {
       quote! {
-        let str_$i = builder.create_string(self.$name.as_str());
-        builder.push_slot_always($i, str_$i);
+        let str_$offset = builder.create_string(self.$name.as_str());
+        builder.push_slot_always($offset, str_$offset);
       }
     },
     ob_consts::OBXPropertyType_Char => {
       // TODO test endianness
       quote! {
-        builder.push_slot_always($i, self.$name as u32);
+        builder.push_slot_always($offset, self.$name as u32);
       }
     },
-    _ => {
+    ob_consts::OBXPropertyType_Bool => {
       quote! {
-        builder.push_slot_always($i, self.$name);
+        builder.push_slot::<bool>($offset, self.$name, false);
+      }
+    }
+    ob_consts::OBXPropertyType_Float => {
+      quote! {
+        builder.push_slot::<f32>($offset, self.$name, 0.0);
+      }
+    }
+    ob_consts::OBXPropertyType_Double => {
+      quote! {
+        builder.push_slot::<f64>($offset, self.$name, 0.0);
+      }
+    }
+    _ => {
+      let inferred_type_bits = match field_type {
+        ob_consts::OBXPropertyType_Byte => "8",
+        ob_consts::OBXPropertyType_Short => "16",
+        ob_consts::OBXPropertyType_Int => "32",
+        ob_consts::OBXPropertyType_Long => "64",
+        _ => panic!("Unknown type"),
+      };
+      let is_unsigned =
+        if let Some(f) = flags {
+          if (f & ob_consts::OBXPropertyFlags_UNSIGNED) == ob_consts::OBXPropertyFlags_UNSIGNED
+          { "u" } else { "i" }
+        }else {
+          "i"
+        };
+
+      quote! {
+        builder.push_slot::<$is_unsigned$inferred_type_bits>($offset, self.$name, 0);
       }
     }
   };
@@ -134,7 +164,7 @@ impl CodeGenEntityExt for ModelEntity {
     let flatbuffer_builder = &rust::import("objectbox::flatbuffers", "FlatBufferBuilder");
 
     let props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
-    .map(|(i, p)| encode_to_fb(p.type_field, i, &p.name) ).collect();
+    .map(|(i, p)| encode_to_fb(p.type_field, p.flags, i, &p.name) ).collect();
     
     quote! {
       impl $bridge_trait for $entity {
@@ -153,19 +183,33 @@ impl CodeGenEntityExt for ModelEntity {
     let factory = &rust::import("objectbox::traits", "Factory");
     let factory_helper = &rust::import("objectbox::traits", "FactoryHelper");
     let entity = &rust::import("crate", &self.name);
-    let model = &rust::import("objectbox::model", "Model");
+    // let model = &rust::import("objectbox::model", "Model");
     
     let store = &rust::import("objectbox::store", "Store");
 
-    let entity_name = &self.name;
-    let entity_id = self.id.as_comma_separated_str();
-    let id_property_iduid = self.get_id_property().unwrap().id.as_comma_separated_str();
-    let last_property_iduid = self.properties.last().unwrap().id.as_comma_separated_str();
+    // let entity_name = &self.name;
+    // let entity_id = self.id.as_comma_separated_str();
+    // let id_property_iduid = self.get_id_property().unwrap().id.as_comma_separated_str();
+    // let last_property_iduid = self.properties.last().unwrap().id.as_comma_separated_str();
 
+    let destructured_props = self.properties.iter().map(|p| p.as_struct_property_default() );
+    let assigned_props = self.properties.iter().map(|p| p.as_assigned_property() );
+
+    // TODO Store will be used for relations later
     quote! {
       impl $factory_helper<$entity> for $factory<$entity> {
         fn make(&self, store: &mut $store, table: &mut $fb_table) -> $entity {
-          todo!();
+          let mut object = $entity {
+            $(for p in destructured_props join (, ) => $(p))
+          };
+          // destructure
+          let $entity {
+            $(for p in &self.properties join (, ) => $(&p.name))
+          } = &mut object;
+          unsafe {
+            $(for p in assigned_props join () => $(p))
+          }
+          object
         }
       }
     }
@@ -207,7 +251,7 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
 
   quote! {
     fn make_model() -> $model {
-      let mut builder = Box::new($builder::new());
+      let builder = Box::new($builder::new());
       $model::new(builder)
       $(tokens.clone())
       .last_entity_id($last_entity_id)

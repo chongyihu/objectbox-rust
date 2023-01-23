@@ -4,8 +4,8 @@ use objectbox::macros::{entity, index};
 
 // uncomment the next two lines
 // when the mod hasn't been generated yet
-// mod objectbox_gen;
-// use objectbox_gen as ob;
+mod objectbox_gen;
+use objectbox_gen as ob;
 
 // hard assumption: your Entity must be on the crate's
 // ground-level, so the generated code can access it
@@ -46,7 +46,7 @@ pub struct Entity {
   t_char: char,
   t_vec_string: Vec<String>,
   t_vec_bytes: Vec<u8>,
-  transient: Option<bool>
+  // transient: Option<bool> // not yet supported
 }
 
 fn main() {

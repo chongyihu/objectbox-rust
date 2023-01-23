@@ -1,4 +1,5 @@
 use genco::prelude::Rust;
+use genco::prelude::rust;
 use genco::tokens::quoted;
 use genco::quote;
 use genco::Tokens;
@@ -138,6 +139,103 @@ impl ModelProperty {
                 $(self.type_field),
                 $flags
             )
+        }
+    }
+
+    pub fn as_struct_property_default(&self) -> Tokens<Rust> {
+        let name = &self.name;
+        match self.type_field {
+            ob_consts::OBXPropertyType_StringVector => quote! {
+                $name: Vec::<String>::new()
+            },
+            ob_consts::OBXPropertyType_ByteVector => quote! {
+                $name: Vec::<u8>::new()
+            },
+            ob_consts::OBXPropertyType_String => quote! {
+                $name: String::from("")
+            },
+            ob_consts::OBXPropertyType_Char => quote! {
+                $name: char::from(0)
+            },
+            ob_consts::OBXPropertyType_Bool => quote! {
+                $name: false
+            },
+            ob_consts::OBXPropertyType_Float => quote! {
+                $name: 0.0
+            },
+            ob_consts::OBXPropertyType_Double => quote! {
+                $name: 0.0
+            },
+            // rest of the integer types
+            _ => quote! {
+                $name: 0
+            },
+        }
+    }
+
+    pub fn as_assigned_property(&self) -> Tokens<Rust> {
+        let fuo = &rust::import("objectbox::flatbuffers", "ForwardsUOffset");
+        let fvec = &rust::import("objectbox::flatbuffers", "Vector");
+        let iduid_id = split_id(self.id.as_str()).0;
+
+        let name = &self.name;
+        match self.type_field {
+            ob_consts::OBXPropertyType_StringVector => quote! {
+                let fb_vec_$name = table.get::<$fuo<$fvec<$fuo<&str>>>>($iduid_id, None);
+                if let Some(sv) = fb_vec_$name {
+                    *$name = sv.iter().map(|s|s.to_string()).collect();
+                }
+            },
+            ob_consts::OBXPropertyType_ByteVector => quote! {
+                let fb_vec_$name = table.get::<$fuo<$fvec<u8>>>($iduid_id, None);
+                if let Some(bv) = fb_vec_$name {
+                    *$name = bv.bytes().to_vec();
+                }
+            },
+            // TODO research clear the buffer, and read the slice instead
+            // TODO see what's faster
+            ob_consts::OBXPropertyType_String => quote! {
+                if let Some(s) = table.get::<$fuo<&str>>($iduid_id, None) {
+                    *$name = s.to_string();
+                }
+            },
+            // TODO will this work with objectbox? rust char = 4x u8 = 32 bits
+            // TODO write test for this specifically
+            ob_consts::OBXPropertyType_Char => quote! {
+                let $(name)_u32 = table.get::<u32>($iduid_id, Some(0)).unwrap();
+                if let Some(c) = std::char::from_u32($(name)_u32) {
+                    *$name = c;
+                }
+            },
+            ob_consts::OBXPropertyType_Bool => quote! {
+                *$name = table.get::<bool>($iduid_id, Some(false)).unwrap();
+            },
+            ob_consts::OBXPropertyType_Float => quote! {
+                *$name = table.get::<f32>($iduid_id, Some(0.0)).unwrap();
+            },
+            ob_consts::OBXPropertyType_Double => quote! {
+                *$name = table.get::<f64>($iduid_id, Some(0.0)).unwrap();
+            },
+            // rest of the integer types
+            _ => {
+                let unsigned_flag = match self.flags {
+                    Some(f) => f,
+                    _ => 0
+                };
+                let sign: Tokens<Rust> = if (unsigned_flag & ob_consts::OBXPropertyFlags_UNSIGNED) == ob_consts::OBXPropertyFlags_UNSIGNED
+                { quote!(u) } else { quote!(i) };
+    
+                let bits: Tokens<Rust> = match self.type_field {
+                    ob_consts::OBXPropertyType_Byte => quote!(8),
+                    ob_consts::OBXPropertyType_Short => quote!(16),
+                    ob_consts::OBXPropertyType_Int => quote!(32),
+                    ob_consts::OBXPropertyType_Long => quote!(64),
+                    _ => panic!("Unknown OBXPropertyType")
+                };
+                quote! {
+                    *$name = table.get::<$sign$bits>($iduid_id, Some(0)).unwrap();
+                }
+            }
         }
     }
 }
