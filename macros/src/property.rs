@@ -130,7 +130,10 @@ impl Property {
         // TODO ob: char ==> u8
         // TODO rust: char ==> 4*u8 ==> u32
         // TODO what could go wrong?
-        "char" => consts::OBXPropertyType_Char, 
+        "char" => {
+          println!("Warning: {} will be remapped behind the scenes as u32. A rusty char is 4 octets wide.", name);
+          consts::OBXPropertyType_Char
+        }, 
         "u32" => consts::OBXPropertyType_Int,
         "i32" => consts::OBXPropertyType_Int,
         "u64" => consts::OBXPropertyType_Long,
