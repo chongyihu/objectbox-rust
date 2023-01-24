@@ -3,9 +3,17 @@
 See the example crate, WiP.
 
 ## Abstract roadmap
-* Flesh out Store, Box, Query, to actually use the underlying objectbox-c database.
+* Flesh out
+  * Drop trait for ob
+  * Store
+  * Box
+  * Query
 * Write tests along the way
-* Transient struct properties aka unmapped properties, it's not going to be feasible to generate whatever is required for the ad hoc value going into the struct. Transients could be of the Option type though, then we would only need to generate `None`.
+* Decide what to do with:
+  * transient struct properties aka unmapped properties, e.g. `Box<dyn trait>`, Box<SomeType>, etc. (initial idea: only allow `Option<P>` where P primitive?)
+  * also generically typed properties (e.g. panic when parsed generic param)
+* Consider rusty [planus](https://github.com/planus-org/planus) instead of [the OG flatbuffers lib](https://github.com/google/flatbuffers/tree/master/rust/flatbuffers)
+* Experiment with memory pools, especially on the fb side of things (what to do with unbounded Vector types?)
 ## Problems solved, 2023 Jan
 * Code generation from struct entities with macros
 * Code generation for injecting the model to Store
