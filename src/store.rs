@@ -1,8 +1,13 @@
+use anymap::AnyMap;
+
 use crate::c::*;
 use crate::error::Error;
 
 pub struct Store {
-  pub(crate) model_callback: Option<Box<dyn Fn() -> crate::model::Model>>,
+  // TODO why is this required again?
+  // pub(crate) model_callback: Option<Box<dyn Fn() -> crate::model::Model>>,
+  // pub(crate) trait_map: Option<AnyMap>, // passed as a ref to a Box
+  // pub(crate) box_map: Option<Box>, // TODO no ownership, maybe inner mutable?
   pub(crate) obx_model: Option<*mut OBX_model>,
   pub(crate) obx_store: Option<*mut OBX_store>,
   pub(crate) obx_store_options: Option<*mut OBX_store_options>,
@@ -56,14 +61,13 @@ impl Store {
     if let Some(store) = self.obx_store {
       Store {
         obx_store: unsafe { Some(obx_store_clone(store)) },
-        model_callback: None,
         obx_model: None,
         obx_store_options: None,
         error: None,
       }
     }else{
       println!("Unable to clone store");
-      Store { model_callback: None, obx_model: None, obx_store: None, obx_store_options: None, error: None  }
+      Store { obx_model: None, obx_store: None, obx_store_options: None, error: None  }
     }
   }
 
