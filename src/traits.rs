@@ -131,6 +131,10 @@ fn entity_factories() {
 
     let store = &mut Store {
         model_callback: None,
+        obx_model: None,
+        obx_store: None,
+        obx_store_options: None,
+        error: None,
     };
 
     let table = &mut Table::new(&[0u8], 0);

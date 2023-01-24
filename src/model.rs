@@ -213,3 +213,74 @@ mod tests {
         assert!(actual_err.starts_with(&expected_err));
     }
 }
+
+/*
+/* Rewrite the following functions in rust as an impl of Model */
+
+pub struct OBX_model {
+    _unused: [u8; 0],
+}
+
+pub struct Model {
+  model: *mut OBX_model
+}
+
+    pub fn obx_model() -> *mut OBX_model;
+    pub fn obx_model_free(model: *mut OBX_model) -> obx_err;
+
+    pub fn obx_model_error_code(model: *mut OBX_model) -> obx_err;
+    pub fn obx_model_error_message(model: *mut OBX_model) -> *const ::std::os::raw::c_char;
+    pub fn obx_model_entity(
+        model: *mut OBX_model,
+        name: *const ::std::os::raw::c_char,
+        entity_id: obx_schema_id,
+        entity_uid: obx_uid,
+    ) -> obx_err;
+    pub fn obx_model_entity_flags(model: *mut OBX_model, flags: OBXEntityFlags) -> obx_err;
+    pub fn obx_model_property(
+        model: *mut OBX_model,
+        name: *const ::std::os::raw::c_char,
+        type_: OBXPropertyType,
+        property_id: obx_schema_id,
+        property_uid: obx_uid,
+    ) -> obx_err;
+    pub fn obx_model_property_flags(model: *mut OBX_model, flags: OBXPropertyFlags) -> obx_err;
+    pub fn obx_model_property_relation(
+        model: *mut OBX_model,
+        target_entity: *const ::std::os::raw::c_char,
+        index_id: obx_schema_id,
+        index_uid: obx_uid,
+    ) -> obx_err;
+    pub fn obx_model_property_index_id(
+        model: *mut OBX_model,
+        index_id: obx_schema_id,
+        index_uid: obx_uid,
+    ) -> obx_err;
+    pub fn obx_model_relation(
+        model: *mut OBX_model,
+        relation_id: obx_schema_id,
+        relation_uid: obx_uid,
+        target_id: obx_schema_id,
+        target_uid: obx_uid,
+    ) -> obx_err;
+    pub fn obx_model_last_entity_id(
+        arg1: *mut OBX_model,
+        entity_id: obx_schema_id,
+        entity_uid: obx_uid,
+    );
+    pub fn obx_model_last_index_id(
+        model: *mut OBX_model,
+        index_id: obx_schema_id,
+        index_uid: obx_uid,
+    );
+    pub fn obx_model_last_relation_id(
+        model: *mut OBX_model,
+        relation_id: obx_schema_id,
+        relation_uid: obx_uid,
+    );
+    pub fn obx_model_entity_last_property_id(
+        model: *mut OBX_model,
+        property_id: obx_schema_id,
+        property_uid: obx_uid,
+    ) -> obx_err;
+*/
