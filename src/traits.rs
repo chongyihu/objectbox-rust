@@ -34,7 +34,10 @@ use flatbuffers::Table;
 pub trait FactoryHelper<T: ?Sized> {
   fn make(&self, store: &mut Store, table: &mut Table) -> T;
 }
-pub struct Factory<T> { _required_for_generic_trait: Option<T> }
+pub struct Factory<T> {
+  _required_for_generic_trait: Option<T>,
+  schema_id: SchemaID,
+}
 
 unsafe fn make_table(buf: &[u8], loc: usize) -> Table {
   Table::new(buf, loc)
@@ -106,6 +109,8 @@ fn blanket_directly_applied_on_entity_type() {
 #[cfg(test)]
 #[test]
 fn entity_factories() {
+    use std::ptr::null_mut;
+
   unsafe {
     struct Entity0 { id: SchemaID }
     struct Entity1 { id: SchemaID }
@@ -130,18 +135,18 @@ fn entity_factories() {
     }
 
     let store = &mut Store {
-        obx_model: None,
-        obx_store: None,
-        obx_store_options: None,
         error: None,
+        obx_store: null_mut(),
+        model_callback: None,
+        trait_map: None,
     };
 
     let table = &mut Table::new(&[0u8], 0);
 
     // this should be const boxed where it is generated
-    let f0 = Factory::<Entity0> { _required_for_generic_trait: None };
-    let f1 = Factory::<Entity1> { _required_for_generic_trait: None };
-    let f2 = Factory::<Entity2> { _required_for_generic_trait: None };
+    let f0 = Factory::<Entity0> { _required_for_generic_trait: None, schema_id: 1 };
+    let f1 = Factory::<Entity1> { _required_for_generic_trait: None, schema_id: 2 };
+    let f2 = Factory::<Entity2> { _required_for_generic_trait: None, schema_id: 3 };
 
     let e0 = f0.make(store, table);
     let e1 = f1.make(store, table);
@@ -175,7 +180,7 @@ fn entity_factories() {
     // experiment boxed factories
     {
       let mut map = anymap::AnyMap::new();
-      let f0 = Factory::<Entity0> { _required_for_generic_trait: None };
+      let f0 = Factory::<Entity0> { _required_for_generic_trait: None, schema_id: 0 };
       
       map.insert(Box::new(f0) as Box<dyn FactoryHelper<Entity0>>);
       
@@ -194,7 +199,7 @@ fn entity_factories() {
       }
 
       let mut map = anymap::AnyMap::new();
-      let f0: &'static Factory<Entity0> = &Factory::<Entity0> { _required_for_generic_trait: None };
+      let f0: &'static Factory<Entity0> = &Factory::<Entity0> { _required_for_generic_trait: None, schema_id: 0 };
       map.insert(f0);
       
       let e0 = make_from_ref::<Entity0>(map, store, table);

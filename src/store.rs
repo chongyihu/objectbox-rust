@@ -1,149 +1,155 @@
+#[allow(dead_code)]
+
 use anymap::AnyMap;
 
-use crate::c::*;
+use crate::c::{*, self};
 use crate::error::Error;
 
+use crate::opt::Opt;
+
+// Caveat: copy and drop are mutually exclusive
+
 pub struct Store {
-  // TODO why is this required again?
-  // pub(crate) model_callback: Option<Box<dyn Fn() -> crate::model::Model>>,
-  // pub(crate) trait_map: Option<AnyMap>, // passed as a ref to a Box
-  // pub(crate) box_map: Option<Box>, // TODO no ownership, maybe inner mutable?
-  pub(crate) obx_model: Option<*mut OBX_model>,
-  pub(crate) obx_store: Option<*mut OBX_store>,
-  pub(crate) obx_store_options: Option<*mut OBX_store_options>,
+  pub(crate) model_callback: Option<Box<dyn Fn() -> crate::model::Model>>,
+  pub(crate) trait_map: Option<AnyMap>, // passed as a ref to a Box
+  // pub(crate) obx_model: *mut OBX_model, // TODO confirm: model and opt are cleaned up already,
+  // Leaky? repeatedly allocate model and opts, and intentionally fail each time
   pub error: Option<Error>,
+  pub(crate) obx_store: *mut OBX_store, // TODO confirm: model and opt are cleaned up already
 }
 
-// TODO impl Drop
-// TODO Drop: obx_model_free -> OBX_model
-// TODO Drop: obx_opt_free -> OBX_store_options
-// TODO Drop: obx_store_close -> OBX_store
+impl Drop for Store {
+  fn drop(&mut self) {
+    if !self.obx_store.is_null() {
+      self.close();
+      self.obx_store = std::ptr::null_mut();
+    }
+
+    if let Some(err) = &self.error {
+      println!("Error: {}", err);
+    }
+  }
+}
 
 // TODO Bonus: start admin http in debug from store?
 
+// TODO borrowed from StackOverflow on Unix (linux, mac, bsd, android etc.)
+// #[cfg(unix)]
+// fn path_to_bytes<P: AsRef<Path>>(path: P) -> Vec<u8> {
+//   use std::os::unix::ffi::OsStrExt;
+//   path.as_ref().as_os_str().as_bytes().to_vec()
+// }
+
+// // TODO borrowed from StackOverflow on windows
+// #[cfg(not(unix))]
+// fn path_to_bytes<P: AsRef<Path>>(path: P) -> Vec<i8> {
+//     // On Windows, could use std::os::windows::ffi::OsStrExt to encode_wide(),
+//     // but you end up with a Vec<u16> instead of a Vec<u8>, so that doesn't
+//     // really help.
+//     use std::os::windows::ffi::OsStrExt;
+//     path.as_ref().to_string_lossy().to_string().into_bytes()
+// }
+
 impl Store {
-  pub fn open(opt: *mut OBX_store_options) -> *mut OBX_store {
-      unsafe { obx_store_open(opt) }
-  }
-
-  pub fn is_open(path: *const ::std::os::raw::c_char) -> bool {
-      unsafe { obx_store_is_open(path) }
-  }
-
-  pub fn attach(path: *const ::std::os::raw::c_char) -> *mut OBX_store {
-      unsafe { obx_store_attach(path) }
-  }
-
-  pub fn attach_id(store_id: u64) -> *mut OBX_store {
-      unsafe { obx_store_attach_id(store_id) }
-  }
-
-  pub fn attach_or_open(
-      opt: *mut OBX_store_options,
-      check_matching_options: bool,
-      out_attached: *mut bool,
-  ) -> *mut OBX_store {
-      unsafe { obx_store_attach_or_open(opt, check_matching_options, out_attached) }
-  }
-
-  pub fn id(&self) -> u64 {
-      if let Some(store) = self.obx_store {
-        unsafe { 
-          obx_store_id(store)
-        }
-      }else {
-        0
-      }
-  }
-
-  // TODO implement in Clone trait
-  pub fn clone(&self) -> Self {
-    if let Some(store) = self.obx_store {
-      Store {
-        obx_store: unsafe { Some(obx_store_clone(store)) },
-        obx_model: None,
-        obx_store_options: None,
-        error: None,
-      }
-    }else{
-      println!("Unable to clone store");
-      Store { obx_model: None, obx_store: None, obx_store_options: None, error: None  }
+  fn from_options(opt: &Opt) -> Self {
+    Store {
+      obx_store: unsafe { obx_store_open(opt.obx_opt) },
+      error: None,
+      model_callback: None,
+      trait_map: None,
     }
   }
 
-  pub fn wrap(core_store: *mut ::std::os::raw::c_void) -> *mut OBX_store {
-      unsafe { obx_store_wrap(core_store) }
-  }
+  // fn is_open(path: &Path) -> bool {
+  //   let c_path = path_to_bytes(path).as_mut_ptr(); // TODO write test, assert ends with a null-terminator
+  //   unsafe { obx_store_is_open(c_path) }
+  // }
 
-  pub fn entity_id(&self, entity_name: *const ::std::os::raw::c_char) -> obx_schema_id {
-    if let Some(store) = self.obx_store {
-      unsafe { 
-        obx_store_entity_id(store, entity_name)
-      }
-    }else {
-      0
+  // fn from_path_attach(path: &Path) -> Self {
+  //   let c_path = path_to_bytes(path).as_ptr();
+  //   Store {
+  //     obx_store: unsafe { obx_store_attach(c_path) }, // TODO write test, assert ends with a null-terminator
+  //     error: None,
+  //     model_callback: None,
+  //     trait_map: None,
+  //   }
+  // }
+
+  fn from_store_id_attach(store_id: u64) -> Self {
+    Store {
+      obx_store: unsafe { obx_store_attach_id(store_id) },
+      error: None,
+      model_callback: None,
+      trait_map: None,
     }
   }
 
-  pub fn entity_property_id(
-      &self,
-      entity_id: obx_schema_id,
-      property_name: *const ::std::os::raw::c_char,
+  fn attach_or_open(
+    opt: *mut OBX_store_options,
+    check_matching_options: bool,
+    out_attached: *mut bool,
+  ) -> Self {
+    Store {
+      obx_store: unsafe { obx_store_attach_or_open(opt, check_matching_options, out_attached) },
+      error: None,
+      model_callback: None,
+      trait_map: None,
+    }
+  }
+
+  fn id(&self) -> u64 {
+    unsafe { obx_store_id(self.obx_store) }
+  }
+
+  // TODO impl trait, then use over channels
+  // fn clone(&self) -> Self {
+  //   Store {
+  //     obx_store: unsafe { obx_store_clone(self.obx_store) },
+  //     error: None,
+  //   }
+  // }
+
+  fn from_core_wrap(core_store: *mut ::std::os::raw::c_void) -> Self {
+    Store {
+      obx_store: unsafe { obx_store_wrap(core_store) },
+      error: None,
+      model_callback: None,
+      trait_map: None,
+    }
+  }
+
+  fn entity_id(&self, entity_name: *const ::std::os::raw::c_char) -> obx_schema_id {
+    unsafe { obx_store_entity_id(self.obx_store, entity_name) }
+  }
+
+  fn entity_property_id(&self,
+    entity_id: obx_schema_id,
+    property_name: *const ::std::os::raw::c_char
   ) -> obx_schema_id {
-    if let Some(store) = self.obx_store {
-      unsafe { 
-        obx_store_entity_property_id(store, entity_id, property_name)
-      }
-    }else {
-      0
-    }
+    unsafe { obx_store_entity_property_id(self.obx_store, entity_id, property_name) }
   }
 
-  pub fn await_async_completion(&self) -> bool {
-    if let Some(store) = self.obx_store {
-      unsafe { 
-        obx_store_await_async_completion(store)
-      }
-    }else {
-      false
-    }
+  fn await_async_completion(&self) -> bool {
+    unsafe { obx_store_await_async_completion(self.obx_store) }
   }
 
-  pub fn await_async_submitted(&self) -> bool {
-    if let Some(store) = self.obx_store {
-      unsafe { 
-        obx_store_await_async_submitted(store)
-      }
-    }else {
-      false
-    }    
+  fn await_async_submitted(&self) -> bool {
+    unsafe { obx_store_await_async_submitted(self.obx_store) }
   }
 
-  pub fn debug_flags(&mut self, flags: OBXDebugFlags) {
-    if let Some(store) = self.obx_store {
-      let result = unsafe { obx_store_debug_flags(store, flags) };
-      self.error = call(result).err();
-    }
+  fn debug_flags(&mut self, flags: OBXDebugFlags) {
+    self.error = c::call(unsafe { obx_store_debug_flags(self.obx_store, flags) }).err();
   }
 
-  pub fn opened_with_previous_commit(&self) -> bool {
-    if let Some(store) = self.obx_store {
-      unsafe { obx_store_opened_with_previous_commit(store) }
-    }else { false }
+  fn opened_with_previous_commit(&self) -> bool {
+    unsafe { obx_store_opened_with_previous_commit(self.obx_store) }
   }
 
-  pub fn prepare_to_close(&mut self) {
-    if let Some(store) = self.obx_store {
-      let result = unsafe { obx_store_prepare_to_close(store) };
-      self.error = call(result).err();
-    }
+  fn prepare_to_close(&mut self) {
+    self.error = c::call(unsafe { obx_store_prepare_to_close(self.obx_store) }).err()
   }
 
-  // TODO implement in drop, with the others
-  pub fn close(&mut self) {
-    if let Some(store) = self.obx_store {
-      let result = unsafe { obx_store_close(store) };
-      self.error = call(result).err();
-    }
+  fn close(&mut self) {
+    self.error = c::call(unsafe { obx_store_close(self.obx_store) }).err();
   }
 }

@@ -1,22 +1,38 @@
+#[allow(dead_code)]
+
 use crate::{entity_builder::EntityBuilder, c, error::Error};
 use std::{ffi, ptr};
+
 
 pub type SchemaID = u32;
 pub type SchemaUID = u64;
 
 /// Model is used to define a database model. Use as a fluent interface (builder pattern)
 pub struct Model {
-    c_ptr: *mut c::OBX_model,
+    obx_model: *mut c::OBX_model,
     error: Option<Error>,
     builder: Box<EntityBuilder>
 }
 
+impl Drop for Model {
+    fn drop(&mut self) {
+      if !self.obx_model.is_null() {
+        self.error = c::call(unsafe { c::obx_model_free(self.obx_model) }).err();
+        self.obx_model = std::ptr::null_mut();
+      }
+
+      if let Some(err) = &self.error {
+        println!("Error: {}", err);
+      }
+    }
+  }
+
 impl Model {
     pub fn new(builder: Box<EntityBuilder>) -> Self {
         match c::new_mut(unsafe { c::obx_model() }) {
-            Ok(c_ptr) => Model { c_ptr, error: None, builder },
+            Ok(c_ptr) => Model { obx_model: c_ptr, error: None, builder },
             Err(e) => Model {
-                c_ptr: ptr::null_mut(),
+                obx_model: ptr::null_mut(),
                 error: Some(e),
                 builder
             },
@@ -28,7 +44,7 @@ impl Model {
         if self.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
             self.error =
-                c::call(unsafe { c::obx_model_entity(self.c_ptr, c_name.as_ptr(), id, uid) }).err();
+                c::call(unsafe { c::obx_model_entity(self.obx_model, c_name.as_ptr(), id, uid) }).err();
         }
         self.builder.as_mut().add_entity(name, id, uid);
         self
@@ -37,7 +53,7 @@ impl Model {
     /// Inform the model about the last entity that was ever defined in the model.
     pub fn last_entity_id(self, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
-            unsafe { c::obx_model_last_entity_id(self.c_ptr, id, uid) }
+            unsafe { c::obx_model_last_entity_id(self.obx_model, id, uid) }
         }
         self
     }
@@ -45,7 +61,7 @@ impl Model {
     /// Inform the model about the last index that was ever defined in the model.
     pub fn last_index_id(self, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
-            unsafe { c::obx_model_last_index_id(self.c_ptr, id, uid) }
+            unsafe { c::obx_model_last_index_id(self.obx_model, id, uid) }
         }
         self
     }
@@ -53,7 +69,7 @@ impl Model {
     /// Inform the model about the last relation that was ever defined in the model.
     pub fn last_relation_id(self, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
-            unsafe { c::obx_model_last_relation_id(self.c_ptr, id, uid) }
+            unsafe { c::obx_model_last_relation_id(self.obx_model, id, uid) }
         }
         self
     }
@@ -63,7 +79,7 @@ impl Model {
     pub fn last_property_id(mut self, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
             self.error =
-                c::call(unsafe { c::obx_model_entity_last_property_id(self.c_ptr, id, uid) })
+                c::call(unsafe { c::obx_model_entity_last_property_id(self.obx_model, id, uid) })
                     .err();
         }
 
@@ -90,12 +106,12 @@ impl Model {
             };
 
             self.error = c::call(unsafe {
-                    c::obx_model_property(self.c_ptr, c_name.as_ptr(), new_type, id, uid)
+                    c::obx_model_property(self.obx_model, c_name.as_ptr(), new_type, id, uid)
                 })
                 .err();
 
             self.error = c::call(unsafe {
-                    c::obx_model_property_flags(self.c_ptr, new_flags)
+                    c::obx_model_property_flags(self.obx_model, new_flags)
                 })
                 .err()
         }
@@ -109,7 +125,7 @@ impl Model {
     pub fn property_index(mut self, id: SchemaID, uid: SchemaUID) -> Self {
         if self.error.is_none() {
             self.error =
-                c::call(unsafe { c::obx_model_property_index_id(self.c_ptr, id, uid) }).err();
+                c::call(unsafe { c::obx_model_property_index_id(self.obx_model, id, uid) }).err();
         }
         self
     }
@@ -126,7 +142,7 @@ impl Model {
             let c_name = ffi::CString::new(target_entity_name).unwrap();
             self.error = c::call(unsafe {
                 c::obx_model_property_relation(
-                    self.c_ptr,
+                    self.obx_model,
                     c_name.as_ptr(),
                     index_id,
                     index_uid,
@@ -148,7 +164,7 @@ impl Model {
         if self.error.is_none() {
             self.error = c::call(unsafe {
                 c::obx_model_relation(
-                    self.c_ptr,
+                    self.obx_model,
                     relation_id,
                     relation_uid,
                     target_entity_id,
@@ -213,74 +229,3 @@ mod tests {
         assert!(actual_err.starts_with(&expected_err));
     }
 }
-
-/*
-/* Rewrite the following functions in rust as an impl of Model */
-
-pub struct OBX_model {
-    _unused: [u8; 0],
-}
-
-pub struct Model {
-  model: *mut OBX_model
-}
-
-    pub fn obx_model() -> *mut OBX_model;
-    pub fn obx_model_free(model: *mut OBX_model) -> obx_err;
-
-    pub fn obx_model_error_code(model: *mut OBX_model) -> obx_err;
-    pub fn obx_model_error_message(model: *mut OBX_model) -> *const ::std::os::raw::c_char;
-    pub fn obx_model_entity(
-        model: *mut OBX_model,
-        name: *const ::std::os::raw::c_char,
-        entity_id: obx_schema_id,
-        entity_uid: obx_uid,
-    ) -> obx_err;
-    pub fn obx_model_entity_flags(model: *mut OBX_model, flags: OBXEntityFlags) -> obx_err;
-    pub fn obx_model_property(
-        model: *mut OBX_model,
-        name: *const ::std::os::raw::c_char,
-        type_: OBXPropertyType,
-        property_id: obx_schema_id,
-        property_uid: obx_uid,
-    ) -> obx_err;
-    pub fn obx_model_property_flags(model: *mut OBX_model, flags: OBXPropertyFlags) -> obx_err;
-    pub fn obx_model_property_relation(
-        model: *mut OBX_model,
-        target_entity: *const ::std::os::raw::c_char,
-        index_id: obx_schema_id,
-        index_uid: obx_uid,
-    ) -> obx_err;
-    pub fn obx_model_property_index_id(
-        model: *mut OBX_model,
-        index_id: obx_schema_id,
-        index_uid: obx_uid,
-    ) -> obx_err;
-    pub fn obx_model_relation(
-        model: *mut OBX_model,
-        relation_id: obx_schema_id,
-        relation_uid: obx_uid,
-        target_id: obx_schema_id,
-        target_uid: obx_uid,
-    ) -> obx_err;
-    pub fn obx_model_last_entity_id(
-        arg1: *mut OBX_model,
-        entity_id: obx_schema_id,
-        entity_uid: obx_uid,
-    );
-    pub fn obx_model_last_index_id(
-        model: *mut OBX_model,
-        index_id: obx_schema_id,
-        index_uid: obx_uid,
-    );
-    pub fn obx_model_last_relation_id(
-        model: *mut OBX_model,
-        relation_id: obx_schema_id,
-        relation_uid: obx_uid,
-    );
-    pub fn obx_model_entity_last_property_id(
-        model: *mut OBX_model,
-        property_id: obx_schema_id,
-        property_uid: obx_uid,
-    ) -> obx_err;
-*/

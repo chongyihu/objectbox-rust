@@ -7,27 +7,32 @@
 /// i -> QueryProperty (QP)
 /// i.greaterThan(0) -> Condition
 /// ..build() -> Query
-/// ..property(j) -> PropertyQuery (PQ confusing as hell, I named it, it's my fault)
+/// ..property(j) -> PropertyQuery (PQ) PQ vs QP are confusing as hell, I named it, mea culpa
 /// j -> QP (like i)
 /// 
 /// Traits to reuse: https://doc.rust-lang.org/std/ops/index.html
-/// Ops:
+/// Ops: https://doc.rust-lang.org/book/appendix-02-operators.html
 /*
 enum _ConditionOp {
   isNull, // TODO only feasible when Option<OB_Rust_Primitive> is introduced
   notNull, // TODO only feasible when Option<OB_Rust_Primitive> is introduced
-  eq, // std::cmp::Eq
-  notEq, // std::ops::Not
+  eq, // std::cmp::PartialEq, eq
+  notEq, // std::ops::PartialEq, ne
   contains,
   containsElement,
   startsWith,
   endsWith,
-  gt, // std::cmp::PartialOrd
-  greaterOrEq, // std::cmp::PartialOrd
-  lt, // std::cmp::PartialOrd
-  lessOrEq, // std::cmp::PartialOrd
+  gt, // std::cmp::PartialOrd, gt
+  greaterOrEq, // std::cmp::PartialOrd, ge
+  lt, // std::cmp::PartialOrd, lt
+  lessOrEq, // std::cmp::PartialOrd, le
   oneOf,
   notOneOf,
   between,
 }
+
+// TODO even better, check predicates: https://docs.rs/predicates/2.1.5/predicates/index.html
+// e.g. box.query(qp)
+
+// For lack of variadic args on .query(), use query(vec!(condition...));
 */
