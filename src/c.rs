@@ -25,6 +25,7 @@ pub enum NativeErrorKind {
 #[derive(Debug, Clone)]
 pub struct NativeError {
     code: i32,
+    secondary: i32,
     message: String,
 }
 
@@ -32,14 +33,18 @@ impl NativeError {
     fn _new(_kind: NativeErrorKind) -> NativeError {
         unsafe {
             let mut c_code: i32 = 0;
+            let mut c_secondary: i32 = 0;
             let mut c_message: *const ::std::os::raw::c_char = ptr::null();
 
             if !obx_last_error_pop(&mut c_code, &mut c_message) {
                 panic!("could not get native error information")
+            }else {
+                c_secondary = obx_last_error_secondary();
             }
 
             NativeError {
                 code: c_code,
+                secondary: c_secondary,
                 message: ffi::CStr::from_ptr(c_message)
                     .to_string_lossy()
                     .into_owned(),
@@ -50,7 +55,7 @@ impl NativeError {
 
 impl fmt::Display for NativeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {}", self.code, self.message)
+        write!(f, "{} {} {}", self.code, self.secondary, self.message)
     }
 }
 
