@@ -36,10 +36,10 @@ impl NativeError {
             let mut c_secondary: i32 = 0;
             let mut c_message: *const ::std::os::raw::c_char = ptr::null();
 
+            c_secondary = obx_last_error_secondary();
+
             if !obx_last_error_pop(&mut c_code, &mut c_message) {
                 panic!("could not get native error information")
-            }else {
-                c_secondary = obx_last_error_secondary();
             }
 
             NativeError {
