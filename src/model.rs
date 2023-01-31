@@ -215,6 +215,45 @@ mod tests {
     }
 
     #[test]
+    fn big_model_test() {
+        let builder = Box::new(EntityBuilder::new());
+        let model = Model::new(builder)
+            .entity("Entity3", 3, 7970053520278932057)
+            .property("id", 1, 2787983164621428925, 5, 8193)
+            .property_index(1, 2787983164621428925)
+            .last_property_id(1, 2787983164621428925)
+            .entity("Entity2", 2, 11822673736957101631)
+            .property("id", 1, 5991353639039331047, 5, 8193)
+            .property("index", 2, 3089634329043241515, 6, 8200)
+            .property_index(1, 5991353639039331047)
+            .last_property_id(2, 3089634329043241515)
+            .entity("Entity", 1, 11761132493123297625)
+            .property("id", 1, 3337858750878930464, 5, 8193)
+            .property("index", 2, 2899896242679282690, 6, 8200)
+            .property("t_bool", 3, 568698003315437374, 1, 0)
+            .property("t_u8", 4, 13715947038748179573, 2, 8192)
+            .property("t_i8", 5, 12371495807681136757, 2, 0)
+            .property("t_i16", 6, 12826057009448917551, 3, 0)
+            .property("t_u16", 7, 16359736789208522050, 3, 8192)
+            .property("t_i32", 8, 3332525431949437605, 5, 32)
+            .property("t_u32", 9, 13749208938569458861, 5, 8192)
+            .property("t_u64", 10, 16701073851952767148, 6, 8192)
+            .property("t_i64", 11, 3441224032049733712, 6, 0)
+            .property("t_f32", 12, 2307762524769727799, 7, 0)
+            .property("t_f64", 13, 8741798588134039250, 8, 0)
+            .property("t_string", 14, 17661680862988529738, 9, 0)
+            .property("t_char", 15, 8866068856020898908, 4, 0)
+            .property("t_vec_string", 16, 6709516815320029775, 30, 0)
+            .property("t_vec_bytes", 17, 475363337853790328, 23, 0)
+            .property_index(1, 3337858750878930464)
+            .last_property_id(17, 475363337853790328)
+            .last_entity_id(1, 11761132493123297625)
+            .last_index_id(1, 3337858750878930464);
+
+        assert!(model.error.is_none());
+    }
+
+    #[test]
     fn model_builder_negative() {
         let builder = Box::new(EntityBuilder::new());
         let model = Model::new(builder).entity("A", 1, 1).last_property_id(0, 0);
