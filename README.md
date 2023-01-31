@@ -23,3 +23,4 @@ See the example crate, WiP.
   * also generically typed properties (e.g. panic when parsed generic param)
 * Benchmark rusty [planus](https://github.com/planus-org/planus) vs [the OG flatbuffers lib](https://github.com/google/flatbuffers/tree/master/rust/flatbuffers)
 * Experiment with memory pools, especially on the fb side of things (solve: what to do with unbounded aggregate types, e.g. Vector, Map, Set? Separate table?)
+* Run [Miri](https://github.com/rust-lang/miri) to scan for UBs across ARCHs

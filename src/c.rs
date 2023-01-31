@@ -145,8 +145,8 @@ mod tests {
         assert_error_starts_with(
             result.as_ref().err().unwrap(),
             format!(
-                "{} Argument \"txn\" must not be null",
-                OBX_ERROR_ILLEGAL_ARGUMENT
+                "{} {} Argument \"txn\" must not be null",
+                OBX_ERROR_ILLEGAL_ARGUMENT, 0
             ),
         );
     }
@@ -166,8 +166,8 @@ mod tests {
         assert_error_starts_with(
             result.as_ref().err().unwrap(),
             format!(
-                "{} Argument \"opt\" must not be null",
-                OBX_ERROR_ILLEGAL_ARGUMENT
+                "{} {} Argument \"opt\" must not be null",
+                OBX_ERROR_ILLEGAL_ARGUMENT, 0
             ),
         );
     }

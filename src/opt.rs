@@ -1,10 +1,13 @@
-#[allow(dead_code)]
 
-use crate::c;
+use std::ffi::{CStr, c_uint};
+use std::path::Path;
+
 use crate::c::*;
 use crate::error::Error;
+use crate::model::Model;
+use crate::util::{ToCChar, ToCVoid};
 
-pub(crate) struct Opt {
+pub struct Opt {
   error: Option<Error>,
   pub(crate) obx_opt: *mut OBX_store_options,
 }
@@ -25,7 +28,7 @@ impl Drop for Opt {
 }
 
 impl Opt {
-  fn new() -> Self {
+  pub fn new() -> Self {
     let obx_opt = unsafe { obx_opt() };
     Opt {
       error: None,
@@ -33,195 +36,234 @@ impl Opt {
     }
   }
 
-  fn directory(&mut self, dir: *const ::std::os::raw::c_char) {
-    self.error = c::call(unsafe { obx_opt_directory(self.obx_opt, dir) }).err();
+  pub fn from_model(model: &mut Model) -> Self {
+    let mut itself = Self::new();
+    itself.model(model);
+    itself
   }
 
-  fn max_db_size_in_kb(&mut self, size_in_kb: u64) {
+  pub fn directory(&mut self, dir: &Path) -> &mut Self {
+    self.error = call(unsafe { obx_opt_directory(self.obx_opt, dir.to_c_char()) }).err();
+    self
+  }
+
+  pub fn max_db_size_in_kb(&mut self, size_in_kb: u64) -> &mut Self {
     unsafe {
       obx_opt_max_db_size_in_kb(self.obx_opt, size_in_kb);
     }
+    self
   }
 
-  fn max_data_size_in_kb(&mut self, size_in_kb: u64) {
+  pub fn max_data_size_in_kb(&mut self, size_in_kb: u64) -> &mut Self {
     unsafe {
       obx_opt_max_data_size_in_kb(self.obx_opt, size_in_kb);
     }
+    self
   }
 
-  fn file_mode(&mut self, file_mode: ::std::os::raw::c_uint) {
+  pub fn file_mode(&mut self, file_mode: u32) -> &mut Self {
     unsafe {
-      obx_opt_file_mode(self.obx_opt, file_mode);
+      obx_opt_file_mode(self.obx_opt, file_mode as c_uint);
     }
+    self
   }
 
-  fn max_readers(&mut self, max_readers: ::std::os::raw::c_uint) {
+  pub fn max_readers(&mut self, max_readers: u32) -> &mut Self {
     unsafe {
-      obx_opt_max_readers(self.obx_opt, max_readers);
+      obx_opt_max_readers(self.obx_opt, max_readers as c_uint);
     }
+    self
   }
 
-  fn no_reader_thread_locals(&mut self, flag: bool) {
+  pub fn no_reader_thread_locals(&mut self, flag: bool) -> &mut Self {
     unsafe {
       obx_opt_no_reader_thread_locals(self.obx_opt, flag);
     }
+    self
   }
 
-  // fn model(&mut self, model: *mut OBX_model) {
-  fn model(&mut self, model: &mut OBX_model) {
-    self.error = c::call(unsafe { obx_opt_model(self.obx_opt, model) }).err();
+  pub fn model(&mut self, model: &mut Model) {
+    self.error = call(unsafe { obx_opt_model(self.obx_opt, model.obx_model) }).err();
   }
 
-  fn model_bytes(&mut self, bytes: *const ::std::os::raw::c_void, size: usize) {
-    self.error = c::call(unsafe { obx_opt_model_bytes(self.obx_opt, bytes, size) }).err();
+  pub fn model_bytes(&mut self, bytes: &Vec<u8>, size: usize) -> &mut Self {
+
+    self.error = call(unsafe { obx_opt_model_bytes(self.obx_opt, bytes.to_const_c_void(), size) }).err();
+    self
   }
 
-  fn model_bytes_direct(&mut self, bytes: *const ::std::os::raw::c_void, size: usize) {
-    self.error = c::call(unsafe { obx_opt_model_bytes_direct(self.obx_opt, bytes, size) }).err();
+  pub fn model_bytes_direct(&mut self, bytes: &Vec<u8>, size: usize) -> &mut Self {
+    self.error = call(unsafe { obx_opt_model_bytes_direct(self.obx_opt, bytes.to_const_c_void(), size) }).err();
+    self
   }
 
-  fn validate_on_open(&mut self, page_limit: usize, leaf_level: bool) {
+  pub fn validate_on_open(&mut self, page_limit: usize, leaf_level: bool) -> &mut Self {
     unsafe {
       obx_opt_validate_on_open(self.obx_opt, page_limit, leaf_level);
     }
+    self
   }
 
-  fn put_padding_mode(&mut self, mode: OBXPutPaddingMode) {
+  pub fn put_padding_mode(&mut self, mode: OBXPutPaddingMode) -> &mut Self {
     unsafe {
       obx_opt_put_padding_mode(self.obx_opt, mode);
     }
+    self
   }
 
-  fn read_schema(&mut self, value: bool) {
+  pub fn read_schema(&mut self, value: bool) -> &mut Self {
     unsafe {
       obx_opt_read_schema(self.obx_opt, value);
     }
+    self
   }
 
-  fn use_previous_commit(&mut self, value: bool) {
+  pub fn use_previous_commit(&mut self, value: bool) -> &mut Self {
     unsafe {
       obx_opt_use_previous_commit(self.obx_opt, value);
     }
+    self
   }
 
-  fn read_only(&mut self, value: bool) {
+  pub fn read_only(&mut self, value: bool) -> &mut Self {
     unsafe {
       obx_opt_read_only(self.obx_opt, value);
     }
+    self
   }
 
-  fn debug_flags(&mut self, flags: u32) {
+  pub fn debug_flags(&mut self, flags: u32) -> &mut Self {
     unsafe {
       obx_opt_debug_flags(self.obx_opt, flags);
     }
+    self
   }
 
-  fn add_debug_flags(&mut self, flags: u32) {
+  pub fn add_debug_flags(&mut self, flags: u32) -> &mut Self {
     unsafe {
       obx_opt_add_debug_flags(self.obx_opt, flags);
     }
+    self
   }
 
-  fn async_max_queue_length(&mut self, value: usize) {
+  pub fn async_max_queue_length(&mut self, value: usize) -> &mut Self {
     unsafe {
       obx_opt_async_max_queue_length(self.obx_opt, value);
     }
+    self
   }
 
-  fn async_throttle_at_queue_length(&mut self, value: usize) {
+  pub fn async_throttle_at_queue_length(&mut self, value: usize) -> &mut Self {
     unsafe {
       obx_opt_async_throttle_at_queue_length(self.obx_opt, value);
     }
+    self
   }
 
-  fn async_throttle_micros(&mut self, value: u32) {
+  pub fn async_throttle_micros(&mut self, value: u32) -> &mut Self {
     unsafe {
       obx_opt_async_throttle_micros(self.obx_opt, value);
     }
+    self
   }
 
-  fn async_max_in_tx_duration(&mut self, micros: u32) {
+  pub fn async_max_in_tx_duration(&mut self, micros: u32) -> &mut Self {
     unsafe {
       obx_opt_async_max_in_tx_duration(self.obx_opt, micros);
     }
+    self
   }
 
-  fn async_max_in_tx_operations(&mut self, value: u32) {
+  pub fn async_max_in_tx_operations(&mut self, value: u32) -> &mut Self {
     unsafe {
       obx_opt_async_max_in_tx_operations(self.obx_opt, value);
     }
+    self
   }
 
-  fn async_pre_txn_delay(&mut self, delay_micros: u32) {
+  pub fn async_pre_txn_delay(&mut self, delay_micros: u32) -> &mut Self {
     unsafe {
       obx_opt_async_pre_txn_delay(self.obx_opt, delay_micros);
     }
+    self
   }
 
-  fn async_pre_txn_delay4(&mut self, delay_micros: u32, delay2_micros: u32, min_queue_length_for_delay2: usize) {
+  pub fn async_pre_txn_delay4(&mut self, delay_micros: u32, delay2_micros: u32, min_queue_length_for_delay2: usize) -> &mut Self {
     unsafe {
       obx_opt_async_pre_txn_delay4(self.obx_opt, delay_micros, delay2_micros, min_queue_length_for_delay2);
     }
+    self
   }
 
-  fn async_post_txn_delay(&mut self, delay_micros: u32) {
+  pub fn async_post_txn_delay(&mut self, delay_micros: u32) -> &mut Self {
     unsafe {
       obx_opt_async_post_txn_delay(self.obx_opt, delay_micros);
     }
+    self
   }
 
-  fn async_post_txn_delay5(&mut self, delay_micros: u32, delay2_micros: u32, min_queue_length_for_delay2: usize, subtract_processing_time: bool) {
+  pub fn async_post_txn_delay5(&mut self, delay_micros: u32, delay2_micros: u32, min_queue_length_for_delay2: usize, subtract_processing_time: bool) -> &mut Self {
     unsafe {
       obx_opt_async_post_txn_delay5(self.obx_opt, delay_micros, delay2_micros, min_queue_length_for_delay2, subtract_processing_time);
     }
+    self
   }
 
-  fn async_minor_refill_threshold(&mut self, queue_length: usize) {
+  pub fn async_minor_refill_threshold(&mut self, queue_length: usize) -> &mut Self {
     unsafe {
       obx_opt_async_minor_refill_threshold(self.obx_opt, queue_length);
     }
+    self
   }
 
-  fn async_minor_refill_max_count(&mut self, value: u32) {
+  pub fn async_minor_refill_max_count(&mut self, value: u32) -> &mut Self {
     unsafe {
       obx_opt_async_minor_refill_max_count(self.obx_opt, value);
     }
+    self
   }
 
-  fn async_max_tx_pool_size(&mut self, value: usize) {
+  pub fn async_max_tx_pool_size(&mut self, value: usize) -> &mut Self {
     unsafe {
       obx_opt_async_max_tx_pool_size(self.obx_opt, value);
     }
+    self
   }
 
-  fn async_object_bytes_max_cache_size(&mut self, value: u64) {
+  pub fn async_object_bytes_max_cache_size(&mut self, value: u64) -> &mut Self {
     unsafe {
       obx_opt_async_object_bytes_max_cache_size(self.obx_opt, value);
     }
+    self
   }
 
-  fn async_object_bytes_max_size_to_cache(&mut self, value: u64) {
+  pub fn async_object_bytes_max_size_to_cache(&mut self, value: u64) -> &mut Self {
     unsafe {
       obx_opt_async_object_bytes_max_size_to_cache(self.obx_opt, value);
     }
+    self
   }
 
-  // TODO repair later
-  // fn get_directory(&self) -> &str {
-  //   let c_str = unsafe { obx_opt_get_directory(self.obx_opt) };
-  //   let c_str_slice = unsafe { from_raw_parts(c_str as *const u8, strlen(c_str)) };
-  //   str::from_utf8(c_str_slice).unwrap()
-  // }
+  pub fn get_directory(&self) -> &str {
+    unsafe { 
+      let c_str = obx_opt_get_directory(self.obx_opt);
+      if let Ok(r) = CStr::from_ptr(c_str).to_str() {
+        r
+      }else {
+        panic!("Error: can't get directory");
+      }
+    }
+  }
 
-  fn get_max_db_size_in_kb(&self) -> u64 {
+  pub fn get_max_db_size_in_kb(&self) -> u64 {
     unsafe { obx_opt_get_max_db_size_in_kb(self.obx_opt) }
   }
 
-  fn get_max_data_size_in_kb(&self) -> u64 {
+  pub fn get_max_data_size_in_kb(&self) -> u64 {
     unsafe { obx_opt_get_max_data_size_in_kb(self.obx_opt) }
   }
 
-  fn get_debug_flags(&self) -> u32 {
+  pub fn get_debug_flags(&self) -> u32 {
     unsafe { obx_opt_get_debug_flags(self.obx_opt) }
   }
 }

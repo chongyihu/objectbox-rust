@@ -2,7 +2,7 @@
 
 use std::ptr;
 
-use crate::{c::{*, self}, error::Error, tx::Tx};
+use crate::{c::{*, self}, error::Error, txn::Tx, util::ToCVoid};
 
 pub(crate) struct Cursor {
   error: Option<Error>,
@@ -42,105 +42,102 @@ impl Cursor {
   fn put(
       &mut self,
       id: obx_id,
-      data: *const ::std::os::raw::c_void,
-      size: usize,
+      data: &Vec<u8>,
   ) {
-      self.error = c::call(unsafe { c::obx_cursor_put(self.obx_cursor, id, data, size) }).err();
+      self.error = c::call(unsafe { c::obx_cursor_put(self.obx_cursor, id, data.to_const_c_void(), data.len()) }).err();
   }
 
   fn put4(
       &mut self,
       id: obx_id,
-      data: *const ::std::os::raw::c_void,
-      size: usize,
+      data: &Vec<u8>,
       mode: OBXPutMode,
   ) {
-    self.error = c::call(unsafe { obx_cursor_put4(self.obx_cursor, id, data, size, mode) }).err();
+    self.error = c::call(unsafe { obx_cursor_put4(self.obx_cursor, id, data.to_const_c_void(), data.len(), mode) }).err();
   }         
 
   fn put_new(
       &mut self,
       id: obx_id,
-      data: *const ::std::os::raw::c_void,
-      size: usize,
+      data: &Vec<u8>,
   ) {
-      self.error = c::call(unsafe { obx_cursor_put_new(self.obx_cursor, id, data, size) }).err()
+      self.error = c::call(unsafe { obx_cursor_put_new(self.obx_cursor, id, data.to_const_c_void(), data.len()) }).err()
   }
 
   fn insert(
       &mut self,
       id: obx_id,
-      data: *const ::std::os::raw::c_void,
-      size: usize,
+      data: &Vec<u8>,
   ) {
-      self.error = c::call(unsafe { obx_cursor_insert(self.obx_cursor, id, data, size) }).err()
+      self.error = c::call(unsafe { obx_cursor_insert(self.obx_cursor, id, data.to_const_c_void(), data.len()) }).err()
   }
 
   fn update(
       &mut self,
       id: obx_id,
-      data: *const ::std::os::raw::c_void,
-      size: usize,
+      data: &Vec<u8>,
   ) {
-      self.error = c::call(unsafe { obx_cursor_update(self.obx_cursor, id, data, size) }).err()
+      self.error = c::call(unsafe { obx_cursor_update(self.obx_cursor, id, data.to_const_c_void(), data.len()) }).err()
   }
 
   fn put_object(
       &self,
-      data: *mut ::std::os::raw::c_void,
-      size: usize,
+      data: &mut Vec<u8>,
   ) -> obx_id {
-    unsafe { obx_cursor_put_object(self.obx_cursor, data, size) }
+    unsafe { obx_cursor_put_object(self.obx_cursor, data.to_mut_c_void(), data.len()) }
   }
 
   fn put_object4(
       &self,
-      data: *mut ::std::os::raw::c_void,
-      size: usize,
+      data: &mut Vec<u8>,
       mode: OBXPutMode,
   ) -> obx_id {
-    unsafe { obx_cursor_put_object4(self.obx_cursor, data, size, mode) }
+    unsafe { obx_cursor_put_object4(self.obx_cursor, data.to_mut_c_void(), data.len(), mode) }
   }
 
+  // TODO test correctness of coerce
   fn get(
       &mut self,
       id: obx_id,
-      data: *mut *const ::std::os::raw::c_void,
+      data: &mut Vec<u8>, //*mut *const ::std::os::raw::c_void,
       size: *mut usize,
   ) {
-    self.error = c::call(unsafe { obx_cursor_get(self.obx_cursor, id, data, size) }).err()
+    self.error = c::call(unsafe { obx_cursor_get(self.obx_cursor, id, data.to_mut_const_c_void(), size) }).err()
   }
 
   fn get_all(&self) -> *mut OBX_bytes_array {
       unsafe { obx_cursor_get_all(self.obx_cursor) }
   }
 
+  // TODO test correctness of coerce
   fn first(
       &mut self,
-      data: *mut *const ::std::os::raw::c_void,
+      data: &mut Vec<u8>, // *mut *const ::std::os::raw::c_void,
       size: *mut usize,
   ) {
-      self.error = c::call(unsafe {obx_cursor_first(self.obx_cursor, data, size)}).err();
+      self.error = c::call(unsafe {obx_cursor_first(self.obx_cursor, data.to_mut_const_c_void(), size)}).err();
   }
 
+  // TODO test correctness of coerce
   fn next(
       &mut self,
-      data: *mut *const ::std::os::raw::c_void,
+      data: &mut Vec<u8>, // *mut *const ::std::os::raw::c_void,
       size: *mut usize,
   ) {
-      self.error = c::call(unsafe {obx_cursor_next(self.obx_cursor, data, size)}).err();
+      self.error = c::call(unsafe {obx_cursor_next(self.obx_cursor, data.to_mut_const_c_void(), size)}).err();
   }
 
   fn seek(&mut self, id: obx_id) {
       self.error = c::call(unsafe {obx_cursor_seek(self.obx_cursor, id)}).err();
   }
 
+  // TODO test correctness of coerce
   fn current(
       &mut self,
-      data: *mut *const ::std::os::raw::c_void,
+      data: &mut Vec<u8>, // *mut *const ::std::os::raw::c_void,
       size: *mut usize,
   ) {
-      self.error = c::call(unsafe {obx_cursor_current(self.obx_cursor, data, size)}).err();
+      self.error = c::call(unsafe {obx_cursor_current(self.obx_cursor, data.to_mut_const_c_void(), size)}).err();
   }
 
   fn remove(&mut self, id: obx_id) {
@@ -152,7 +149,7 @@ impl Cursor {
   }
 
   fn count(&mut self) -> u64 {
-    let mut count: u64 = 0;
+    let count: u64 = 0;
     self.error = c::call(unsafe {obx_cursor_count(self.obx_cursor, count as *mut u64)}).err();
     count
   }
@@ -161,18 +158,19 @@ impl Cursor {
       &mut self,
       max_count: u64,
   ) -> u64 {
-    let mut out_count: u64 = 0;
+    let out_count: u64 = 0;
     self.error = c::call(unsafe {obx_cursor_count_max(self.obx_cursor, max_count, out_count as *mut u64)}).err();
     out_count
   }
 
-  // TODO fix
   // TODO test endianness
-  // fn is_empty(&mut self) -> bool {
-  //   let mut out_is_empty: bool = false;
-  //   self.error = c::call(unsafe {obx_cursor_is_empty(self.obx_cursor, out_is_empty)}).err();
-  //   out_is_empty
-  // }
+  fn is_empty(&mut self) -> bool {
+    unsafe {
+      let out_is_empty: *mut bool = &mut false; // coerce
+      self.error = c::call(obx_cursor_is_empty(self.obx_cursor, out_is_empty as *mut bool)).err();
+      *out_is_empty  
+    }
+  }
 
   fn backlinks(
       &self,

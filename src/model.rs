@@ -9,7 +9,7 @@ pub type SchemaUID = u64;
 
 /// Model is used to define a database model. Use as a fluent interface (builder pattern)
 pub struct Model {
-    obx_model: *mut c::OBX_model,
+    pub(crate) obx_model: *mut c::OBX_model,
     error: Option<Error>,
     builder: Box<EntityBuilder>
 }
@@ -220,10 +220,11 @@ mod tests {
         let model = Model::new(builder).entity("A", 1, 1).last_property_id(0, 0);
 
         let expected_err = format!(
-            "{} Argument condition \"property_id\" not met",
-            c::OBX_ERROR_ILLEGAL_ARGUMENT
+            "{} {} Argument condition \"property_id\" not met",
+            c::OBX_ERROR_ILLEGAL_ARGUMENT, 0
         );
-        let actual_err = format!("{}", model.error.unwrap());
+
+        let actual_err = format!("{}", model.error.as_ref().unwrap());
         println!("expected: {}", &expected_err);
         println!("actual: {}", &actual_err);
         assert!(actual_err.starts_with(&expected_err));
