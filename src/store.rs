@@ -26,7 +26,7 @@ impl Drop for Store {
     }
 
     if let Some(err) = &self.error {
-      println!("Error: {}", err);
+      eprintln!("Error: {err}");
     }
   }
 }

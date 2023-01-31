@@ -22,7 +22,7 @@ impl Drop for Model {
       }
 
       if let Some(err) = &self.error {
-        println!("Error: {}", err);
+        eprintln!("Error: {err}");
       }
     }
   }
