@@ -1,25 +1,28 @@
+use std::rc::Rc;
+
 #[allow(dead_code)]
 
 use crate::c::{*, self};
 use crate::error::Error;
 use crate::store::Store;
+use crate::traits::FactoryHelper;
 use crate::util::ToCVoid;
 
 // This Box type will confuse a lot of rust users of std::boxed::Box
 pub struct Box<T> {
-  _place_holder: Option<T>,
+  helper: Option<Rc<dyn FactoryHelper<T>>>,
   error: Option<Error>,
   pub(crate) obx_box: *mut OBX_box,
-  // obx_async: *mut OBX_async, // TODO
+  // pub(crate) async_: std::boxed::Box<Async>, // TODO
 }
 
 impl<T> Box<T> {
-  pub fn new(store: Store, entity_id: c::obx_schema_id) -> Self {
+  pub(crate) fn new(store: &Store, entity_id: c::obx_schema_id, helper: Option<Rc<dyn FactoryHelper<T>>>) -> Self {
     unsafe {
       let obx_box = c::obx_box(store.obx_store, entity_id);
 
       Box {
-        _place_holder: None,
+        helper,
         error: None,
         obx_box,
       }
@@ -184,6 +187,66 @@ impl<T> Box<T> {
       unsafe { obx_box_rel_get_ids(self.obx_box, relation_id, id) }
   }
 
+  // TODO convert user_data to Vec<u8>
+  pub fn visit_all(&mut self, visitor: obx_data_visitor, user_data: *mut ::std::os::raw::c_void) -> obx_err {
+    unsafe {
+        obx_box_visit_all(self.obx_box, visitor, user_data)
+    }
+  }
+
+  pub fn rel_get_backlink_ids(&mut self, relation_id: obx_schema_id, id: obx_id) -> *mut OBX_id_array {
+    unsafe {
+        obx_box_rel_get_backlink_ids(self.obx_box, relation_id, id)
+    }
+  }
+
+  pub fn ts_min_max(&mut self, out_min_id: *mut obx_id, out_min_value: *mut i64, out_max_id: *mut obx_id, out_max_value: *mut i64) -> obx_err {
+    unsafe {
+        obx_box_ts_min_max(self.obx_box, out_min_id, out_min_value, out_max_id, out_max_value)
+    }
+  }
+
+  pub fn ts_min_max_range(&mut self, range_begin: i64, range_end: i64, out_min_id: *mut obx_id, out_min_value: *mut i64, out_max_id: *mut obx_id, out_max_value: *mut i64) -> obx_err {
+    unsafe {
+        obx_box_ts_min_max_range(self.obx_box, range_begin, range_end, out_min_id, out_min_value, out_max_id, out_max_value)
+    }
+  }
+}
+
+
+struct Async {
+  obx_async: *mut OBX_async
+}
+
+impl Async {
+  // TODO create async wrapper
+  // reserved keyword
+  // pub fn async_(&mut self) -> *mut OBX_async {
+  //   unsafe {
+  //       obx_async(self.obx_box)
+  //   }
+  // }
+
+  // TODO fix later
+  // pub fn async_remove(&mut self, id: obx_id) -> obx_err {
+  //   unsafe {
+  //       obx_async_remove(self.obx_async, id)
+  //   }
+  // }
+
+  // pub fn async_create(&mut self, enqueue_timeout_millis: u64) -> *mut OBX_async {
+  //   unsafe {
+  //       obx_async_create(self.obx_async, enqueue_timeout_millis)
+  //   }
+  // }
+
+  // pub fn async_close(&mut self) -> obx_err {
+  //   unsafe {
+  //       obx_async_close(self.obx_async)
+  //   }
+  // }
+
+
   // TODO put in its own Type, with its own Drop
   // fn async_put(&self, async_: *mut OBX_async, id: obx_id, data: *const ::std::os::raw::c_void, size: usize) -> obx_err {
   //     unsafe { obx_async_put(async_, id, data, size) }
@@ -220,58 +283,4 @@ impl<T> Box<T> {
   //   }
   // }
 
-  // TODO convert user_data to Vec<u8>
-  pub fn visit_all(&mut self, visitor: obx_data_visitor, user_data: *mut ::std::os::raw::c_void) -> obx_err {
-    unsafe {
-        obx_box_visit_all(self.obx_box, visitor, user_data)
-    }
-  }
-
-  // TODO fix later
-  // pub fn async_remove(&mut self, id: obx_id) -> obx_err {
-  //   unsafe {
-  //       obx_async_remove(self.obx_async, id)
-  //   }
-  // }
-
-  // pub fn async_create(&mut self, enqueue_timeout_millis: u64) -> *mut OBX_async {
-  //   unsafe {
-  //       obx_async_create(self.obx_async, enqueue_timeout_millis)
-  //   }
-  // }
-
-  // pub fn async_close(&mut self) -> obx_err {
-  //   unsafe {
-  //       obx_async_close(self.obx_async)
-  //   }
-  // }
-
-  pub fn rel_get_backlink_ids(&mut self, relation_id: obx_schema_id, id: obx_id) -> *mut OBX_id_array {
-    unsafe {
-        obx_box_rel_get_backlink_ids(self.obx_box, relation_id, id)
-    }
-  }
-
-  pub fn ts_min_max(&mut self, out_min_id: *mut obx_id, out_min_value: *mut i64, out_max_id: *mut obx_id, out_max_value: *mut i64) -> obx_err {
-    unsafe {
-        obx_box_ts_min_max(self.obx_box, out_min_id, out_min_value, out_max_id, out_max_value)
-    }
-  }
-
-  pub fn ts_min_max_range(&mut self, range_begin: i64, range_end: i64, out_min_id: *mut obx_id, out_min_value: *mut i64, out_max_id: *mut obx_id, out_max_value: *mut i64) -> obx_err {
-    unsafe {
-        obx_box_ts_min_max_range(self.obx_box, range_begin, range_end, out_min_id, out_min_value, out_max_id, out_max_value)
-    }
-  }
-
-  // TODO create async wrapper
-  // reserved keyword
-  // pub fn async_(&mut self) -> *mut OBX_async {
-  //   unsafe {
-  //       obx_async(self.obx_box)
-  //   }
-  // }
 }
-
-
-

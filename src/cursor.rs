@@ -1,15 +1,17 @@
 #[allow(dead_code)]
 
 use std::ptr;
+use std::rc::Rc;
 
-use crate::{c::{*, self}, error::Error, txn::Tx, util::ToCVoid};
+use crate::{c::{*, self}, error::Error, txn::Tx, util::ToCVoid, traits::FactoryHelper};
 
-pub(crate) struct Cursor {
+pub(crate) struct Cursor<T> {
+  helper: Option<Rc<dyn FactoryHelper<T>>>,
   error: Option<Error>,
   obx_cursor: *mut c::OBX_cursor
 }
 
-impl Drop for Cursor {
+impl<T> Drop for Cursor<T> {
   fn drop(&mut self) {
     unsafe {
       if !self.obx_cursor.is_null() {
@@ -24,11 +26,14 @@ impl Drop for Cursor {
   }
 }
 
-impl Cursor {
-  fn new(tx: Tx, entity_id: c::obx_schema_id) -> Self {
+impl<T> Cursor<T> {
+  fn new(tx: Tx, entity_id: c::obx_schema_id, helper: Option<Rc<dyn FactoryHelper<T>>>) -> Self {
     match c::new_mut(unsafe { c::obx_cursor(tx.obx_txn, entity_id) }) {
-      Ok(obx_cursor) => Cursor { obx_cursor, error: None },
+      Ok(obx_cursor) => Cursor {
+        helper,
+        obx_cursor, error: None },
       Err(e) => Cursor {
+          helper: None,
           obx_cursor: ptr::null_mut(),
           error: Some(e),
       },

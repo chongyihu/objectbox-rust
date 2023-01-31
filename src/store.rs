@@ -9,6 +9,7 @@ use crate::c::{*, self};
 use crate::error::Error;
 
 use crate::opt::Opt;
+use crate::traits::FactoryHelper;
 use crate::util::{ToCChar, ToCVoid};
 
 // Caveat: copy and drop are mutually exclusive
@@ -39,6 +40,8 @@ impl Drop for Store {
 // TODO Bonus: start admin http in debug from store?
 
 impl Store {
+  // TODO pub fn from_model_callback() ... generated from open_store()
+
   pub fn from_options(opt: &Opt) -> Self {
     Store {
       obx_store: unsafe { obx_store_open(opt.obx_opt) },
@@ -47,6 +50,23 @@ impl Store {
       trait_map: None,
     }
   }
+
+  // TODO fix soon
+  /*
+  pub fn get_box<T: ?Sized>(&self) -> crate::r#box::Box::<T> {
+    let map = if let Some(m) = self.trait_map {
+      m
+    }else {
+      panic!("Error: unable to get box");
+    };
+    let helper = if let Some(h) = map.get::<dyn FactoryHelper<T>>() {
+      h
+    }else {
+      panic!("Error: unable to get entity helper");
+    };
+    crate::r#box::Box::<T>::new(self, helper)
+  }
+  */
 
   pub fn is_open(path: &Path) -> bool {
     unsafe { obx_store_is_open(path.to_c_char()) }
