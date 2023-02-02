@@ -29,7 +29,7 @@ impl<T> Box<T> {
     }
   }
 
-  // I'm not sure why this should be exposed to the user
+  // This should only be exposed between threads, channels, etc.
   pub(crate) fn get_store(&self) -> *mut OBX_store {
     unsafe {
         obx_box_store(self.obx_box)
@@ -80,7 +80,7 @@ impl<T> Box<T> {
       first_id
   }
 
-  pub fn put(
+  pub fn put_vec_u8(
       &mut self,
       id: obx_id,
       data: &Vec<u8>,
@@ -88,7 +88,7 @@ impl<T> Box<T> {
     self.error = c::call(unsafe { obx_box_put(self.obx_box, id, data.to_const_c_void(), data.len()) }).err();
   }
 
-  pub fn insert(
+  pub fn insert_vec_u8(
       &mut self,
       id: obx_id,
       data: &Vec<u8>,
@@ -96,7 +96,7 @@ impl<T> Box<T> {
     self.error = c::call(unsafe { obx_box_insert(self.obx_box, id, data.to_const_c_void(), data.len()) }).err();
   }
 
-  pub fn update(
+  pub fn update_vec_u8(
       &mut self,
       id: obx_id,
       data: &Vec<u8>,
@@ -104,7 +104,7 @@ impl<T> Box<T> {
     self.error = c::call(unsafe { obx_box_update(self.obx_box, id, data.to_const_c_void(), data.len()) }).err();
   }
 
-  pub fn put5(
+  pub fn put5_vec_u8(
       &mut self,
       id: obx_id,
       data: &Vec<u8>,
@@ -128,7 +128,7 @@ impl<T> Box<T> {
       unsafe { obx_box_put_object4(self.obx_box, data.to_mut_c_void(), data.len(), mode) }
   }
 
-  pub fn put_many(
+  pub fn put_many_bytes_array(
       &mut self,
       objects: *const OBX_bytes_array,
       ids: *const obx_id,
@@ -137,15 +137,15 @@ impl<T> Box<T> {
     self.error = c::call(unsafe { obx_box_put_many(self.obx_box, objects, ids, mode) }).err();
   }
 
-  pub fn put_many5(&mut self, objects: *const OBX_bytes_array, ids: *const obx_id, mode: OBXPutMode, fail_on_id_failure: bool) {
+  pub fn put_many5_bytes_array(&mut self, objects: *const OBX_bytes_array, ids: *const obx_id, mode: OBXPutMode, fail_on_id_failure: bool) {
     self.error = c::call(unsafe { obx_box_put_many5(self.obx_box, objects, ids, mode, fail_on_id_failure) }).err();
   }
 
-  pub fn remove(&mut self, id: obx_id) {
+  pub fn remove_with_id(&mut self, id: obx_id) {
     self.error = c::call(unsafe { obx_box_remove(self.obx_box, id) }).err();
   }
 
-  pub fn remove_many(&mut self, ids: *const OBX_id_array) -> u64 {
+  pub fn remove_many_id_array(&mut self, ids: *const OBX_id_array) -> u64 {
     let out_count: u64 = 0;
     self.error = c::call(unsafe { obx_box_remove_many(self.obx_box, ids, out_count as *mut u64) }).err();
     out_count
@@ -165,7 +165,7 @@ impl<T> Box<T> {
     }
   }
 
-  pub fn count(&mut self, limit: u64) -> u64 {
+  pub fn count_with_limit(&mut self, limit: u64) -> u64 {
     let out_count: u64 = 0;
     self.error = c::call(unsafe { obx_box_count(self.obx_box, limit, out_count as *mut u64) }).err();
     out_count
