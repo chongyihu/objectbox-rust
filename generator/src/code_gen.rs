@@ -126,7 +126,7 @@ impl CodeGenEntityExt for ModelEntity {
 
   fn generate_id_trait(&self) -> Tokens<Rust> {
       let entity = &rust::import("crate", &self.name);
-      let schema_id = &rust::import("objectbox::model", "SchemaID");
+      let obx_id = &rust::import("objectbox::c", "obx_id");
       let id_trait = &rust::import("objectbox::traits", "IdExt");
 
       let id = self.get_id_property();
@@ -139,10 +139,10 @@ impl CodeGenEntityExt for ModelEntity {
 
       quote! {
         impl $id_trait for $entity {
-          fn get_id(&self) -> $schema_id {
+          fn get_id(&self) -> $obx_id {
             self.$(p.name.as_str())
           }
-          fn set_id(&mut self, id: $schema_id) {
+          fn set_id(&mut self, id: $obx_id) {
             self.$(p.name.as_str()) = id;
           }
         }
@@ -180,7 +180,7 @@ impl CodeGenEntityExt for ModelEntity {
     
     let store = &rust::import("objectbox::store", "Store");
     
-    let schema_id = &rust::import("objectbox::model", "SchemaID");
+    let schema_id = &rust::import("objectbox::c", "obx_schema_id");
 
     let destructured_props = self.properties.iter().map(|p| p.as_struct_property_default() );
     let assigned_props = self.properties.iter().map(|p| p.as_assigned_property() );
@@ -212,7 +212,7 @@ impl CodeGenEntityExt for ModelEntity {
         }
 
         fn get_entity_id(&self) -> $schema_id {
-          $id
+          self.schema_id
         }
       }
     }

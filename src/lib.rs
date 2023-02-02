@@ -1,5 +1,3 @@
-mod c;
-
 // pub extern crate predicates;
 pub extern crate objectbox_generator as generator;
 pub extern crate objectbox_macros as macros;
@@ -12,6 +10,7 @@ pub mod model;
 pub mod version;
 pub mod store;
 pub mod opt;
+pub mod c;
 
 pub mod traits;
 pub mod entity_builder;

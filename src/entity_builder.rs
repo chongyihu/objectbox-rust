@@ -1,18 +1,17 @@
 use crate::c::{OBXPropertyFlags, OBXPropertyType, self};
-use crate::model::{SchemaID, SchemaUID};
 
 pub(crate) struct Entity {
   name: String,
-  id: SchemaID,
-  uid: SchemaUID,
+  id: c::obx_schema_id,
+  uid: c::obx_uid,
   pub properties: Vec<Property>,
 }
 
 
 pub(crate) struct Property {
   name: String,
-  id: SchemaID,
-  uid: SchemaUID,
+  id: c::obx_schema_id,
+  uid: c::obx_uid,
   typ: OBXPropertyType,
   flags: OBXPropertyFlags
 }
@@ -28,7 +27,7 @@ impl EntityBuilder {
       }
   }
 
-  pub(crate) fn add_entity(&mut self, name: &str, id: SchemaID, uid: SchemaUID) -> &mut Self {
+  pub(crate) fn add_entity(&mut self, name: &str, id: c::obx_schema_id, uid: c::obx_uid) -> &mut Self {
       let entity = Entity {
           name: name.to_string(),
           properties: Vec::new(),
@@ -39,7 +38,7 @@ impl EntityBuilder {
       self
   }
 
-  pub(crate) fn add_property(&mut self, name: &str, id: SchemaID, uid: SchemaUID, typ: OBXPropertyType, flags: OBXPropertyFlags) -> &mut Self {
+  pub(crate) fn add_property(&mut self, name: &str, id: c::obx_schema_id, uid: c::obx_uid, typ: OBXPropertyType, flags: OBXPropertyFlags) -> &mut Self {
       let (new_type, new_flags) = if typ == c::OBXPropertyType_Char {
         (c::OBXPropertyType_Char, flags & c::OBXPropertyFlags_UNSIGNED)
       }else {

@@ -1,5 +1,5 @@
+use crate::c;
 use crate::store::Store;
-use crate::model::SchemaID;
 use flatbuffers::FlatBufferBuilder;
 
 pub trait FBOBBridge {
@@ -10,8 +10,8 @@ pub trait FBOBBridge {
 }
 
 pub trait IdExt {
-  fn get_id(&self) -> SchemaID;
-  fn set_id(&mut self, id: SchemaID);
+  fn get_id(&self) -> c::obx_id;
+  fn set_id(&mut self, id: c::obx_id);
 }
 
 // TODO
@@ -33,11 +33,11 @@ use flatbuffers::Table;
 
 pub trait FactoryHelper<T: ?Sized> {
   fn make(&self, store: &mut Store, table: &mut Table) -> T;
-  fn get_entity_id(&self) -> SchemaID;
+  fn get_entity_id(&self) -> c::obx_schema_id;
 }
 pub struct Factory<T> {
   pub _required_for_generic_trait: Option<T>,
-  pub schema_id: SchemaID,
+  pub schema_id: c::obx_schema_id,
 }
 
 unsafe fn make_table(buf: &[u8], loc: usize) -> Table {
@@ -58,8 +58,10 @@ fn blanket_directly_applied_on_entity_type() {
   // imagine this were an external struct
   // from a different package / crate / module etc.
 
+use crate::c;
+
   struct SomeEntity {
-    id: SchemaID
+    id: c::obx_id
   }
 
   impl FBOBBridge for SomeEntity {
@@ -73,10 +75,10 @@ fn blanket_directly_applied_on_entity_type() {
   }
 
   impl IdExt for SomeEntity {
-    fn get_id(&self) -> SchemaID {
+    fn get_id(&self) -> c::obx_id {
       self.id
     }
-    fn set_id(&mut self, id: SchemaID) {
+    fn set_id(&mut self, id: c::obx_id) {
       self.id = id;
     }
   }
@@ -115,15 +117,15 @@ fn entity_factories() {
     use crate::model;
 
   unsafe {
-    struct Entity0 { id: SchemaID }
-    struct Entity1 { id: SchemaID }
-    struct Entity2 { id: SchemaID }
+    struct Entity0 { id: c::obx_schema_id }
+    struct Entity1 { id: c::obx_schema_id }
+    struct Entity2 { id: c::obx_schema_id }
 
     impl FactoryHelper<Entity0> for Factory<Entity0> {
       fn make(&self, store: &mut Store, table: &mut Table) -> Entity0 {
           Entity0{ id: 0 }
       }
-      fn get_entity_id(&self) -> model::SchemaID {
+      fn get_entity_id(&self) -> c::obx_schema_id {
         0
       }
     }
@@ -132,7 +134,7 @@ fn entity_factories() {
       fn make(&self, store: &mut Store, table: &mut Table) -> Entity1 {
           Entity1{ id: 1 }
       }
-      fn get_entity_id(&self) -> model::SchemaID {
+      fn get_entity_id(&self) -> c::obx_schema_id {
         1
       }
     }
@@ -141,7 +143,7 @@ fn entity_factories() {
       fn make(&self, store: &mut Store, table: &mut Table) -> Entity2 {
           Entity2{ id: 2 }
       }
-      fn get_entity_id(&self) -> model::SchemaID {
+      fn get_entity_id(&self) -> c::obx_schema_id {
         2
       }
     }

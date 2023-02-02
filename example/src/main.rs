@@ -14,13 +14,13 @@ use objectbox_gen as ob;
 #[entity]
 pub struct Entity3 {
   #[id]
-  id: u32,
+  id: u64,
 }
 
 #[entity]
 pub struct Entity2 {
   #[id]
-  id: u32,
+  id: u64,
   #[index]
   index: u64,
 }
@@ -28,7 +28,7 @@ pub struct Entity2 {
 #[entity]
 pub struct Entity {
   #[id]
-  id: u32,
+  id: u64,
   #[index]
   index: u64,
   t_bool : bool,

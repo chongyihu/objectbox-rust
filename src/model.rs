@@ -3,10 +3,6 @@
 use crate::{entity_builder::EntityBuilder, c, error::Error};
 use std::{ffi, ptr};
 
-
-pub type SchemaID = u32;
-pub type SchemaUID = u64;
-
 /// Model is used to define a database model. Use as a fluent interface (builder pattern)
 pub struct Model {
     pub(crate) obx_model: *mut c::OBX_model,
@@ -47,7 +43,7 @@ impl Model {
     }
 
     /// Create an entity.
-    pub fn entity(mut self, name: &str, id: SchemaID, uid: SchemaUID) -> Self {
+    pub fn entity(mut self, name: &str, id: c::obx_schema_id, uid: c::obx_uid) -> Self {
         if self.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
             self.error =
@@ -58,7 +54,7 @@ impl Model {
     }
 
     /// Inform the model about the last entity that was ever defined in the model.
-    pub fn last_entity_id(self, id: SchemaID, uid: SchemaUID) -> Self {
+    pub fn last_entity_id(self, id: c::obx_schema_id, uid: c::obx_uid) -> Self {
         if self.error.is_none() {
             unsafe { c::obx_model_last_entity_id(self.obx_model, id, uid) }
         }
@@ -66,7 +62,7 @@ impl Model {
     }
 
     /// Inform the model about the last index that was ever defined in the model.
-    pub fn last_index_id(self, id: SchemaID, uid: SchemaUID) -> Self {
+    pub fn last_index_id(self, id: c::obx_schema_id, uid: c::obx_uid) -> Self {
         if self.error.is_none() {
             unsafe { c::obx_model_last_index_id(self.obx_model, id, uid) }
         }
@@ -74,7 +70,7 @@ impl Model {
     }
 
     /// Inform the model about the last relation that was ever defined in the model.
-    pub fn last_relation_id(self, id: SchemaID, uid: SchemaUID) -> Self {
+    pub fn last_relation_id(self, id: c::obx_schema_id, uid: c::obx_uid) -> Self {
         if self.error.is_none() {
             unsafe { c::obx_model_last_relation_id(self.obx_model, id, uid) }
         }
@@ -83,7 +79,7 @@ impl Model {
 
     /// Inform the model about the last property that was ever defined on the entity.
     /// Finishes building the entity, returning the parent Model.
-    pub fn last_property_id(mut self, id: SchemaID, uid: SchemaUID) -> Self {
+    pub fn last_property_id(mut self, id: c::obx_schema_id, uid: c::obx_uid) -> Self {
         if self.error.is_none() {
             self.error =
                 c::call(unsafe { c::obx_model_entity_last_property_id(self.obx_model, id, uid) })
@@ -97,8 +93,8 @@ impl Model {
     pub fn property(
         mut self,
         name: &str,
-        id: SchemaID,
-        uid: SchemaUID,
+        id: c::obx_schema_id,
+        uid: c::obx_uid,
         // type === typedef, is a reserved keyword, intentional
         typ: c::OBXPropertyType,
         flags: c::OBXPropertyFlags,
@@ -129,7 +125,7 @@ impl Model {
     }
 
     /// Declare an index on the last created property.
-    pub fn property_index(mut self, id: SchemaID, uid: SchemaUID) -> Self {
+    pub fn property_index(mut self, id: c::obx_schema_id, uid: c::obx_uid) -> Self {
         if self.error.is_none() {
             self.error =
                 c::call(unsafe { c::obx_model_property_index_id(self.obx_model, id, uid) }).err();
@@ -142,8 +138,8 @@ impl Model {
     pub fn property_relation(
         mut self,
         target_entity_name: &str,
-        index_id: SchemaID,
-        index_uid: SchemaUID,
+        index_id: c::obx_schema_id,
+        index_uid: c::obx_uid,
     ) -> Self {
         if self.error.is_none() {
             let c_name = ffi::CString::new(target_entity_name).unwrap();
@@ -163,10 +159,10 @@ impl Model {
     /// Declare a standalone to-many relation between this entity and another one
     pub fn relation(
         mut self,
-        relation_id: SchemaID,
-        relation_uid: SchemaUID,
-        target_entity_id: SchemaID,
-        target_entity_uid: SchemaUID,
+        relation_id: c::obx_schema_id,
+        relation_uid: c::obx_uid,
+        target_entity_id: c::obx_schema_id,
+        target_entity_uid: c::obx_uid,
     ) -> Self {
         if self.error.is_none() {
             self.error = c::call(unsafe {
