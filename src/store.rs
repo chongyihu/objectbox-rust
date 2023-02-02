@@ -42,9 +42,12 @@ impl Drop for Store {
 impl Store {
   // TODO pub fn from_model_callback() ... generated from open_store()
 
-  pub fn from_options(opt: &Opt) -> Self {
+  pub fn from_options(opt: &mut Opt) -> Self {
+    let store_ptr = unsafe {  obx_store_open(opt.obx_opt) };
+    // initialized store_ptr == 0 (in C)
+    opt.ptr_consumed = store_ptr.is_null();
     Store {
-      obx_store: unsafe { obx_store_open(opt.obx_opt) },
+      obx_store: store_ptr,
       error: None,
       model_callback: None,
       trait_map: None,

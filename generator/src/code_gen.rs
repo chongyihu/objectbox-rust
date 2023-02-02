@@ -239,7 +239,7 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   let builder = &rust::import("objectbox::entity_builder", "EntityBuilder");
 
   quote! {
-    fn make_model() -> $model {
+    pub fn make_model() -> $model {
       let builder = Box::new($builder::new());
       $model::new(builder)
       $(tokens.clone())
@@ -277,7 +277,7 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   }
 
   quote! {
-    fn make_factory_map() -> $any_map {
+    pub fn make_factory_map() -> $any_map {
       let mut map = $any_map::new();
       $(tokens.clone())
       map

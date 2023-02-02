@@ -11,14 +11,16 @@ pub mod error;
 pub mod model;
 pub mod version;
 pub mod store;
-pub mod r#box; // escape keyword
+pub mod opt;
+
 pub mod traits;
 pub mod entity_builder;
 pub mod query;
 
 mod cursor;
 mod txn;
-mod opt;
+mod r#box; // escape keyword
+
 
 
 

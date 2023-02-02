@@ -1,6 +1,7 @@
 extern crate objectbox;
 
 use objectbox::macros::{entity, index};
+use objectbox::{opt::Opt,store::Store};
 
 // uncomment the next two lines
 // when the mod hasn't been generated yet
@@ -16,7 +17,7 @@ pub struct Entity3 {
   id: u32,
 }
 
-  #[entity]
+#[entity]
 pub struct Entity2 {
   #[id]
   id: u32,
@@ -50,5 +51,19 @@ pub struct Entity {
 }
 
 fn main() {
-    println!("Hello, world!");
+  let mut model = objectbox_gen::make_model();
+  let mut opt = Opt::from_model(&mut model);
+  let mut store = Store::from_options(&mut opt);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_store() {
+      let mut model = objectbox_gen::make_model();
+      let mut opt = Opt::from_model(&mut model);
+      let mut store = Store::from_options(&mut opt);    
+    }
 }

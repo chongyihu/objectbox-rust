@@ -11,12 +11,13 @@ pub type SchemaUID = u64;
 pub struct Model {
     pub(crate) obx_model: *mut c::OBX_model,
     error: Option<Error>,
-    builder: Box<EntityBuilder>
+    builder: Box<EntityBuilder>,
+    pub(crate) ptr_consumed: bool,
 }
 
 impl Drop for Model {
     fn drop(&mut self) {
-      if !self.obx_model.is_null() {
+      if !self.ptr_consumed {
         self.error = c::call(unsafe { c::obx_model_free(self.obx_model) }).err();
         self.obx_model = std::ptr::null_mut();
       }
@@ -30,11 +31,17 @@ impl Drop for Model {
 impl Model {
     pub fn new(builder: Box<EntityBuilder>) -> Self {
         match c::new_mut(unsafe { c::obx_model() }) {
-            Ok(c_ptr) => Model { obx_model: c_ptr, error: None, builder },
+            Ok(c_ptr) => Model {
+                obx_model: c_ptr,
+                error: None,
+                builder,
+                ptr_consumed: false,
+            },
             Err(e) => Model {
                 obx_model: ptr::null_mut(),
                 error: Some(e),
-                builder
+                builder,
+                ptr_consumed: false,
             },
         }
     }

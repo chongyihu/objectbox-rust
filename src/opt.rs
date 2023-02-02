@@ -10,12 +10,13 @@ use crate::util::{ToCChar, ToCVoid};
 pub struct Opt {
   error: Option<Error>,
   pub(crate) obx_opt: *mut OBX_store_options,
+  pub(crate) ptr_consumed: bool,
 }
 
 impl Drop for Opt {
   fn drop(&mut self) {
     unsafe {
-      if !self.obx_opt.is_null() {
+      if !self.ptr_consumed {
         obx_opt_free(self.obx_opt);
         self.obx_opt = std::ptr::null_mut();
       }
@@ -33,12 +34,16 @@ impl Opt {
     Opt {
       error: None,
       obx_opt,
+      ptr_consumed: false,
     }
   }
 
   pub fn from_model(model: &mut Model) -> Self {
     let mut itself = Self::new();
     itself.model(model);
+    if itself.error.is_none() {
+      model.ptr_consumed = true;
+    }
     itself
   }
 
@@ -82,7 +87,7 @@ impl Opt {
     self
   }
 
-  pub fn model(&mut self, model: &mut Model) {
+  pub(crate) fn model(&mut self, model: &mut Model) {
     self.error = call(unsafe { obx_opt_model(self.obx_opt, model.obx_model) }).err();
   }
 
