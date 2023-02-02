@@ -5,7 +5,7 @@
 #![allow(dead_code)]
 #![allow(unsafe_code)]
 #![allow(unsafe_op_in_unsafe_fn)]
-include!(concat!(env!("OUT_DIR"), "/objectbox-c-bindings.rs"));
+include!("./c_bindings.rs");
 
 use crate::error::Error;
 use std::{error, ffi, fmt, ptr};

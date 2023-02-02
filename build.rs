@@ -28,9 +28,10 @@ fn main() {
         // Unwrap the Result and panic on failure.
         .expect("Unable to generate bindings");
 
-    // Write the bindings to the $OUT_DIR/bindings.rs file.
-    let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
+    // Write the bindings to the src/c_bindings.rs file.
+    let cargo_manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+    let target_path = cargo_manifest_dir.join("src/c_bindings.rs");
     bindings
-        .write_to_file(out_path.join("objectbox-c-bindings.rs"))
+        .write_to_file(target_path.as_path())
         .expect("Couldn't write bindings!");
 }
