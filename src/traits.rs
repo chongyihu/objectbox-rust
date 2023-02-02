@@ -112,6 +112,8 @@ fn blanket_directly_applied_on_entity_type() {
 fn entity_factories() {
     use std::ptr::null_mut;
 
+    use crate::model;
+
   unsafe {
     struct Entity0 { id: SchemaID }
     struct Entity1 { id: SchemaID }
@@ -121,17 +123,26 @@ fn entity_factories() {
       fn make(&self, store: &mut Store, table: &mut Table) -> Entity0 {
           Entity0{ id: 0 }
       }
+      fn get_entity_id(&self) -> model::SchemaID {
+        0
+      }
     }
 
     impl FactoryHelper<Entity1> for Factory<Entity1> {
       fn make(&self, store: &mut Store, table: &mut Table) -> Entity1 {
           Entity1{ id: 1 }
       }
+      fn get_entity_id(&self) -> model::SchemaID {
+        1
+      }
     }
 
     impl FactoryHelper<Entity2> for Factory<Entity2> {
       fn make(&self, store: &mut Store, table: &mut Table) -> Entity2 {
           Entity2{ id: 2 }
+      }
+      fn get_entity_id(&self) -> model::SchemaID {
+        2
       }
     }
 

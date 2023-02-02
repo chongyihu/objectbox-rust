@@ -65,8 +65,9 @@ mod tests {
       let mut model = objectbox_gen::make_model();
       let mut opt = Opt::from_model(&mut model);
       let mut store = Store::from_options(&mut opt);
+      store.trait_map = Some(ob::make_factory_map());
       let box1 = store.get_box::<Entity>();
-      let box2 = store.get_box<Entity2>();
-      let box3 = store.get_box<Entity3>();
+      let box2 = store.get_box::<Entity2>();
+      let box3 = store.get_box::<Entity3>();
     }
 }

@@ -149,7 +149,6 @@ impl CodeGenEntityExt for ModelEntity {
       }
   }
 
-  // TODO Factory<>, FactoryHelper<>, map.insert...boxed factory as factory helper
   fn generate_fb_trait(&self) -> Tokens<Rust> {
     let entity = &rust::import("crate", &self.name);
     let bridge_trait = &rust::import("objectbox::traits", "FBOBBridge");
@@ -267,6 +266,7 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
 fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   let any_map = &rust::import("objectbox::map", "AnyMap");
   let factory = &rust::import("objectbox::traits", "Factory");
+  let factory_helper = &rust::import("objectbox::traits", "FactoryHelper");
   let rc = &rust::import("std::rc", "Rc");
   
   let tokens = &mut Tokens::<Rust>::new();
@@ -283,11 +283,11 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
     }
     let entity_id_str = entity_id.as_str();
     let quote = quote! {
-      let f$(entity_id_str) = $factory::<$entity> {
+      let f$(entity_id_str) = $rc::new($factory::<$entity> {
         _required_for_generic_trait: None,
         schema_id: $entity_id_str
-      };
-      map.insert($rc::new(f$entity_id_str));
+      }) as $rc<dyn $factory_helper<$entity>>;
+      map.insert(f$entity_id_str);
     };
     tokens.append(quote);
   }

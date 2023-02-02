@@ -5,7 +5,7 @@ use std::rc::Rc;
 use crate::c::{*, self};
 use crate::error::Error;
 use crate::store::Store;
-use crate::traits::FactoryHelper;
+use crate::traits::{FactoryHelper, Factory};
 use crate::util::ToCVoid;
 
 // This Box type will confuse a lot of rust users of std::boxed::Box
