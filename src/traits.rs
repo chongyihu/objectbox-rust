@@ -35,8 +35,8 @@ pub trait FactoryHelper<T: ?Sized> {
   fn make(&self, store: &mut Store, table: &mut Table) -> T;
 }
 pub struct Factory<T> {
-  _required_for_generic_trait: Option<T>,
-  schema_id: SchemaID,
+  pub _required_for_generic_trait: Option<T>,
+  pub schema_id: SchemaID,
 }
 
 unsafe fn make_table(buf: &[u8], loc: usize) -> Table {

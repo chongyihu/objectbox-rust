@@ -4,6 +4,7 @@ mod c;
 pub extern crate objectbox_generator as generator;
 pub extern crate objectbox_macros as macros;
 pub extern crate flatbuffers as flatbuffers;
+pub extern crate anymap as map;
 
 pub mod util;
 pub mod error;

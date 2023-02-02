@@ -249,6 +249,42 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   }
 }
 
+fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
+  let any_map = &rust::import("objectbox::map", "AnyMap");
+  let factory = &rust::import("objectbox::traits", "Factory");
+  
+  let tokens = &mut Tokens::<Rust>::new();
+
+  for e in &model_info.entities {
+    let entity = &rust::import("crate", &e.name);
+    let mut entity_id = String::new();
+    for c in e.id.chars() {
+      if c != ':' {
+        entity_id.push(c);
+      } else {
+        break;
+      }
+    }
+    let entity_id_str = entity_id.as_str();
+    let quote = quote! {
+      let f$(entity_id_str) = $factory::<$entity> {
+        _required_for_generic_trait: None,
+        schema_id: $entity_id_str
+      };
+      map.insert(f$entity_id_str);
+    };
+    tokens.append(quote);
+  }
+
+  quote! {
+    fn make_factory_map() -> $any_map {
+      let mut map = $any_map::new();
+      $(tokens.clone())
+      map
+    }
+  }
+}
+
 
 impl CodeGenExt for ModelInfo {
   fn generate_code(&self, path: &Path) {
@@ -261,6 +297,7 @@ impl CodeGenExt for ModelInfo {
     }
 
     tokens.append(generate_model_fn(self));
+    tokens.append(generate_factory_map_fn(self));
 
     let vector = tokens_to_string(tokens);
 
