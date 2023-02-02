@@ -2,6 +2,7 @@
 
 use std::ffi::CString;
 use std::path::Path;
+use std::ptr;
 use std::rc::Rc;
 
 use anymap::AnyMap;
@@ -10,13 +11,12 @@ use crate::c::{*, self};
 use crate::error::Error;
 
 use crate::opt::Opt;
-use crate::traits::{FactoryHelper, Factory};
+use crate::traits::{FactoryHelper, OBBlanket};
 use crate::util::{ToCChar, ToCVoid};
 
 // Caveat: copy and drop are mutually exclusive
 
 pub struct Store {
-  pub model_callback: Option<Box<dyn Fn() -> crate::model::Model>>,
   pub trait_map: Option<AnyMap>, // passed as a ref to a Box
   // TODO confirm: model and opt are cleaned up already and zero'ed, or else we'll have a double-free
   // Leaky? repeatedly allocate model and opts, and intentionally fail each time
@@ -33,7 +33,7 @@ impl Drop for Store {
     }
 
     if let Some(err) = &self.error {
-      eprintln!("Error: {err}");
+      eprintln!("Error: store: {err}");
     }
   }
 }
@@ -44,18 +44,27 @@ impl Store {
   // TODO pub fn from_model_callback() ... generated from open_store()
 
   pub fn from_options(opt: &mut Opt) -> Self {
-    let store_ptr = unsafe {  obx_store_open(opt.obx_opt) };
-    // initialized store_ptr == 0 (in C)
-    opt.ptr_consumed = store_ptr.is_null();
-    Store {
-      obx_store: store_ptr,
-      error: None,
-      model_callback: None,
-      trait_map: None,
+    match c::new_mut(unsafe { obx_store_open(opt.obx_opt) }) {
+      Ok(obx_store) => {
+        opt.ptr_consumed = !obx_store.is_null();
+        Store {
+          trait_map: None,
+          error: None,
+          obx_store,
+        }
+      },
+      Err(e) => Store {
+        trait_map: None,
+        error: Some(e),
+        obx_store: ptr::null_mut(),
+      },
     }
   }
 
-  pub fn get_box<T: 'static>(&self) -> crate::r#box::Box::<T> {
+  pub fn get_box<T: 'static + OBBlanket>(&self) -> crate::r#box::Box::<T> {
+    if let Some(err) = &self.error {
+      panic!("{err}");
+    }
     let map = if let Some(m) = &self.trait_map {
       m
     }else {
@@ -68,7 +77,7 @@ impl Store {
     }else {
       panic!("Error: unable to get entity helper");
     };
-    crate::r#box::Box::<T>::new(self, helper.clone())
+    crate::r#box::Box::<T>::new(self.obx_store, helper.clone())
   }
 
   pub fn is_open(path: &Path) -> bool {
@@ -79,7 +88,6 @@ impl Store {
     Store {
       obx_store: unsafe { obx_store_attach(path.to_c_char()) },
       error: None,
-      model_callback: None,
       trait_map: None,
     }
   }
@@ -88,7 +96,6 @@ impl Store {
     Store {
       obx_store: unsafe { obx_store_attach_id(store_id) },
       error: None,
-      model_callback: None,
       trait_map: None,
     }
   }
@@ -101,7 +108,6 @@ impl Store {
     Store {
       obx_store: unsafe { obx_store_attach_or_open(opt, check_matching_options, out_attached) },
       error: None,
-      model_callback: None,
       trait_map: None,
     }
   }
@@ -122,7 +128,6 @@ impl Store {
     Store {
       obx_store: unsafe { obx_store_wrap(core_store.to_mut_c_void()) },
       error: None,
-      model_callback: None,
       trait_map: None,
     }
   }

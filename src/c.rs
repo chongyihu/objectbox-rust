@@ -79,12 +79,12 @@ pub fn new<T>(ptr: *const T) -> Result<*const T, Error> {
 
 /// Validates the given native pointer is not null
 pub fn new_mut<T>(ptr: *mut T) -> Result<*mut T, Error> {
-    if !ptr.is_null() {
-        Ok(ptr)
-    } else {
+    if ptr.is_null() {
         Err(Error::new_native(NativeError::_new(
             NativeErrorKind::NullPtr,
         )))
+    } else {
+        Ok(ptr)
     }
 }
 

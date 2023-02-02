@@ -3,10 +3,10 @@
 use std::ptr;
 use std::rc::Rc;
 
-use crate::{c::{*, self}, error::Error, txn::Tx, util::ToCVoid, traits::FactoryHelper};
+use crate::{c::{*, self}, error::Error, util::ToCVoid, traits::FactoryHelper};
 
 pub(crate) struct Cursor<T> {
-  helper: Option<Rc<dyn FactoryHelper<T>>>,
+  helper: Rc<dyn FactoryHelper<T>>,
   error: Option<Error>,
   obx_cursor: *mut c::OBX_cursor
 }
@@ -20,31 +20,34 @@ impl<T> Drop for Cursor<T> {
       }
 
       if let Some(err) = &self.error {
-        eprintln!("Error: {err}");
+        eprintln!("Error: cursor: {err}");
       }
     }
   }
 }
 
 impl<T> Cursor<T> {
-  fn new(tx: Tx, entity_id: c::obx_schema_id, helper: Option<Rc<dyn FactoryHelper<T>>>) -> Self {
-    match c::new_mut(unsafe { c::obx_cursor(tx.obx_txn, entity_id) }) {
+  pub(crate) fn new(tx: *mut OBX_txn, helper: Rc<dyn FactoryHelper<T>>) -> Self {
+    let entity_id = helper.get_entity_id();
+    match c::new_mut(unsafe { c::obx_cursor(tx, entity_id) }) {
       Ok(obx_cursor) => Cursor {
         helper,
-        obx_cursor, error: None },
+        obx_cursor,
+        error: None
+      },
       Err(e) => Cursor {
-          helper: None,
+          helper,
           obx_cursor: ptr::null_mut(),
           error: Some(e),
       },
     }
   }
 
-  fn id_for_put(&self, id_or_zero: obx_id) -> obx_id {
+  pub(crate) fn id_for_put(&self, id_or_zero: obx_id) -> obx_id {
       unsafe { obx_cursor_id_for_put(self.obx_cursor, id_or_zero) }
   }
 
-  fn put(
+  pub(crate) fn put(
       &mut self,
       id: obx_id,
       data: &Vec<u8>,
@@ -61,7 +64,7 @@ impl<T> Cursor<T> {
     self.error = c::call(unsafe { obx_cursor_put4(self.obx_cursor, id, data.to_const_c_void(), data.len(), mode) }).err();
   }         
 
-  fn put_new(
+  pub(crate) fn put_new(
       &mut self,
       id: obx_id,
       data: &Vec<u8>,

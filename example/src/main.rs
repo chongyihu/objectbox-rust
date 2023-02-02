@@ -66,8 +66,16 @@ mod tests {
       let mut opt = Opt::from_model(&mut model);
       let mut store = Store::from_options(&mut opt);
       store.trait_map = Some(ob::make_factory_map());
-      let box1 = store.get_box::<Entity>();
-      let box2 = store.get_box::<Entity2>();
-      let box3 = store.get_box::<Entity3>();
+      // let mut box1 = store.get_box::<Entity>();
+      // let mut box2 = store.get_box::<Entity2>();
+
+      let mut box3 = store.get_box::<Entity3>();
+      box3.remove_all();
+      let mut e3 = Entity3 {
+        id: 0,
+      };
+      box3.put(&e3);
+      assert_eq!(1, box3.count());
+      assert_eq!(false, box3.is_empty());
     }
 }

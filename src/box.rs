@@ -4,27 +4,34 @@ use std::rc::Rc;
 
 use crate::c::{*, self};
 use crate::error::Error;
-use crate::store::Store;
-use crate::traits::{FactoryHelper, Factory};
-use crate::util::ToCVoid;
 
+use crate::traits::{FactoryHelper, OBBlanket};
+use crate::{txn::Tx, cursor::Cursor};
+use crate::util::ToCVoid;
+use flatbuffers::FlatBufferBuilder;
+
+// TODO implement proper error handling on remaining functions that don't call 'call'
 // This Box type will confuse a lot of rust users of std::boxed::Box
-pub struct Box<T> {
+pub struct Box<'a, T: OBBlanket> {
   pub(crate) helper: Rc<dyn FactoryHelper<T>>,
   pub(crate) error: Option<Error>,
   pub(crate) obx_box: *mut OBX_box,
+  builder: FlatBufferBuilder<'a>,
+  obx_store: *mut OBX_store,
   // pub(crate) async_: std::boxed::Box<Async>, // TODO
 }
 
-impl<T> Box<T> {
-  pub(crate) fn new(store: &Store, helper: Rc<dyn FactoryHelper<T>>) -> Self {
+impl<T: OBBlanket> Box<'_, T> {
+  pub(crate) fn new(store: *mut OBX_store, helper: Rc<dyn FactoryHelper<T>>) -> Self {
     unsafe {
-      let obx_box = c::obx_box(store.obx_store, helper.get_entity_id());
+      let obx_box = c::obx_box(store, helper.get_entity_id());
 
       Box {
         helper,
         error: None,
         obx_box,
+        builder: FlatBufferBuilder::new(),
+        obx_store: store
       }
     }
   }
@@ -43,14 +50,14 @@ impl<T> Box<T> {
   }
 
   // TODO extension trait for Vec<u32?/OBX_id> -> OBX_id_array, see util.rs
-  pub fn contains_many(&mut self, ids: *const OBX_id_array) -> bool {
+  pub fn contains_many_id_array(&mut self, ids: *const OBX_id_array) -> bool {
       let mut contains = false;
       self.error = c::call(unsafe { obx_box_contains_many(self.obx_box, ids, &mut contains) }).err();
       contains
   }
 
   // TODO extension trait for mut_const_c_void -> slice -> Vec<u8> to be processed by flatbuffers
-  pub fn get(
+  pub fn get_raw_ptr(
       &mut self,
       id: obx_id,
   ) -> (*mut *const ::std::os::raw::c_void, usize) {
@@ -61,7 +68,7 @@ impl<T> Box<T> {
   }
 
   // TODO extension trait for Vec<u32?/OBX_id> -> &[Entity], see util.rs
-  pub fn get_many(&self, ids: *const OBX_id_array) -> *mut OBX_bytes_array {
+  pub fn get_many_bytes_array(&self, ids: *const OBX_id_array) -> *mut OBX_bytes_array {
       unsafe { obx_box_get_many(self.obx_box, ids) }
   }
 
@@ -165,6 +172,10 @@ impl<T> Box<T> {
     }
   }
 
+  pub fn count(&mut self) -> u64 {
+    self.count_with_limit(u64::MAX)
+  }
+
   pub fn count_with_limit(&mut self, limit: u64) -> u64 {
     let out_count: u64 = 0;
     self.error = c::call(unsafe { obx_box_count(self.obx_box, limit, out_count as *mut u64) }).err();
@@ -211,9 +222,30 @@ impl<T> Box<T> {
         obx_box_ts_min_max_range(self.obx_box, range_begin, range_end, out_min_id, out_min_value, out_max_id, out_max_value)
     }
   }
+
+  // Copied from dart's implementation
+  pub fn put(&mut self, object: &T) {
+    let store = self.obx_store; // get_store() is null??
+    assert!(!self.obx_store.is_null()); // TODO remove
+    let mut tx = Tx::new_mut(store);
+    assert!(!tx.obx_txn.is_null()); // TODO remove
+    let mut cursor = Cursor::new(tx.obx_txn, self.helper.clone());
+    let old_id = object.get_id();
+    let is_object_new = old_id == 0;
+    let new_id = cursor.id_for_put(old_id);
+    object.to_fb(&mut self.builder);
+    let data = Vec::from(self.builder.finished_data());
+    if is_object_new {
+      cursor.put_new(new_id, &data);
+    }else {
+      cursor.put(new_id, &data);
+    }
+    tx.success()
+  }
 }
 
 
+// TODO required for putAsync and putQueued
 struct Async {
   obx_async: *mut OBX_async
 }

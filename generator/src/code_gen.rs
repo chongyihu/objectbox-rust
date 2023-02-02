@@ -161,7 +161,7 @@ impl CodeGenEntityExt for ModelEntity {
     // TODO call builder.finished_data() from Store? Box? when put/put_many
     quote! {
       impl $bridge_trait for $entity {
-        fn to_fb(self, builder: &mut $flatbuffer_builder) {
+        fn to_fb(&self, builder: &mut $flatbuffer_builder) {
           builder.reset(); // TODO reusing the builder is probably not thread-safe
           let wip_offset_unfinished = builder.start_table();
           $props

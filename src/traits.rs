@@ -3,7 +3,7 @@ use crate::store::Store;
 use flatbuffers::FlatBufferBuilder;
 
 pub trait FBOBBridge {
-  fn to_fb(self, builder: &mut FlatBufferBuilder);
+  fn to_fb(&self, builder: &mut FlatBufferBuilder);
 
   // This is object-safe, but can't be dispatched on a (casted) trait object
   // fn from_FB(store: &mut store::Store, table: &Table) -> Self; // factory method
@@ -65,7 +65,7 @@ use crate::c;
   }
 
   impl FBOBBridge for SomeEntity {
-    fn to_fb(self, builder: &mut FlatBufferBuilder<'_>) {}
+    fn to_fb(&self, builder: &mut FlatBufferBuilder<'_>) {}
 
     // non-member method, static(?) factory function, can't dispatch on a trait
     // fn from_FB(store: &mut store::Store, table: &Table) -> Self {
@@ -114,8 +114,6 @@ use crate::c;
 fn entity_factories() {
     use std::ptr::null_mut;
 
-    use crate::model;
-
   unsafe {
     struct Entity0 { id: c::obx_schema_id }
     struct Entity1 { id: c::obx_schema_id }
@@ -151,7 +149,6 @@ fn entity_factories() {
     let store = &mut Store {
         error: None,
         obx_store: null_mut(),
-        model_callback: None,
         trait_map: None,
     };
 
