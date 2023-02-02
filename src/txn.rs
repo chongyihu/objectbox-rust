@@ -10,12 +10,13 @@ use crate::store::Store;
 pub(crate) struct Tx {
   error: Option<Error>,
   pub(crate) obx_txn: *mut OBX_txn,
+  pub(crate) ptr_closed: bool,
 }
 
 impl Drop for Tx {
   fn drop(&mut self) {
     unsafe {
-      if !self.obx_txn.is_null() {
+      if !self.ptr_closed {
         self.error = c::call(c::obx_txn_close(self.obx_txn)).err();
         self.obx_txn = std::ptr::null_mut();
       }
@@ -48,10 +49,11 @@ impl Tx {
       panic!("Error: uninitialized store");
     }
     match c::new_mut(unsafe { obx_txn_read(store.obx_store) }) {
-      Ok(obx_txn) => Tx { obx_txn, error: None },
+      Ok(obx_txn) => Tx { obx_txn, error: None, ptr_closed: false },
       Err(e) => Tx {
         error: Some(e),
         obx_txn: ptr::null_mut(),
+        ptr_closed: false
       },
     }
   }
@@ -61,16 +63,20 @@ impl Tx {
       panic!("Error: uninitialized store");
     }
     match c::new_mut(unsafe { obx_txn_write(store.obx_store) }) {
-      Ok(obx_txn) => Tx { obx_txn, error: None },
+      Ok(obx_txn) => Tx { obx_txn, error: None, ptr_closed: false },
       Err(e) => Tx {
         error: Some(e),
         obx_txn: ptr::null_mut(),
+        ptr_closed: false
       },
     }
   }
 
   fn success(&mut self) {
     self.error = c::call(unsafe {obx_txn_success(self.obx_txn) }).err();
+    if self.error.is_none() {
+      self.ptr_closed = true;
+    }
   }
 
   fn abort(&mut self) {
