@@ -1,5 +1,7 @@
 #![allow(non_upper_case_globals)]
 
+// This was copied here to prevent any dependency cycle
+
 // grep from the generated c-bindings
 pub type OBXFeature = u32;
 pub type OBXLogLevel = u32;
