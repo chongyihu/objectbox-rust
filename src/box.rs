@@ -10,16 +10,16 @@ use crate::util::ToCVoid;
 
 // This Box type will confuse a lot of rust users of std::boxed::Box
 pub struct Box<T> {
-  helper: Option<Rc<dyn FactoryHelper<T>>>,
-  error: Option<Error>,
+  pub(crate) helper: Rc<dyn FactoryHelper<T>>,
+  pub(crate) error: Option<Error>,
   pub(crate) obx_box: *mut OBX_box,
   // pub(crate) async_: std::boxed::Box<Async>, // TODO
 }
 
 impl<T> Box<T> {
-  pub(crate) fn new(store: &Store, entity_id: c::obx_schema_id, helper: Option<Rc<dyn FactoryHelper<T>>>) -> Self {
+  pub(crate) fn new(store: &Store, helper: Rc<dyn FactoryHelper<T>>) -> Self {
     unsafe {
-      let obx_box = c::obx_box(store.obx_store, entity_id);
+      let obx_box = c::obx_box(store.obx_store, helper.get_entity_id());
 
       Box {
         helper,

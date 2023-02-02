@@ -8,7 +8,7 @@ use crate::model::Model;
 use crate::util::{ToCChar, ToCVoid};
 
 pub struct Opt {
-  error: Option<Error>,
+  pub(crate) error: Option<Error>,
   pub(crate) obx_opt: *mut OBX_store_options,
   pub(crate) ptr_consumed: bool,
 }

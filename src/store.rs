@@ -2,6 +2,7 @@
 
 use std::ffi::CString;
 use std::path::Path;
+use std::rc::Rc;
 
 use anymap::AnyMap;
 
@@ -54,22 +55,19 @@ impl Store {
     }
   }
 
-  // TODO fix soon
-  /*
-  pub fn get_box<T: ?Sized>(&self) -> crate::r#box::Box::<T> {
-    let map = if let Some(m) = self.trait_map {
+  pub fn get_box<T: 'static>(&self) -> crate::r#box::Box::<T> {
+    let map = if let Some(m) = &self.trait_map {
       m
     }else {
       panic!("Error: unable to get box");
     };
-    let helper = if let Some(h) = map.get::<dyn FactoryHelper<T>>() {
+    let helper = if let Some(h) = map.get::<Rc<dyn FactoryHelper<T>>>() {
       h
     }else {
       panic!("Error: unable to get entity helper");
     };
-    crate::r#box::Box::<T>::new(self, helper)
+    crate::r#box::Box::<T>::new(self, helper.clone())
   }
-  */
 
   pub fn is_open(path: &Path) -> bool {
     unsafe { obx_store_is_open(path.to_c_char()) }

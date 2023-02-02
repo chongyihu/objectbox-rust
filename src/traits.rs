@@ -33,6 +33,7 @@ use flatbuffers::Table;
 
 pub trait FactoryHelper<T: ?Sized> {
   fn make(&self, store: &mut Store, table: &mut Table) -> T;
+  fn get_entity_id(&self) -> SchemaID;
 }
 pub struct Factory<T> {
   pub _required_for_generic_trait: Option<T>,

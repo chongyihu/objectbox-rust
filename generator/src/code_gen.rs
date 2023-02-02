@@ -180,9 +180,20 @@ impl CodeGenEntityExt for ModelEntity {
     let entity = &rust::import("crate", &self.name);
     
     let store = &rust::import("objectbox::store", "Store");
+    
+    let schema_id = &rust::import("objectbox::model", "SchemaID");
 
     let destructured_props = self.properties.iter().map(|p| p.as_struct_property_default() );
     let assigned_props = self.properties.iter().map(|p| p.as_assigned_property() );
+
+    let mut id = String::new();
+    for c in self.id.chars() {
+      if c != ':' {
+        id.push(c);
+      }else {
+        break;
+      }
+    }
 
     // TODO Store will be used for relations later
     quote! {
@@ -199,6 +210,10 @@ impl CodeGenEntityExt for ModelEntity {
             $(for p in assigned_props join () => $(p))
           }
           object
+        }
+
+        fn get_entity_id(&self) -> $schema_id {
+          $id
         }
       }
     }
@@ -252,6 +267,7 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
 fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   let any_map = &rust::import("objectbox::map", "AnyMap");
   let factory = &rust::import("objectbox::traits", "Factory");
+  let rc = &rust::import("std::rc", "Rc");
   
   let tokens = &mut Tokens::<Rust>::new();
 
@@ -271,7 +287,7 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
         _required_for_generic_trait: None,
         schema_id: $entity_id_str
       };
-      map.insert(f$entity_id_str);
+      map.insert($rc::new(f$entity_id_str));
     };
     tokens.append(quote);
   }

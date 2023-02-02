@@ -51,9 +51,9 @@ pub struct Entity {
 }
 
 fn main() {
-  let mut model = objectbox_gen::make_model();
-  let mut opt = Opt::from_model(&mut model);
-  let mut store = Store::from_options(&mut opt);
+  // let mut model = objectbox_gen::make_model();
+  // let mut opt = Opt::from_model(&mut model);
+  // let mut store = Store::from_options(&mut opt);
 }
 
 #[cfg(test)]
@@ -64,6 +64,9 @@ mod tests {
     fn test_store() {
       let mut model = objectbox_gen::make_model();
       let mut opt = Opt::from_model(&mut model);
-      let mut store = Store::from_options(&mut opt);    
+      let mut store = Store::from_options(&mut opt);
+      let box1 = store.get_box::<Entity>();
+      let box2 = store.get_box<Entity2>();
+      let box3 = store.get_box<Entity3>();
     }
 }

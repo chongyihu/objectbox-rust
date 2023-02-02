@@ -10,7 +10,7 @@ pub type SchemaUID = u64;
 /// Model is used to define a database model. Use as a fluent interface (builder pattern)
 pub struct Model {
     pub(crate) obx_model: *mut c::OBX_model,
-    error: Option<Error>,
+    pub(crate) error: Option<Error>,
     builder: Box<EntityBuilder>,
     pub(crate) ptr_consumed: bool,
 }
