@@ -173,7 +173,9 @@ impl<T: OBBlanket> Box<'_, T> {
   }
 
   pub fn count(&mut self) -> u64 {
-    self.count_with_limit(u64::MAX)
+    // you would think that u64::MAX would suffice here
+    // but 0 is idempotent
+    self.count_with_limit(0)
   }
 
   pub fn count_with_limit(&mut self, limit: u64) -> u64 {
@@ -224,17 +226,26 @@ impl<T: OBBlanket> Box<'_, T> {
   }
 
   // Copied from dart's implementation
-  pub fn put(&mut self, object: &T) {
-    let store = self.obx_store; // get_store() is null??
-    assert!(!self.obx_store.is_null()); // TODO remove
+  // TODO remove assertions when the code is more stable
+  pub fn put(&mut self, object: &mut T) {
+    // let store = self.obx_store;
+    let store = self.get_store();
+    assert!(!store.is_null());
+
     let mut tx = Tx::new_mut(store);
-    assert!(!tx.obx_txn.is_null()); // TODO remove
+    assert!(!tx.obx_txn.is_null());
+
     let mut cursor = Cursor::new(tx.obx_txn, self.helper.clone());
+    assert!(!cursor.obx_cursor.is_null());
+
     let old_id = object.get_id();
     let is_object_new = old_id == 0;
     let new_id = cursor.id_for_put(old_id);
+    object.set_id(new_id);
+
     object.to_fb(&mut self.builder);
     let data = Vec::from(self.builder.finished_data());
+
     if is_object_new {
       cursor.put_new(new_id, &data);
     }else {

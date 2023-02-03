@@ -1,6 +1,4 @@
-#[allow(dead_code)]
 
-use std::ptr;
 use std::rc::Rc;
 
 use crate::{c::{*, self}, error::Error, util::ToCVoid, traits::FactoryHelper};
@@ -8,7 +6,7 @@ use crate::{c::{*, self}, error::Error, util::ToCVoid, traits::FactoryHelper};
 pub(crate) struct Cursor<T> {
   helper: Rc<dyn FactoryHelper<T>>,
   error: Option<Error>,
-  obx_cursor: *mut c::OBX_cursor
+  pub(crate) obx_cursor: *mut c::OBX_cursor
 }
 
 impl<T> Drop for Cursor<T> {
