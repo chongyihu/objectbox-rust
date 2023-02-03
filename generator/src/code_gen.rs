@@ -168,7 +168,7 @@ impl CodeGenEntityExt for ModelEntity {
     let flatbuffer_builder = &rust::import("objectbox::flatbuffers", "FlatBufferBuilder");
 
     let props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
-    .map(|(i, p)| encode_to_fb(p.type_field, p.flags, i, &p.name) ).collect();
+    .map(|(i, p)| encode_to_fb(p.type_field, p.flags, i*2+4, &p.name) ).collect();
     
 
     // TODO call builder.finished_data() from Store? Box? when put/put_many
@@ -196,7 +196,7 @@ impl CodeGenEntityExt for ModelEntity {
     let schema_id = &rust::import("objectbox::c", "obx_schema_id");
 
     let destructured_props = self.properties.iter().map(|p| p.as_struct_property_default() );
-    let assigned_props = self.properties.iter().map(|p| p.as_assigned_property() );
+    let assigned_props = self.properties.iter().enumerate().map(|p| p.1.as_assigned_property(p.0 * 2 + 4) );
 
     let mut id = String::new();
     for c in self.id.chars() {
