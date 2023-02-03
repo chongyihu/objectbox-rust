@@ -246,7 +246,6 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
   for e in &model_info.entities {
     let entity_name = &e.name;
     let entity_id = e.id.as_comma_separated_str();
-    let id_property_iduid = e.get_id_property().unwrap().id.as_comma_separated_str();
     let last_property_iduid = e.properties.last().unwrap().id.as_comma_separated_str();
 
     let props = e.properties.iter().map(|p|p.as_fluent_builder_invocation()).collect::<Vec<Tokens<Rust>>>();
@@ -254,14 +253,28 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
     let quote = quote! {
       .entity($(quoted(entity_name)), $entity_id)
       $props
-      .property_index($id_property_iduid)
       .last_property_id($last_property_iduid)  
     };
     tokens.append(quote);
   }
 
+  // get last_index_id
+  let mut last_p_with_index_id: Option<Tokens<Rust>> = None;
+  for e in model_info.entities.as_slice() {
+    for p in e.properties.as_slice() {
+      if let Some(x) = &p.index_id {
+        last_p_with_index_id = Some(x.as_comma_separated_str());
+      }      
+    }
+  }
+
+  let last_index_id: Tokens<Rust> = if last_p_with_index_id.is_some() {
+    quote! { .last_index_id($last_p_with_index_id) }
+  }else {
+    quote!()
+  };
+
   let last_entity = model_info.entities.last().unwrap();
-  let last_index_id = last_entity.get_id_property().unwrap().id.as_comma_separated_str();
   let last_entity_id = last_entity.id.as_comma_separated_str();
   let builder = &rust::import("objectbox::entity_builder", "EntityBuilder");
 
@@ -271,7 +284,7 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
       $model::new(builder)
       $(tokens.clone())
       .last_entity_id($last_entity_id)
-      .last_index_id($last_index_id)
+      $last_index_id
     }
   }
 }

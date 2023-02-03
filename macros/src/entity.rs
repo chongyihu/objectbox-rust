@@ -81,11 +81,13 @@ impl Entity {
     let mut v: Vec<model_json::ModelProperty> = Vec::new();
     for f in self.fields.iter() {
       let flags = if f.flags == 0 { None } else { Some(f.flags) };
+      let index_id = if let Some(x) = &f.index_id { Some(x.to_string()) }else { None };
       let p = model_json::ModelProperty {
         id: f.id.to_string(),
         name: f.name.clone(),
         type_field: f.field_type,
-        flags: flags,
+        flags,
+        index_id,
       };
       v.push(p);
     }

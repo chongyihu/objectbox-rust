@@ -40,6 +40,9 @@ impl Opt {
 
   pub fn from_model(model: &mut Model) -> Self {
     let mut itself = Self::new();
+    if let Some(err) = &model.error {
+      panic!("Error: opt: {err}");
+    }
     itself.model(model);
     if itself.error.is_none() {
       model.ptr_consumed = true;

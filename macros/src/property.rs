@@ -14,6 +14,7 @@ pub struct Property {
   pub field_type: consts::OBXPropertyType,
   pub id: id::IdUid,
   pub flags: consts::OBXPropertyFlags,
+  pub index_id: Option<String>,
 }
 
 impl Property {
@@ -24,6 +25,7 @@ impl Property {
         field_type: 0,
         id: id::IdUid::zero(),
         flags: 0,
+        index_id: None,
     }
   }
 
@@ -55,7 +57,9 @@ impl Property {
       name,
       field_type: obx_property_type,
       id,
-      flags: obx_property_flags} = &mut property;
+      flags: obx_property_flags,
+      index_id
+    } = &mut property;
     
     if let Some(ident) = &field.ident {
       let new_name = ident.to_string();
@@ -80,8 +84,14 @@ impl Property {
               *obx_property_flags |= consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE | consts::OBXPropertyFlags_ID;
               return Some(property);
             }
-            "index" => { *obx_property_flags |= consts::OBXPropertyFlags_INDEXED }, // id, uid, type
-            "unique" => { *obx_property_flags |= consts::OBXPropertyFlags_UNIQUE }, // id, uid, type
+            "index" => {
+              *obx_property_flags |= consts::OBXPropertyFlags_INDEXED | consts::OBXPropertyFlags_UNIQUE; // 40
+              *index_id = Some("0:0".to_owned());
+            }, // id, uid, type
+            "unique" => {
+              *obx_property_flags |= consts::OBXPropertyFlags_UNIQUE;
+              *index_id = Some("0:0".to_owned());
+            }, // id, uid, type
             "backlink" => {},
             // "transient" => { quote::__private::ext::RepToTokensExt::next(&a); }, // TODO test if this really skips
             "property" => {}, // id, uid, type, flags
@@ -132,9 +142,6 @@ impl Property {
         "i8" => consts::OBXPropertyType_Byte,
         "i16" => consts::OBXPropertyType_Short,
         "u16" => consts::OBXPropertyType_Short,
-        // TODO ob: char ==> u8
-        // TODO rust: char ==> 4*u8 ==> u32
-        // TODO what could go wrong?
         "char" => {
           println!("Warning: {} will be remapped behind the scenes as u32. A rusty char is 4 octets wide.", name);
           consts::OBXPropertyType_Char

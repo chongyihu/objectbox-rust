@@ -12,6 +12,8 @@ use std::path::{PathBuf, Path};
 
 use crate::ob_consts;
 
+// TODO divide file into mod json::{info, entity, property}
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ModelInfo {
@@ -36,16 +38,25 @@ pub struct ModelInfo {
 }
 
 impl ModelInfo {
-    pub fn from_entities(entities: &[ModelEntity]) -> Self {
+    pub fn from_entities(slices: &[ModelEntity]) -> Self {
+      let mut entities = Vec::from(slices);
+      entities.sort_by(|a, b| a.name.cmp(&b.name));
       let last_entity = entities.last().unwrap(); // TODO remove unwrap, unpack result and return proper error
       let last_entity_id = last_entity.id.as_str();
+
+      let last_property_with_index_id =
+        entities.last().unwrap().properties.iter()
+        .filter(|x|x.index_id.is_some() || (x.flags.unwrap_or_else(||0) & ob_consts::OBXPropertyFlags_ID) == 1).last().unwrap();
+      let last_index_id = if let Some(x) = &last_property_with_index_id.index_id
+        { x.to_string() }
+        else { last_property_with_index_id.id.to_string() };
       ModelInfo {
         note1: String::from("KEEP THIS FILE! Check it into a version control system (VCS) like git."),
         note2: String::from("ObjectBox manages crucial IDs for your object model. See docs for details."),
         note3: String::from("If you have VCS merge conflicts, you must resolve them according to ObjectBox docs."),
         entities: entities.to_vec(), // rehydrate from slice to vec for JSON des, all of this without cloning
         last_entity_id: last_entity_id.to_string(),
-        last_index_id: String::from(""), // TODO
+        last_index_id: last_index_id.to_string(),
         last_relation_id: String::from(""), // TODO
         last_sequence_id: String::from(""), // TODO
         model_version: 5,
@@ -120,6 +131,8 @@ pub struct ModelProperty {
     pub type_field: ob_consts::OBXPropertyType,
     #[serde(skip_serializing_if="Option::is_none")]
     pub flags: Option<ob_consts::OBXPropertyFlags>,
+    #[serde(skip_serializing_if="Option::is_none")]
+    pub index_id: Option<String>,
 }
 
 fn split_id(input: &str) -> (&str, &str) {
@@ -132,14 +145,21 @@ impl ModelProperty {
         let flags = if let Some(f) = self.flags { f } else { 0 };
         let (id, uid) = split_id(&self.id);
 
-        quote! {
+        let mut q: Tokens<Rust> = quote! {
             .property(
                 $(quoted(self.name.as_str())),
                 $id, $uid,
                 $(self.type_field),
                 $flags
             )
+        };
+        if let Some(ii) = &self.index_id {
+            let (id, uid) = split_id(&ii);
+            q.extend(quote! {
+                .property_index($id, $uid)
+            });
         }
+        q
     }
 
     pub fn as_struct_property_default(&self) -> Tokens<Rust> {
@@ -257,7 +277,8 @@ fn model_property_fluent_builder_test() {
         id: "1:2".to_owned(),
         name: "name".to_owned(),
         type_field: 0,
-        flags: Some(0)
+        flags: Some(0),
+        index_id: Some("2:3").to_owned(),
     }.as_fluent_builder_invocation().to_string();
-    assert_eq!(str, ".property(name, 0, 0, 1, 2)");
+    assert_eq!(str, ".property(name, 0, 0, 1, 2).property_index(2, 3)");
 }

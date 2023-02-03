@@ -15,6 +15,7 @@ fn parse_colon_separated_integers(str: &String, counter: u64) -> (u64, u64) {
     use substring::Substring;
     let mut id: u64 = 0;
     let mut uid: u64 = 0;
+    let mut rng = rand::thread_rng();
     if !str.is_empty() {
         if str.starts_with(":") {
             let right = str.substring(1, str.len());
@@ -52,7 +53,6 @@ fn parse_colon_separated_integers(str: &String, counter: u64) -> (u64, u64) {
         id = counter + 1;
     }
     if uid == 0 {
-        let mut rng = rand::thread_rng();
         uid = rng.gen::<u64>();
     }
     (id, uid)
@@ -100,6 +100,7 @@ fn glob_generated_json(out_path: &PathBuf) -> Vec<PathBuf> {
 trait EntityVecHelper {
     fn add_entities_to_model(&mut self, path_buffers: &[PathBuf]) -> &mut Self;
     fn assign_id_to_entities(&mut self) -> &mut Self;
+    fn assign_id_to_indexables(&mut self) -> &mut Self;
 }
 
 impl EntityVecHelper for Vec<ModelEntity> {
@@ -133,8 +134,20 @@ impl EntityVecHelper for Vec<ModelEntity> {
             let last_property = e.properties.last().unwrap();
             e.last_property_id = last_property.id.clone();
         }
-        // sort by entity name
-        self.sort_by(|a, b| b.name.cmp(&a.name));
+        self
+    }
+
+    fn assign_id_to_indexables(&mut self) -> &mut Self {
+        let mut counter: u64 = 1;
+        let mut rng = rand::thread_rng();
+        for e in self.as_mut_slice() {
+            for p in e.properties.as_mut_slice() {
+                if p.index_id.is_some() {
+                    p.index_id = Some(format!("{}:{}", counter, rng.gen::<u64>()));
+                    counter+=1;
+                }
+            }
+        }
         self
     }
 }
@@ -172,7 +185,7 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     // read what is provided by the user
     entities
         .add_entities_to_model(pbs.as_slice())
-        .assign_id_to_entities();
+        .assign_id_to_entities().assign_id_to_indexables();
 
     ModelInfo::from_entities(entities.as_slice())
     .write_json(json_dest_path)

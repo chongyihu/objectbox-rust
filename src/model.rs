@@ -102,21 +102,31 @@ impl Model {
         if self.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
 
-            let (new_type, new_flags) = if typ == c::OBXPropertyType_Char {
-                (c::OBXPropertyType_Int, flags & c::OBXPropertyFlags_UNSIGNED)
-            }else {
-                (typ, flags)
-            };
+            // TODO test hypothesis: conversion is not necessary, since OB char, is also 4x bytes wide
+            // let (new_type, new_flags) = if typ == c::OBXPropertyType_Char {
+            //     (c::OBXPropertyType_Int, flags | c::OBXPropertyFlags_UNSIGNED)
+            // }else {
+            //     (typ, flags)
+            // };
 
             self.error = c::call(unsafe {
-                    c::obx_model_property(self.obx_model, c_name.as_ptr(), new_type, id, uid)
+                    c::obx_model_property(self.obx_model, c_name.as_ptr(), typ, id, uid)
+                })
+                .err();
+            
+            if let Some(err) = &self.error {
+                eprintln!("{err}")
+            }
+                
+            self.error = c::call(unsafe {
+                    c::obx_model_property_flags(self.obx_model, flags)
                 })
                 .err();
 
-            self.error = c::call(unsafe {
-                    c::obx_model_property_flags(self.obx_model, new_flags)
-                })
-                .err()
+            if let Some(err) = &self.error {
+                eprintln!("{err}")
+            }
+    
         }
 
         self.builder.as_mut().add_property(name, id, uid, typ, flags);
@@ -221,37 +231,38 @@ mod tests {
     fn big_model_test() {
         let builder = Box::new(EntityBuilder::new());
         let model = Model::new(builder)
-            .entity("Entity3", 3, 7970053520278932057)
-            .property("id", 1, 2787983164621428925, 5, 8193)
-            .property_index(1, 2787983164621428925)
-            .last_property_id(1, 2787983164621428925)
-            .entity("Entity2", 2, 11822673736957101631)
-            .property("id", 1, 5991353639039331047, 5, 8193)
-            .property("index", 2, 3089634329043241515, 6, 8200)
-            .property_index(1, 5991353639039331047)
-            .last_property_id(2, 3089634329043241515)
-            .entity("Entity", 1, 11761132493123297625)
-            .property("id", 1, 3337858750878930464, 5, 8193)
-            .property("index", 2, 2899896242679282690, 6, 8200)
-            .property("t_bool", 3, 568698003315437374, 1, 0)
-            .property("t_u8", 4, 13715947038748179573, 2, 8192)
-            .property("t_i8", 5, 12371495807681136757, 2, 0)
-            .property("t_i16", 6, 12826057009448917551, 3, 0)
-            .property("t_u16", 7, 16359736789208522050, 3, 8192)
-            .property("t_i32", 8, 3332525431949437605, 5, 32)
-            .property("t_u32", 9, 13749208938569458861, 5, 8192)
-            .property("t_u64", 10, 16701073851952767148, 6, 8192)
-            .property("t_i64", 11, 3441224032049733712, 6, 0)
-            .property("t_f32", 12, 2307762524769727799, 7, 0)
-            .property("t_f64", 13, 8741798588134039250, 8, 0)
-            .property("t_string", 14, 17661680862988529738, 9, 0)
-            .property("t_char", 15, 8866068856020898908, 4, 0)
-            .property("t_vec_string", 16, 6709516815320029775, 30, 0)
-            .property("t_vec_bytes", 17, 475363337853790328, 23, 0)
-            .property_index(1, 3337858750878930464)
-            .last_property_id(17, 475363337853790328)
-            .last_entity_id(1, 11761132493123297625)
-            .last_index_id(1, 3337858750878930464);
+        .entity("Entity", 1, 12802433372377933144)
+        .property("id", 1, 16303625144254194803, 6, 129)
+        .property("index_u32", 2, 17348581232598351063, 5, 8232)
+        .property_index(1, 15966762507251846644)
+        .property("t_bool", 3, 1463975161829178694, 1, 0)
+        .property("t_u8", 4, 8643677704739194959, 2, 8192)
+        .property("t_i8", 5, 16142315373739492817, 2, 0)
+        .property("t_i16", 6, 8726370263402291511, 3, 0)
+        .property("t_u16", 7, 4525767685591106924, 3, 8192)
+        .property("unique_i32", 8, 12320118081678770411, 5, 32)
+        .property_index(2, 13718990065992865290)
+        .property("t_i32", 9, 2724625488925209408, 5, 0)
+        .property("t_u32", 10, 1997082525214322396, 5, 8192)
+        .property("t_u64", 11, 18050249220377943096, 6, 8192)
+        .property("t_i64", 12, 4771075407746354871, 6, 0)
+        .property("t_f32", 13, 7496023529852242558, 7, 0)
+        .property("t_f64", 14, 6428146482089461088, 8, 0)
+        .property("t_string", 15, 15905456625202323974, 9, 0)
+        .property("t_char", 16, 17061890276107621552, 4, 0)
+        .property("t_vec_string", 17, 3460829531832782193, 30, 0)
+        .property("t_vec_bytes", 18, 1384275525893232918, 23, 0)
+        .last_property_id(18, 1384275525893232918)
+        .entity("Entity2", 2, 2058930340149009603)
+        .property("id", 1, 2084036648998826750, 6, 129)
+        .property("index_u64", 2, 14743283183353881578, 6, 8232)
+        .property_index(3, 10365057831981851219)
+        .last_property_id(2, 14743283183353881578)
+        .entity("Entity3", 3, 10267361146166351390)
+        .property("id", 1, 8063586118144354481, 6, 129)
+        .last_property_id(1, 8063586118144354481)
+        .last_entity_id(3, 10267361146166351390)
+        .last_index_id(3, 10365057831981851219);
 
         assert!(model.error.is_none());
     }

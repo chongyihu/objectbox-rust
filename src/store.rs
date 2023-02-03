@@ -44,6 +44,9 @@ impl Store {
   // TODO pub fn from_model_callback() ... generated from open_store()
 
   pub fn from_options(opt: &mut Opt) -> Self {
+    if let Some(err) = &opt.error {
+      panic!("Error: store: {err}");
+    }
     match c::new_mut(unsafe { obx_store_open(opt.obx_opt) }) {
       Ok(obx_store) => {
         opt.ptr_consumed = !obx_store.is_null();
@@ -63,7 +66,7 @@ impl Store {
 
   pub fn get_box<T: 'static + OBBlanket>(&self) -> crate::r#box::Box::<T> {
     if let Some(err) = &self.error {
-      panic!("{err}");
+      panic!("Error: store: {err}");
     }
     let map = if let Some(m) = &self.trait_map {
       m
