@@ -179,6 +179,16 @@ impl ModelProperty {
         let iduid_id = split_id(self.id.as_str()).0;
 
         let name = &self.name;
+        if let Some(f) = self.flags {
+            if f == (ob_consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE | ob_consts::OBXPropertyFlags_ID) {
+                let t: Tokens<Rust> = quote! {
+                    *$name = table.get::<u64>($iduid_id, Some(0)).unwrap();
+                };
+                return t;
+            }
+        }
+
+        let name = &self.name;
         match self.type_field {
             ob_consts::OBXPropertyType_StringVector => quote! {
                 let fb_vec_$name = table.get::<$fuo<$fvec<$fuo<&str>>>>($iduid_id, None);

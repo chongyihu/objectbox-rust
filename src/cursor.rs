@@ -35,11 +35,7 @@ impl<T> Cursor<T> {
         obx_cursor,
         error: None
       },
-      Err(e) => Cursor {
-          helper,
-          obx_cursor: ptr::null_mut(),
-          error: Some(e),
-      },
+      Err(err) => panic!("{err}"),
     }
   }
 

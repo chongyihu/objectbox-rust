@@ -116,6 +116,7 @@ pub fn sync(_attribute: TokenStream, input: TokenStream) -> TokenStream {
 /// Accepts 'type' parameter
 /// Note: indexes are currently not supported for ByteVector, Float or Double
 /// See ./objectbox/lib/src/annotations.dart implementation
+/// All ids are self-assignable, since there are no write-once / const fields.
 #[proc_macro_attribute]
 pub fn id(_attribute: TokenStream, input: TokenStream) -> TokenStream {
   input

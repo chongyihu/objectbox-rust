@@ -67,6 +67,7 @@ impl Property {
       // TODO scan: i.e. parse them for pub keyword
       // TODO declared on the src/lib.rs or src/main.rs and are pub
       // Attribute parsing
+      // TODO more error checking, certain combinations shouldn't be allowed
       for a in field.attrs.iter() {
         // get attribute name from `#[name]`
         if let Some(attr_path_ident) = a.path.get_ident() {
@@ -74,11 +75,15 @@ impl Property {
           // TODO add safety precaution measures
           // TODO add extra parameters
           match attr_name {
-            "id" => { *obx_property_flags |= consts::OBXPropertyFlags_ID }
+            "id" => {
+              *obx_property_type = consts::OBXPropertyType_Long;
+              *obx_property_flags |= consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE | consts::OBXPropertyFlags_ID;
+              return Some(property);
+            }
             "index" => { *obx_property_flags |= consts::OBXPropertyFlags_INDEXED }, // id, uid, type
             "unique" => { *obx_property_flags |= consts::OBXPropertyFlags_UNIQUE }, // id, uid, type
             "backlink" => {},
-            "transient" => { quote::__private::ext::RepToTokensExt::next(&a); }, // TODO test if this really skips
+            // "transient" => { quote::__private::ext::RepToTokensExt::next(&a); }, // TODO test if this really skips
             "property" => {}, // id, uid, type, flags
             _ => {
               // skip if not ours

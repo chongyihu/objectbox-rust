@@ -45,6 +45,16 @@ trait CodeGenEntityExt {
 
 fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
   let wip_offset = &rust::import("flatbuffers", "WIPOffset");
+
+  if let Some(f) = flags {
+    if f == (ob_consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE | ob_consts::OBXPropertyFlags_ID) {
+      let t: Tokens<Rust> = quote! {
+        builder.push_slot::<u64>($offset, self.$name, 0);
+      };
+      return t;
+    }
+  }
+
   let new_tokens: Tokens<Rust> = match field_type {
     ob_consts::OBXPropertyType_StringVector => {
       quote! {
@@ -98,8 +108,11 @@ fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &Strin
       };
       let is_unsigned =
         if let Some(f) = flags {
-          if (f & ob_consts::OBXPropertyFlags_UNSIGNED) == ob_consts::OBXPropertyFlags_UNSIGNED
-          { "u" } else { "i" }
+          if (f & ob_consts::OBXPropertyFlags_UNSIGNED) == ob_consts::OBXPropertyFlags_UNSIGNED {
+            "u"
+          }else{
+            "i"
+          }
         }else {
           "i"
         };
