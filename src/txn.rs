@@ -16,7 +16,7 @@ pub(crate) struct Tx {
 impl Drop for Tx {
   fn drop(&mut self) {
     unsafe {
-      if !self.ptr_closed {
+      if !self.ptr_closed && !self.obx_txn.is_null() {
         self.error = c::call(c::obx_txn_close(self.obx_txn)).err();
         self.obx_txn = std::ptr::null_mut();
       }
@@ -68,9 +68,12 @@ impl Tx {
     }
   }
 
+  // only run on write tx, read tx closes itself on the drop
   pub(crate) fn success(&mut self) {
     self.error = c::call(unsafe {obx_txn_success(self.obx_txn) }).err();
-    if self.error.is_none() {
+    if let Some(err) = &self.error {
+      panic!("Error: tx: {err}");
+    }else {
       self.ptr_closed = true;
     }
   }

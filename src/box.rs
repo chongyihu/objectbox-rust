@@ -225,18 +225,36 @@ impl<T: OBBlanket> Box<'_, T> {
     }
   }
 
-  // Copied from dart's implementation
-  // TODO remove assertions when the code is more stable
-  pub fn put(&mut self, object: &mut T) {
-    // let store = self.obx_store;
+  fn get_tx_cursor_mut(&self) -> (Tx, Cursor<T>) {
     let store = self.get_store();
     assert!(!store.is_null());
 
-    let mut tx = Tx::new_mut(store);
+    let tx = Tx::new_mut(store);
     assert!(!tx.obx_txn.is_null());
 
-    let mut cursor = Cursor::new(tx.obx_txn, self.helper.clone());
+    let cursor = Cursor::new(tx.obx_txn, self.helper.clone());
     assert!(!cursor.obx_cursor.is_null());
+
+    (tx, cursor)
+  }
+
+  fn get_tx_cursor(&self) -> (Tx, Cursor<T>) {
+    let store = self.get_store();
+    assert!(!store.is_null());
+
+    let tx = Tx::new(store);
+    assert!(!tx.obx_txn.is_null());
+
+    let cursor = Cursor::new(tx.obx_txn, self.helper.clone());
+    assert!(!cursor.obx_cursor.is_null());
+
+    (tx, cursor)
+  }
+
+  // Copied from dart's implementation
+  // TODO remove assertions when the code is more stable
+  pub fn put(&mut self, object: &mut T) {
+    let (mut tx, mut cursor) = self.get_tx_cursor_mut();
 
     let old_id = object.get_id();
     let is_object_new = old_id == 0;
@@ -252,6 +270,13 @@ impl<T: OBBlanket> Box<'_, T> {
       cursor.put(new_id, &data);
     }
     tx.success()
+  }
+
+  // For testing purposes
+  pub fn count_with_cursor(&self) -> u64 {
+    let (mut tx, mut cursor) = self.get_tx_cursor();
+    let count = cursor.count();
+    count
   }
 }
 

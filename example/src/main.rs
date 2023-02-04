@@ -62,6 +62,10 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::rc;
+
+    use objectbox::traits;
+
     use super::*;
 
     #[test]
@@ -69,21 +73,47 @@ mod tests {
       let mut model = objectbox_gen::make_model();
       let mut opt = Opt::from_model(&mut model);
       let mut store = Store::from_options(&mut opt);
-      store.trait_map = Some(ob::make_factory_map());
-      // let mut box1 = store.get_box::<Entity>();
-      // let mut box2 = store.get_box::<Entity2>();
+
+      let trait_map = ob::make_factory_map();
+      store.trait_map = Some(trait_map);
 
       let mut box3 = store.get_box::<Entity3>();
       box3.remove_all();
-      let e3 = &mut Entity3 {
-        id: 0,
-      };
-      box3.put(e3);
+      let mut box2 = store.get_box::<Entity2>();
+      box2.remove_all();
+      let mut box1 = store.get_box::<Entity>();
+      box1.remove_all();
+      
+      let trait_map2 = ob::make_factory_map();
+      let f1 = trait_map2.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity>>>().unwrap().clone();
+      let f2 = trait_map2.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity2>>>().unwrap().clone();
+      let f3 = trait_map2.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity3>>>().unwrap().clone();
+
+      let mut e1 = f1.new_entity();
+      let mut e2 = f2.new_entity();
+      let mut e3 = f3.new_entity();
+
+      box1.put(&mut e1);
+      box2.put(&mut e2);
+      box3.put(&mut e3);
+
+      assert_eq!(false, box1.is_empty(), "{:#?}", e1);
+      assert_eq!(false, box2.is_empty(), "{:#?}", e2);
       assert_eq!(false, box3.is_empty(), "{:#?}", e3);
 
       // assert_eq!(1, box3.count());
+      // assert_eq!(1, box3.count_with_cursor()); // also borken
 
+      box1.remove_all();
+      assert!(box1.is_empty());
+      assert_eq!(0, box1.count_with_cursor());
+      
+      box2.remove_all();
+      assert!(box2.is_empty());
+      assert_eq!(0, box2.count_with_cursor());
+      
       box3.remove_all();
       assert!(box3.is_empty());
+      assert_eq!(0, box3.count_with_cursor());
     }
 }

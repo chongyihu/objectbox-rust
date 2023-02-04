@@ -150,7 +150,7 @@ impl<T> Cursor<T> {
       self.error = c::call(unsafe {obx_cursor_remove_all(self.obx_cursor)}).err();
   }
 
-  fn count(&mut self) -> u64 {
+  pub(crate) fn count(&mut self) -> u64 {
     let count: u64 = 0;
     self.error = c::call(unsafe {obx_cursor_count(self.obx_cursor, count as *mut u64)}).err();
     count
