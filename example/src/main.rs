@@ -104,6 +104,9 @@ mod tests {
       assert_eq!(1, box1.count());
       assert_eq!(1, box2.count());
       assert_eq!(1, box3.count());
+      assert_eq!(1, box1.count_with_limit(1));
+      assert_eq!(1, box2.count_with_limit(1));
+      assert_eq!(1, box3.count_with_limit(1));
       assert_eq!(1, box1.count_with_cursor());
       assert_eq!(1, box2.count_with_cursor());
       assert_eq!(1, box3.count_with_cursor());
