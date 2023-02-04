@@ -160,7 +160,7 @@ mod tests {
 
         ids.push(404);
 
-        let mut objects = match box1.get_many(ids.as_slice()) {
+        let objects = match box1.get_many(ids.as_slice()) {
           Err(err) => panic!("{err}"),
           Ok(v) => v
         };

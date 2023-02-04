@@ -1,4 +1,3 @@
-use std::ptr;
 use std::rc::Rc;
 use std::slice::from_raw_parts;
 
@@ -62,7 +61,7 @@ impl<T: OBBlanket> Box<'_, T> {
   }
 
   // TODO extension trait for mut_const_c_void -> slice -> Vec<u8> to be processed by flatbuffers
-  pub fn get_raw_ptr(
+  pub fn get_data_ptr(
       &mut self,
       id: obx_id,
   ) -> (*mut *const ::std::os::raw::c_void, usize) {
@@ -324,19 +323,21 @@ impl<T: OBBlanket> Box<'_, T> {
 
   pub(crate) fn get_entity_from_ob(&self, cursor: &mut Cursor<T>, id: c::obx_id) -> Option<T> {
     unsafe {
-      // TODO determine: rust has ownership of pointers, and no leaks will occur
-      // let data_ptr = std::ptr::null_mut::<u8>();
-      let stack_u8: u8 = 0;
-      let data_ptr = ptr::addr_of!(stack_u8);
+      // increasing the capacity doesn't help either,
+      // the data from ob, keeps mutating, according to the debugger
+      let mut vec_data_ptr: Vec<u8> = Vec::with_capacity(100);
+      let data_ptr = vec_data_ptr.as_mut_ptr();
+
       let size_ptr: *mut usize = &mut 0;
       cursor.get(id, data_ptr as MutConstVoidPtr, size_ptr);
+
       if data_ptr.is_null() {
         None
       }else {
-        let array = from_raw_parts(data_ptr, *size_ptr);
-        let mut table = flatbuffers::Table::new(array, 0);
+        vec_data_ptr.set_len(*size_ptr);
+        let mut table = flatbuffers::Table::new(vec_data_ptr.as_slice(), 0);
         Some(self.helper.make(&mut table))
-      }
+      }  
     }
   }
 
