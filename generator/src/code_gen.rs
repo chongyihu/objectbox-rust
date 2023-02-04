@@ -170,12 +170,10 @@ impl CodeGenEntityExt for ModelEntity {
     let props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
     .map(|(i, p)| encode_to_fb(p.type_field, p.flags, i*2+4, &p.name) ).collect();
     
-
-    // TODO call builder.finished_data() from Store? Box? when put/put_many
     quote! {
       impl $bridge_trait for $entity {
         fn to_fb(&self, builder: &mut $flatbuffer_builder) {
-          builder.reset(); // TODO reusing the builder is probably not thread-safe
+          builder.reset();
           let wip_offset_unfinished = builder.start_table();
           $props
           let wip_offset_finished = builder.end_table(wip_offset_unfinished);
@@ -190,8 +188,6 @@ impl CodeGenEntityExt for ModelEntity {
     let factory = &rust::import("objectbox::traits", "Factory");
     let factory_helper = &rust::import("objectbox::traits", "FactoryHelper");
     let entity = &rust::import("crate", &self.name);
-    
-    let store = &rust::import("objectbox::store", "Store");
     
     let schema_id = &rust::import("objectbox::c", "obx_schema_id");
 
@@ -210,7 +206,7 @@ impl CodeGenEntityExt for ModelEntity {
     // TODO Store will be used for relations later
     quote! {
       impl $factory_helper<$entity> for $factory<$entity> {
-        fn make(&self, store: &mut $store, table: &mut $fb_table) -> $entity {
+        fn make(&self, table: &mut $fb_table) -> $entity {
           let mut object = self.new_entity();
           // destructure
           let $entity {

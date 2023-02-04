@@ -32,7 +32,7 @@ impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
 use flatbuffers::Table;
 
 pub trait FactoryHelper<T: ?Sized> {
-  fn make(&self, store: &mut Store, table: &mut Table) -> T;
+  fn make(&self, table: &mut Table) -> T;
   fn get_entity_id(&self) -> c::obx_schema_id;
   fn new_entity(&self) -> T;
 }
@@ -45,10 +45,10 @@ unsafe fn make_table(buf: &[u8], loc: usize) -> Table {
   Table::new(buf, loc)
 }
 
-pub fn make_from_trait<T>(map: anymap::AnyMap, store: &mut Store, table: &mut Table)
+pub fn make_from_trait<T>(map: anymap::AnyMap, table: &mut Table)
 -> Option<T> where T: 'static {
   if let Some(f) = map.get::<Box<dyn FactoryHelper<T>>>() {
-    return Some(f.make(store, table));
+    return Some(f.make(table));
   }
   None
 }
@@ -113,45 +113,46 @@ use crate::c;
 #[cfg(test)]
 #[test]
 fn entity_factories() {
-    use std::ptr::null_mut;
-
   unsafe {
     struct Entity0 { id: c::obx_schema_id }
     struct Entity1 { id: c::obx_schema_id }
     struct Entity2 { id: c::obx_schema_id }
 
     impl FactoryHelper<Entity0> for Factory<Entity0> {
-      fn make(&self, store: &mut Store, table: &mut Table) -> Entity0 {
+      fn make(&self, table: &mut Table) -> Entity0 {
           Entity0{ id: 0 }
       }
       fn get_entity_id(&self) -> c::obx_schema_id {
         0
       }
+      fn new_entity(&self) -> Entity0 {
+          Entity0 { id: 0 }
+      }
     }
 
     impl FactoryHelper<Entity1> for Factory<Entity1> {
-      fn make(&self, store: &mut Store, table: &mut Table) -> Entity1 {
+      fn make(&self, table: &mut Table) -> Entity1 {
           Entity1{ id: 1 }
       }
       fn get_entity_id(&self) -> c::obx_schema_id {
         1
       }
+      fn new_entity(&self) -> Entity1 {
+          Entity1 { id: 0 }
+      }
     }
 
     impl FactoryHelper<Entity2> for Factory<Entity2> {
-      fn make(&self, store: &mut Store, table: &mut Table) -> Entity2 {
+      fn make(&self, table: &mut Table) -> Entity2 {
           Entity2{ id: 2 }
       }
       fn get_entity_id(&self) -> c::obx_schema_id {
         2
       }
+      fn new_entity(&self) -> Entity2 {
+          Entity2 { id: 0 }
+      }
     }
-
-    let store = &mut Store {
-        error: None,
-        obx_store: null_mut(),
-        trait_map: None,
-    };
 
     let table = &mut Table::new(&[0u8], 0);
 
@@ -160,9 +161,9 @@ fn entity_factories() {
     let f1 = Factory::<Entity1> { _required_for_generic_trait: None, schema_id: 2 };
     let f2 = Factory::<Entity2> { _required_for_generic_trait: None, schema_id: 3 };
 
-    let e0 = f0.make(store, table);
-    let e1 = f1.make(store, table);
-    let e2 = f2.make(store, table);
+    let e0 = f0.make(table);
+    let e1 = f1.make(table);
+    let e2 = f2.make(table);
 
     assert_eq!(e0.id, 0);
     assert_eq!(e1.id, 1);
@@ -180,9 +181,9 @@ fn entity_factories() {
       let f1 = map.get::<Factory<Entity1>>();
       let f2 = map.get::<Factory<Entity2>>();
 
-      let e0 = f0.unwrap().make(store, table);
-      let e1 = f1.unwrap().make(store, table);
-      let e2 = f2.unwrap().make(store, table);
+      let e0 = f0.unwrap().make(table);
+      let e1 = f1.unwrap().make(table);
+      let e2 = f2.unwrap().make(table);
   
       assert_eq!(e0.id, 0);
       assert_eq!(e1.id, 1);
@@ -196,13 +197,13 @@ fn entity_factories() {
       
       map.insert(Box::new(f0) as Box<dyn FactoryHelper<Entity0>>);
       
-      let e0 = make_from_trait::<Entity0>(map, store, table);
+      let e0 = make_from_trait::<Entity0>(map, table);
       assert_eq!(e0.is_some(), true); // \o/
     }
 
     // experiment ref'ed factories
     {
-      fn make_from_ref<T>(map: anymap::AnyMap, store: &mut Store, table: &Table)
+      fn make_from_ref<T>(map: anymap::AnyMap, table: &Table)
       -> Option<T> where T: 'static {
         if let Some(f) = map.get::<Factory<T>>() {
           // return f.make (nope, unknown trait)
@@ -214,7 +215,7 @@ fn entity_factories() {
       let f0: &'static Factory<Entity0> = &Factory::<Entity0> { _required_for_generic_trait: None, schema_id: 0 };
       map.insert(f0);
       
-      let e0 = make_from_ref::<Entity0>(map, store, table);
+      let e0 = make_from_ref::<Entity0>(map, table);
       assert_ne!(e0.is_some(), true); // :(
     }
   }
