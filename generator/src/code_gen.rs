@@ -44,8 +44,6 @@ trait CodeGenEntityExt {
 }
 
 fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
-  let wip_offset = &rust::import("flatbuffers", "WIPOffset");
-
   if let Some(f) = flags {
     if f == (ob_consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE | ob_consts::OBXPropertyFlags_ID) {
       let t: Tokens<Rust> = quote! {
@@ -58,22 +56,16 @@ fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &Strin
   let new_tokens: Tokens<Rust> = match field_type {
     ob_consts::OBXPropertyType_StringVector => {
       quote! {
-        let strs_vec_$offset = self.$name.iter()
-        .map(|s|builder.create_string(s.as_str()))
-        .collect::<Vec<$wip_offset<&str>>>();
-        let vec_$offset = builder.create_vector(strs_vec_$offset.as_slice());
         builder.push_slot_always($offset, vec_$offset);
       }
     },
     ob_consts::OBXPropertyType_ByteVector => {
       quote! {
-        let byte_vec_$offset = builder.create_vector(&self.$name.as_slice());
         builder.push_slot_always($offset, byte_vec_$offset);
       }
     },
     ob_consts::OBXPropertyType_String => {
       quote! {
-        let str_$offset = builder.create_string(self.$name.as_str());
         builder.push_slot_always($offset, str_$offset);
       }
     },
@@ -125,6 +117,33 @@ fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &Strin
   new_tokens
 }
 
+fn encode_to_fb_unnested(field_type: u32, offset: usize, name: &String) -> Tokens<Rust> {
+  let wip_offset = &rust::import("flatbuffers", "WIPOffset");
+
+  let new_tokens: Tokens<Rust> = match field_type {
+    ob_consts::OBXPropertyType_StringVector => {
+      quote! {
+        let strs_vec_$offset = self.$name.iter()
+        .map(|s|builder.create_string(s.as_str()))
+        .collect::<Vec<$wip_offset<&str>>>();
+        let vec_$offset = builder.create_vector(strs_vec_$offset.as_slice());
+      }
+    },
+    ob_consts::OBXPropertyType_ByteVector => {
+      quote! {
+        let byte_vec_$offset = builder.create_vector(&self.$name.as_slice());
+      }
+    },
+    ob_consts::OBXPropertyType_String => {
+      quote! {
+        let str_$offset = builder.create_string(self.$name.as_str());
+      }
+    },
+    _ => quote!()
+  };
+  new_tokens
+}
+
 impl CodeGenEntityExt for ModelEntity {
   fn get_id_property(&self) -> Option<&ModelProperty> {
     for p in self.properties.iter() {
@@ -167,6 +186,9 @@ impl CodeGenEntityExt for ModelEntity {
     let bridge_trait = &rust::import("objectbox::traits", "FBOBBridge");
     let flatbuffer_builder = &rust::import("objectbox::flatbuffers", "FlatBufferBuilder");
 
+    let unnested_props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
+    .map(|(i, p)| encode_to_fb_unnested(p.type_field, i*2+4, &p.name) ).collect();
+    
     let props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
     .map(|(i, p)| encode_to_fb(p.type_field, p.flags, i*2+4, &p.name) ).collect();
     
@@ -174,6 +196,7 @@ impl CodeGenEntityExt for ModelEntity {
       impl $bridge_trait for $entity {
         fn to_fb(&self, builder: &mut $flatbuffer_builder) {
           builder.reset();
+          $unnested_props
           let wip_offset_unfinished = builder.start_table();
           $props
           let wip_offset_finished = builder.end_table(wip_offset_unfinished);
