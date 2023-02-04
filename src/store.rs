@@ -126,14 +126,15 @@ impl Store {
   //     error: None,
   //   }
   // }
-
+/*
   pub fn from_core_wrap(core_store: &mut Vec<u8>) -> Self {
     Store {
-      obx_store: unsafe { obx_store_wrap(core_store.to_mut_c_void()) },
+      obx_store: unsafe { obx_store_wrap(core_store) },
       error: None,
       trait_map: None,
     }
   }
+*/
 
   pub fn entity_id(&self, entity_name: &str) -> obx_schema_id {
     unsafe {

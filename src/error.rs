@@ -1,10 +1,12 @@
 use crate::c;
 use std::{error, fmt, result};
 
+#[derive(Clone)]
 enum Repr {
     Native(c::NativeError),
 }
 
+#[derive(Clone)]
 pub struct Error {
     repr: Repr,
 }

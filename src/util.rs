@@ -1,6 +1,12 @@
-use std::ffi::CString;
+use std::ffi::{CString, c_void};
 use std::path::Path;
-use std::os::raw::{c_char, c_void};
+use std::os::raw::c_char;
+
+// not using bindgen's derived #define OBX_NOT_FOUND 404, because it's a u32
+pub const NOT_FOUND_404: i32 = 404;
+pub const SUCCESS_0: i32 = 0;
+
+pub type MutConstVoidPtr = *mut *const c_void;
 
 // TODO verify correctness on all platforms
 pub(crate) fn str_to_c_char(path: &str) -> *const c_char {
@@ -24,8 +30,6 @@ impl ToCChar for Path {
 
 pub(crate) trait ToCVoid {
   fn to_const_c_void(&self) -> *const c_void;
-  fn to_mut_c_void(&mut self) -> *mut c_void;
-  fn to_mut_const_c_void(&mut self) -> *mut *const c_void;
 }
 
 impl ToCVoid for Vec<u8> {
@@ -33,31 +37,4 @@ impl ToCVoid for Vec<u8> {
       let sl = self.as_slice();
       sl.as_ptr() as *const c_void
     }
-
-    fn to_mut_c_void(&mut self) -> *mut c_void {
-      let sl = self.as_slice();
-      sl.as_ptr() as *mut c_void
-    }
-
-    fn to_mut_const_c_void(&mut self) -> *mut *const c_void {
-      let sl = self.as_slice();
-      sl.as_ptr() as *mut *const c_void
-    }
 }
-
-// TODO borrowed from StackOverflow on Unix (linux, mac, bsd, android etc.)
-// #[cfg(unix)]
-// fn path_to_bytes<P: AsRef<Path>>(path: P) -> Vec<u8> {
-//   use std::os::unix::ffi::OsStrExt;
-//   path.as_ref().as_os_str().as_bytes().to_vec()
-// }
-
-// // TODO borrowed from StackOverflow on windows
-// #[cfg(not(unix))]
-// fn path_to_bytes<P: AsRef<Path>>(path: P) -> Vec<i8> {
-//     // On Windows, could use std::os::windows::ffi::OsStrExt to encode_wide(),
-//     // but you end up with a Vec<u16> instead of a Vec<u8>, so that doesn't
-//     // really help.
-//     use std::os::windows::ffi::OsStrExt;
-//     path.as_ref().to_string_lossy().to_string().into_bytes()
-// }

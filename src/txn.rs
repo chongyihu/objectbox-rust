@@ -8,7 +8,7 @@ use crate::error::Error;
 
 
 pub(crate) struct Tx {
-  error: Option<Error>,
+  pub(crate) error: Option<Error>,
   pub(crate) obx_txn: *mut OBX_txn,
   pub(crate) ptr_closed: bool,
 }
@@ -44,7 +44,9 @@ impl Tx {
   //   }
   // }
   
-  pub fn new(store: *mut c::OBX_store) -> Self {
+  // TODO check memory leak
+  // new will clean itself up with drop
+  pub(crate) fn new(store: *mut c::OBX_store) -> Self {
     match c::new_mut(unsafe { obx_txn_read(store) }) {
       Ok(obx_txn) => Tx {
         obx_txn, error: None, ptr_closed: false },
@@ -56,7 +58,8 @@ impl Tx {
     }
   }
   
-  pub fn new_mut(store: *mut c::OBX_store) -> Self {
+  // new_mut requires calling `obx_txn_success`
+  pub(crate) fn new_mut(store: *mut c::OBX_store) -> Self {
     match c::new_mut(unsafe { obx_txn_write(store) }) {
       Ok(obx_txn) => Tx {
         obx_txn, error: None, ptr_closed: false },

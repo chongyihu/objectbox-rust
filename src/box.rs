@@ -1,13 +1,14 @@
 use std::rc::Rc;
+use std::slice::from_raw_parts;
 
 #[allow(dead_code)]
 
 use crate::c::{*, self};
-use crate::error::Error;
+use crate::error::{Error, self};
 
 use crate::traits::{FactoryHelper, OBBlanket};
+use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
 use crate::{txn::Tx, cursor::Cursor};
-use crate::util::ToCVoid;
 use flatbuffers::FlatBufferBuilder;
 
 // TODO implement proper error handling on remaining functions that don't call 'call'
@@ -17,7 +18,7 @@ pub struct Box<'a, T: OBBlanket> {
   pub(crate) error: Option<Error>,
   pub(crate) obx_box: *mut OBX_box,
   builder: FlatBufferBuilder<'a>,
-  obx_store: *mut OBX_store,
+  // obx_store: *mut OBX_store,
   // pub(crate) async_: std::boxed::Box<Async>, // TODO
 }
 
@@ -31,7 +32,7 @@ impl<T: OBBlanket> Box<'_, T> {
         error: None,
         obx_box,
         builder: FlatBufferBuilder::new(),
-        obx_store: store
+        // obx_store: store
       }
     }
   }
@@ -55,7 +56,7 @@ impl<T: OBBlanket> Box<'_, T> {
       self.error = c::call(unsafe { obx_box_contains_many(self.obx_box, ids, &mut contains) }).err();
       contains
   }
-
+/*
   // TODO extension trait for mut_const_c_void -> slice -> Vec<u8> to be processed by flatbuffers
   pub fn get_raw_ptr(
       &mut self,
@@ -68,12 +69,12 @@ impl<T: OBBlanket> Box<'_, T> {
   }
 
   // TODO extension trait for Vec<u32?/OBX_id> -> &[Entity], see util.rs
-  pub fn get_many_bytes_array(&self, ids: *const OBX_id_array) -> *mut OBX_bytes_array {
+  fn get_many_bytes_array(&self, ids: *const OBX_id_array) -> *mut OBX_bytes_array {
       unsafe { obx_box_get_many(self.obx_box, ids) }
   }
 
   // TODO convert OBX_bytes_array into &[Entity]
-  pub fn get_all(&self) -> *mut OBX_bytes_array {
+  fn get_all_bytes_array(&self) -> *mut OBX_bytes_array {
       unsafe { obx_box_get_all(self.obx_box) }
   }
 
@@ -151,7 +152,7 @@ impl<T: OBBlanket> Box<'_, T> {
   pub fn remove_with_id(&mut self, id: obx_id) {
     self.error = c::call(unsafe { obx_box_remove(self.obx_box, id) }).err();
   }
-
+*/
   pub fn remove_many_id_array(&mut self, ids: *const OBX_id_array) -> u64 {
     let out_count: u64 = 0;
     self.error = c::call(unsafe { obx_box_remove_many(self.obx_box, ids, out_count as *mut u64) }).err();
@@ -159,9 +160,11 @@ impl<T: OBBlanket> Box<'_, T> {
   }
 
   pub fn remove_all(&mut self) -> u64 {
-    let out_count: u64 = 0;
-    self.error = c::call(unsafe { obx_box_remove_all(self.obx_box, out_count as *mut u64) }).err();
-    out_count
+    unsafe {
+      let out_count: *mut u64 = &mut 0;
+      self.error = c::call(unsafe { obx_box_remove_all(self.obx_box, out_count as *mut u64) }).err();
+      *out_count  
+    }
   }
 
   pub fn is_empty(&mut self) -> bool {
@@ -178,13 +181,12 @@ impl<T: OBBlanket> Box<'_, T> {
 
   pub fn count_with_limit(&mut self, limit: u64) -> u64 {
     unsafe {
-      // let out_count = std::ptr::null_mut::<u64>();
       let out_count: *mut u64 = &mut 0;
       self.error = c::call(obx_box_count(self.obx_box, limit, out_count)).err();
       *out_count
     }
   }
-
+/*
   pub fn get_backlink_ids(&self, property_id: obx_schema_id, id: obx_id) -> *mut OBX_id_array {
       unsafe { obx_box_get_backlink_ids(self.obx_box, property_id, id) }
   }
@@ -225,7 +227,8 @@ impl<T: OBBlanket> Box<'_, T> {
         obx_box_ts_min_max_range(self.obx_box, range_begin, range_end, out_min_id, out_min_value, out_max_id, out_max_value)
     }
   }
-
+*/
+    // TODO remove assertions when the code is more stable
   fn get_tx_cursor_mut(&self) -> (Tx, Cursor<T>) {
     let store = self.get_store();
     assert!(!store.is_null());
@@ -239,6 +242,7 @@ impl<T: OBBlanket> Box<'_, T> {
     (tx, cursor)
   }
 
+    // TODO remove assertions when the code is more stable
   fn get_tx_cursor(&self) -> (Tx, Cursor<T>) {
     let store = self.get_store();
     assert!(!store.is_null());
@@ -252,11 +256,7 @@ impl<T: OBBlanket> Box<'_, T> {
     (tx, cursor)
   }
 
-  // Copied from dart's implementation
-  // TODO remove assertions when the code is more stable
-  pub fn put(&mut self, object: &mut T) {
-    let (mut tx, mut cursor) = self.get_tx_cursor_mut();
-
+  pub(crate) fn put_entity_in_ob(&mut self, cursor: &mut Cursor<T>, object: &mut T) -> c::obx_id {
     let old_id = object.get_id();
     let is_object_new = old_id == 0;
     let new_id = cursor.id_for_put(old_id);
@@ -270,86 +270,137 @@ impl<T: OBBlanket> Box<'_, T> {
     }else {
       cursor.put(new_id, &data);
     }
-    tx.success()
+
+    new_id
+  }
+
+  pub fn put(&mut self, object: &mut T) -> error::Result<c::obx_id> {
+    let (mut tx, mut cursor) = self.get_tx_cursor_mut();
+    let new_id = self.put_entity_in_ob(&mut cursor, object);
+    tx.success();
+
+    if let Some(err) = &self.error {
+      Err(err.clone())    
+    }else if let Some(err) = &tx.error {
+      Err(err.clone())
+    }else if let Some(err) = &cursor.error {
+      Err(err.clone())
+    }else {
+      Ok(new_id)
+    }
+  }
+
+  pub fn put_many(&mut self, objects: Vec<&mut T>) -> error::Result<Vec<c::obx_id>> {
+    let (mut tx, mut cursor) = self.get_tx_cursor_mut();
+
+    let mut vec_out = Vec::<c::obx_id>::new();
+    for o in objects {
+      vec_out.push(self.put_entity_in_ob(&mut cursor, o));
+    }
+    if let Some(err) = &self.error {
+      return Err(err.clone());
+    }else if let Some(err) = &tx.error {
+      return Err(err.clone());
+    }else if let Some(err) = &cursor.error {
+      return Err(err.clone());
+    }
+
+    tx.success();
+    Ok(vec_out)
   }
 
   // For testing purposes
   pub fn count_with_cursor(&self) -> u64 {
-    let (mut tx, mut cursor) = self.get_tx_cursor();
+    let (_tx, mut cursor) = self.get_tx_cursor();
     let count = cursor.count();
     count
   }
-}
 
+  pub(crate) fn get_entity_from_ob(&self, cursor: &mut Cursor<T>, id: c::obx_id) -> Option<T> {
+    unsafe {
+      // TODO determine: rust has ownership of pointers, and no leaks will occur
+      let data_ptr = std::ptr::null_mut::<u8>();
+      let size_ptr: *mut usize = &mut 0;
+      cursor.get(id, data_ptr as MutConstVoidPtr, size_ptr);
+      if data_ptr.is_null() {
+        None
+      }else {
+        let array = from_raw_parts(data_ptr, *size_ptr);
+        let mut table = flatbuffers::Table::new(array, 0);
+        Some(self.helper.make(&mut table))
+      }
+    }
+  }
 
-// TODO required for putAsync and putQueued
-struct Async {
-  obx_async: *mut OBX_async
-}
+  pub fn get(&self, id: c::obx_id) -> error::Result<Option<T>> {
+    let (tx, mut cursor) = self.get_tx_cursor();
+    let r = self.get_entity_from_ob(&mut cursor, id);
 
-impl Async {
-  // TODO create async wrapper
-  // reserved keyword
-  // pub fn async_(&mut self) -> *mut OBX_async {
-  //   unsafe {
-  //       obx_async(self.obx_box)
-  //   }
-  // }
+    if let Some(err) = &self.error {
+      Err(err.clone())    
+    }else if let Some(err) = &tx.error {
+      Err(err.clone())
+    }else if let Some(err) = &cursor.error {
+      Err(err.clone())
+    }else {
+      Ok(r)
+    }
+  }
 
-  // TODO fix later
-  // pub fn async_remove(&mut self, id: obx_id) -> obx_err {
-  //   unsafe {
-  //       obx_async_remove(self.obx_async, id)
-  //   }
-  // }
+  pub fn get_many(&self, ids: &[c::obx_id]) -> error::Result<Vec<Option<T>>> {
+    let (tx, mut cursor) = self.get_tx_cursor();
+    let r = ids.iter().map(|id| self.get_entity_from_ob(&mut cursor, *id)).collect::<Vec<Option<T>>>();
 
-  // pub fn async_create(&mut self, enqueue_timeout_millis: u64) -> *mut OBX_async {
-  //   unsafe {
-  //       obx_async_create(self.obx_async, enqueue_timeout_millis)
-  //   }
-  // }
+    if let Some(err) = &self.error {
+      Err(err.clone())    
+    }else if let Some(err) = &tx.error {
+      Err(err.clone())
+    }else if let Some(err) = &cursor.error {
+      Err(err.clone())
+    }else {
+      Ok(r)
+    }
+  }
 
-  // pub fn async_close(&mut self) -> obx_err {
-  //   unsafe {
-  //       obx_async_close(self.obx_async)
-  //   }
-  // }
+  /// Returns all stored objects in this Box
+  pub fn get_all(&self) -> error::Result<Vec<T>> {
+    let (tx, mut cursor) = self.get_tx_cursor();
 
+    let mut ptr: *mut u8 = std::ptr::null_mut();
+    let data_ptr_ptr: *mut *mut u8 = &mut ptr;
+    let size_ptr: *mut usize = &mut 0;
 
-  // TODO put in its own Type, with its own Drop
-  // fn async_put(&self, async_: *mut OBX_async, id: obx_id, data: *const ::std::os::raw::c_void, size: usize) -> obx_err {
-  //     unsafe { obx_async_put(async_, id, data, size) }
-  // }
+    let mut r: Vec<T> = Vec::new();
 
-  // fn async_put5(&self, async_: *mut OBX_async, id: obx_id, data: *const ::std::os::raw::c_void, size: usize, mode: OBXPutMode) -> obx_err {
-  //     unsafe { obx_async_put5(async_, id, data, size, mode) }
-  // }
+    let mut code = cursor.first(data_ptr_ptr as MutConstVoidPtr, size_ptr);
 
-  // fn async_insert(&self, async_: *mut OBX_async, id: obx_id, data: *const ::std::os::raw::c_void, size: usize) -> obx_err {
-  //     unsafe { obx_async_insert(async_, id, data, size) }
-  // }
+    // c::OBX_NOT_FOUND was a C #define that became a u32
+    // which is incompatible with obx_err === i32
+    while code != NOT_FOUND_404 {
+      unsafe {
+        let array = from_raw_parts(data_ptr_ptr as *mut u8, *size_ptr);
+        let mut table = flatbuffers::Table::new(array, 0);
+        r.push(self.helper.make(&mut table));
+      }
+      code = cursor.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);
 
-  // fn async_update(&self, async_: *mut OBX_async, id: obx_id, data: *const ::std::os::raw::c_void, size: usize) -> obx_err {
-  //     unsafe { obx_async_update(async_, id, data, size) }
-  // }
+      if code != SUCCESS_0 /* c::OBX_SUCCESS */ && code != NOT_FOUND_404 /* c::OBX_NOT_FOUND */ {
+        let err = c::call(code).err();
+        if let Some(err) = &err {
+          cursor.error = Some(err.to_owned());
+        }
+        break;
+      }
+    }
 
-  // fn async_put_object(&self, async_: *mut OBX_async, data: *mut ::std::os::raw::c_void, size: usize) -> obx_id {
-  //     unsafe { obx_async_put_object(async_, data, size) }
-  // }
-
-  // fn async_put_object4(&self, async_: *mut OBX_async, data: *mut ::std::os::raw::c_void, size: usize, mode: OBXPutMode) -> obx_id {
-  //     unsafe { obx_async_put_object4(async_, data, size, mode) }
-  // }
-
-  // fn async_insert_object(&self, async_: *mut OBX_async, data: *mut ::std::os::raw::c_void, size: usize) -> obx_id {
-  //     unsafe { obx_async_insert_object(async_, data, size) }
-  // }
-
-  // TODO fix sooner than later
-  // fn visit_many(&mut self, ids: &[c::obx_id], visitor: obx_data_visitor, user_data: *mut ::std::os::raw::c_void) -> obx_err {
-  //   unsafe {
-  //       obx_box_visit_many(self.obx_box, ids.as_ptr(), visitor, user_data)
-  //   }
-  // }
-
+    if let Some(err) = &self.error {
+      Err(err.clone())
+    }else if let Some(err) = &tx.error {
+      Err(err.clone())
+    }else if let Some(err) = &cursor.error {
+      Err(err.clone())
+    }else {
+      Ok(r)
+    }
+  }
 }

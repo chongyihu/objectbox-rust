@@ -64,13 +64,13 @@ fn main() {
 mod tests {
     use std::rc;
 
-    use objectbox::traits;
+    use objectbox::traits::{self, IdExt};
 
     use super::*;
 
     #[test]
-    fn test_store() {
-      let mut model = objectbox_gen::make_model();
+    fn test_box_put_and_count_and_remove_all() {
+      let mut model = ob::make_model();
       let mut opt = Opt::from_model(&mut model);
       let mut store = Store::from_options(&mut opt);
 
@@ -93,9 +93,19 @@ mod tests {
       let mut e2 = f2.new_entity();
       let mut e3 = f3.new_entity();
 
-      box1.put(&mut e1);
-      box2.put(&mut e2);
-      box3.put(&mut e3);
+      if let Err(err) = box1.put(&mut e1) {
+        panic!("{err}");
+      }
+      if let Err(err) = box2.put(&mut e2) {
+        panic!("{err}");
+      }
+      if let Err(err) = box3.put(&mut e3) {
+        panic!("{err}");
+      }
+
+      assert_eq!(false, e1.get_id() == 0, "Set new ID after put");
+      assert_eq!(false, e2.get_id() == 0);
+      assert_eq!(false, e3.get_id() == 0);
 
       assert_eq!(false, box1.is_empty(), "{:#?}", e1);
       assert_eq!(false, box2.is_empty(), "{:#?}", e2);
