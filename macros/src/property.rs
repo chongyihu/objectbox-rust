@@ -143,7 +143,8 @@ impl Property {
         "i16" => consts::OBXPropertyType_Short,
         "u16" => consts::OBXPropertyType_Short,
         "char" => {
-          println!("Warning: {} will be remapped behind the scenes as u32. A rusty char is 4 octets wide.", name);
+          // TODO test hypothesis: conversion is not necessary, since OB char, is also 4x bytes wide
+          // println!("Warning: {} will be remapped behind the scenes as u32. A rusty char is 4 octets wide.", name);
           consts::OBXPropertyType_Char
         }, 
         "u32" => consts::OBXPropertyType_Int,
