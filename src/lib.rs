@@ -11,6 +11,7 @@ pub mod version;
 pub mod store;
 pub mod opt;
 pub mod c;
+pub mod r#box;
 
 pub mod traits;
 pub mod entity_builder;
@@ -18,7 +19,7 @@ pub mod query;
 
 mod cursor;
 mod txn;
-mod r#box; // escape keyword
+
 
 
 

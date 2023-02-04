@@ -1,7 +1,6 @@
 extern crate objectbox;
 
-use objectbox::macros::{entity, index};
-use objectbox::{opt::Opt,store::Store};
+use objectbox::macros::entity;
 
 // uncomment the next two lines
 // when the mod hasn't been generated yet
@@ -63,8 +62,8 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use std::rc;
-
     use objectbox::traits::{self, IdExt};
+    use objectbox::{opt::Opt,store::Store};
 
     use super::*;
 
@@ -132,5 +131,50 @@ mod tests {
       box3.remove_all();
       assert!(box3.is_empty());
       assert_eq!(0, box3.count_with_cursor());
+
+      // put then get, then clear
+      {
+        let mut e1 = f1.new_entity();
+        e1.t_u16 = 1337;
+
+        let new_id = match box1.put(&mut e1) {
+          Err(err) => panic!("{err}"),
+          Ok(id) => id
+        };
+
+        match box1.get(new_id) {
+          Err(err) => panic!("{err}"),
+          Ok(opt) => {
+            assert_eq!(1337, opt.unwrap().t_u16);
+          }
+        }
+        box1.remove_all();
+      }
+
+      // put_many, get_many, get_all
+      {
+        let mut ids = match box1.put_many(vec![&mut f1.new_entity(), &mut f1.new_entity()]) {
+          Err(err) => panic!("{err}"),
+          Ok(ids) => ids
+        };
+
+        ids.push(404);
+
+        let mut objects = match box1.get_many(ids.as_slice()) {
+          Err(err) => panic!("{err}"),
+          Ok(v) => v
+        };
+
+        assert!(objects[0].is_some());
+        assert!(objects[1].is_some());
+        assert!(objects[2].is_none());
+
+        let all_objects = match box1.get_all() {
+          Err(err) => panic!("{err}"),
+          Ok(objs) => objs
+        };
+
+        assert!(all_objects.iter().all(|o|o.id > 0));
+      }
     }
 }
