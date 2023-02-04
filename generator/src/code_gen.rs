@@ -211,9 +211,7 @@ impl CodeGenEntityExt for ModelEntity {
     quote! {
       impl $factory_helper<$entity> for $factory<$entity> {
         fn make(&self, store: &mut $store, table: &mut $fb_table) -> $entity {
-          let mut object = $entity {
-            $(for p in destructured_props join (, ) => $(p))
-          };
+          let mut object = self.new_entity();
           // destructure
           let $entity {
             $(for p in &self.properties join (, ) => $(&p.name))
@@ -226,6 +224,12 @@ impl CodeGenEntityExt for ModelEntity {
 
         fn get_entity_id(&self) -> $schema_id {
           self.schema_id
+        }
+
+        fn new_entity(&self) -> $entity {
+          $entity {
+            $(for p in destructured_props join (, ) => $(p))
+          }
         }
       }
     }
