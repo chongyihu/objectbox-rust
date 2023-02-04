@@ -173,15 +173,16 @@ impl<T: OBBlanket> Box<'_, T> {
   }
 
   pub fn count(&mut self) -> u64 {
-    // you would think that u64::MAX would suffice here
-    // but 0 is idempotent
     self.count_with_limit(0)
   }
 
   pub fn count_with_limit(&mut self, limit: u64) -> u64 {
-    let out_count: u64 = 0;
-    self.error = c::call(unsafe { obx_box_count(self.obx_box, limit, out_count as *mut u64) }).err();
-    out_count
+    unsafe {
+      // let out_count = std::ptr::null_mut::<u64>();
+      let out_count: *mut u64 = &mut 0;
+      self.error = c::call(obx_box_count(self.obx_box, limit, out_count)).err();
+      *out_count
+    }
   }
 
   pub fn get_backlink_ids(&self, property_id: obx_schema_id, id: obx_id) -> *mut OBX_id_array {

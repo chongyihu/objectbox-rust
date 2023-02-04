@@ -101,13 +101,12 @@ mod tests {
       assert_eq!(false, box2.is_empty(), "{:#?}", e2);
       assert_eq!(false, box3.is_empty(), "{:#?}", e3);
 
-      // TODO why?
-      // assert_eq!(1, box1.count());
-      // assert_eq!(1, box2.count());
-      // assert_eq!(1, box3.count());
-      // assert_eq!(1, box1.count_with_cursor());
-      // assert_eq!(1, box2.count_with_cursor());
-      // assert_eq!(1, box3.count_with_cursor());
+      assert_eq!(1, box1.count());
+      assert_eq!(1, box2.count());
+      assert_eq!(1, box3.count());
+      assert_eq!(1, box1.count_with_cursor());
+      assert_eq!(1, box2.count_with_cursor());
+      assert_eq!(1, box3.count_with_cursor());
 
       box1.remove_all();
       assert!(box1.is_empty());

@@ -150,19 +150,23 @@ impl<T> Cursor<T> {
       self.error = c::call(unsafe {obx_cursor_remove_all(self.obx_cursor)}).err();
   }
 
-  pub(crate) fn count(&mut self) -> u64 {
-    let count: u64 = 0;
-    self.error = c::call(unsafe {obx_cursor_count(self.obx_cursor, count as *mut u64)}).err();
-    count
+  pub(crate)fn count(&mut self) -> u64 {
+    unsafe {
+      let count: *mut u64 = &mut 0;
+      self.error = c::call(obx_cursor_count(self.obx_cursor, count as *mut u64)).err();
+      *count  
+    }
   }
 
-  fn count_max(
+  pub(crate) fn count_max(
       &mut self,
       max_count: u64,
   ) -> u64 {
-    let out_count: u64 = 0;
-    self.error = c::call(unsafe {obx_cursor_count_max(self.obx_cursor, max_count, out_count as *mut u64)}).err();
-    out_count
+    unsafe {
+      let count: *mut u64 = &mut 0;
+      self.error = c::call(obx_cursor_count_max(self.obx_cursor, max_count, count as *mut u64)).err();
+      *count
+    }
   }
 
   // TODO test endianness
