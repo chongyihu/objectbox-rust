@@ -24,13 +24,14 @@ pub enum NativeErrorKind {
 
 #[derive(Debug, Clone)]
 pub struct NativeError {
+    module: String,
     code: i32,
     secondary: i32,
     message: String,
 }
 
 impl NativeError {
-    fn _new(_kind: NativeErrorKind) -> NativeError {
+    fn _new(_kind: NativeErrorKind, module: String) -> NativeError {
         unsafe {
             let mut c_code: i32 = 0;
             let mut c_secondary: i32 = 0;
@@ -48,6 +49,7 @@ impl NativeError {
                 message: ffi::CStr::from_ptr(c_message)
                     .to_string_lossy()
                     .into_owned(),
+                module,
             }
         }
     }
@@ -55,7 +57,7 @@ impl NativeError {
 
 impl fmt::Display for NativeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {} {}", self.code, self.secondary, self.message)
+        write!(f, "{} {} {} ({})", self.code, self.secondary, self.message, self.message)
     }
 }
 
@@ -67,21 +69,23 @@ impl error::Error for NativeError {
 }
 
 /// Validates the given native pointer is not null
-pub fn new<T>(ptr: *const T) -> Result<*const T, Error> {
+pub fn new<T>(ptr: *const T, module: String) -> Result<*const T, Error> {
     if !ptr.is_null() {
         Ok(ptr)
     } else {
         Err(Error::new_native(NativeError::_new(
             NativeErrorKind::NullPtr,
+            module
         )))
     }
 }
 
 /// Validates the given native pointer is not null
-pub fn new_mut<T>(ptr: *mut T) -> Result<*mut T, Error> {
+pub fn new_mut<T>(ptr: *mut T, module: String) -> Result<*mut T, Error> {
     if ptr.is_null() {
         Err(Error::new_native(NativeError::_new(
             NativeErrorKind::NullPtr,
+            module
         )))
     } else {
         Ok(ptr)
@@ -89,11 +93,11 @@ pub fn new_mut<T>(ptr: *mut T) -> Result<*mut T, Error> {
 }
 
 /// Validates the obx_err returned from a native call and if it's not 0, fetches the error text
-pub fn call(result: obx_err) -> Result<(), Error> {
+pub fn call(result: obx_err, module: String) -> Result<(), Error> {
     if result == 0 {
         Ok(())
     } else {
-        Err(Error::new_native(NativeError::_new(NativeErrorKind::Other)))
+        Err(Error::new_native(NativeError::_new(NativeErrorKind::Other, module)))
     }
 }
 
@@ -123,7 +127,7 @@ mod tests {
     fn test_call_positive() {
         let c_model: *mut OBX_model = unsafe { obx_model() };
         assert!(!c_model.is_null());
-        let result = call(unsafe { obx_model_free(c_model) });
+        let result = call(unsafe { obx_model_free(c_model) }, "".to_string());
         assert!(result.is_ok());
     }
 
@@ -139,7 +143,7 @@ mod tests {
     #[test]
     fn test_call_negative() {
         // this call will fail because of a null pointer
-        let result = call(unsafe { obx_txn_abort(ptr::null_mut()) });
+        let result = call(unsafe { obx_txn_abort(ptr::null_mut()) }, "".to_string());
         assert!(result.is_err());
 
         assert_error_starts_with(
@@ -153,14 +157,14 @@ mod tests {
 
     #[test]
     fn test_new_positive() {
-        let result = new(unsafe { obx_model() });
+        let result = new(unsafe { obx_model() }, "".to_string());
         assert!(result.is_ok());
         assert!(!result.unwrap().is_null());
     }
 
     #[test]
     fn test_new_negative() {
-        let result = new(unsafe { obx_store_open(ptr::null_mut()) });
+        let result = new(unsafe { obx_store_open(ptr::null_mut()) }, "".to_string());
         assert!(result.is_err());
 
         assert_error_starts_with(

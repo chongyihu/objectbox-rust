@@ -14,7 +14,7 @@ pub struct Model {
 impl Drop for Model {
     fn drop(&mut self) {
       if !self.ptr_consumed {
-        self.error = c::call(unsafe { c::obx_model_free(self.obx_model) }).err();
+        self.error = c::call(unsafe { c::obx_model_free(self.obx_model) }, "model::drop".to_string()).err();
         self.obx_model = std::ptr::null_mut();
       }
 
@@ -26,7 +26,7 @@ impl Drop for Model {
 
 impl Model {
     pub fn new(builder: Box<EntityBuilder>) -> Self {
-        match c::new_mut(unsafe { c::obx_model() }) {
+        match c::new_mut(unsafe { c::obx_model() }, "model::new".to_string()) {
             Ok(c_ptr) => Model {
                 obx_model: c_ptr,
                 error: None,
@@ -47,7 +47,7 @@ impl Model {
         if self.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
             self.error =
-                c::call(unsafe { c::obx_model_entity(self.obx_model, c_name.as_ptr(), id, uid) }).err();
+                c::call(unsafe { c::obx_model_entity(self.obx_model, c_name.as_ptr(), id, uid) }, "model::entity".to_string()).err();
         }
         self.builder.as_mut().add_entity(name, id, uid);
         self
@@ -82,7 +82,7 @@ impl Model {
     pub fn last_property_id(mut self, id: c::obx_schema_id, uid: c::obx_uid) -> Self {
         if self.error.is_none() {
             self.error =
-                c::call(unsafe { c::obx_model_entity_last_property_id(self.obx_model, id, uid) })
+                c::call(unsafe { c::obx_model_entity_last_property_id(self.obx_model, id, uid) }, "model::last_property_id".to_string())
                     .err();
         }
 
@@ -111,7 +111,7 @@ impl Model {
 
             self.error = c::call(unsafe {
                     c::obx_model_property(self.obx_model, c_name.as_ptr(), typ, id, uid)
-                })
+                }, "model::property1".to_string())
                 .err();
             
             if let Some(err) = &self.error {
@@ -120,7 +120,7 @@ impl Model {
                 
             self.error = c::call(unsafe {
                     c::obx_model_property_flags(self.obx_model, flags)
-                })
+                }, "model::property2".to_string())
                 .err();
 
             if let Some(err) = &self.error {
@@ -138,7 +138,7 @@ impl Model {
     pub fn property_index(mut self, id: c::obx_schema_id, uid: c::obx_uid) -> Self {
         if self.error.is_none() {
             self.error =
-                c::call(unsafe { c::obx_model_property_index_id(self.obx_model, id, uid) }).err();
+                c::call(unsafe { c::obx_model_property_index_id(self.obx_model, id, uid) }, "model::property_index".to_string()).err();
         }
         self
     }
@@ -160,7 +160,7 @@ impl Model {
                     index_id,
                     index_uid,
                 )
-            })
+            }, "model::property_relation".to_string())
             .err();
         }
         self
@@ -183,7 +183,7 @@ impl Model {
                     target_entity_id,
                     target_entity_uid,
                 )
-            })
+            }, "model::relation".to_string())
             .err();
         }
         self

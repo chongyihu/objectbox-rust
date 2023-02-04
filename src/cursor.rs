@@ -15,7 +15,7 @@ impl<T> Drop for Cursor<T> {
   fn drop(&mut self) {
     unsafe {
       if !self.obx_cursor.is_null() {
-        self.error = c::call(c::obx_cursor_close(self.obx_cursor)).err();
+        self.error = c::call(c::obx_cursor_close(self.obx_cursor), "cursor::drop".to_string()).err();
         self.obx_cursor = std::ptr::null_mut();
       }
 
@@ -29,7 +29,7 @@ impl<T> Drop for Cursor<T> {
 impl<T> Cursor<T> {
   pub(crate) fn new(tx: *mut OBX_txn, helper: Rc<dyn FactoryHelper<T>>) -> Self {
     let entity_id = helper.get_entity_id();
-    match c::new_mut(unsafe { c::obx_cursor(tx, entity_id) }) {
+    match c::new_mut(unsafe { c::obx_cursor(tx, entity_id) }, "cursor::new".to_string()) {
       Ok(obx_cursor) => Cursor {
         helper,
         obx_cursor,
@@ -48,7 +48,7 @@ impl<T> Cursor<T> {
       id: obx_id,
       data: &Vec<u8>,
   ) {
-      self.error = c::call(unsafe { c::obx_cursor_put(self.obx_cursor, id, data.to_const_c_void(), data.len()) }).err();
+      self.error = c::call(unsafe { c::obx_cursor_put(self.obx_cursor, id, data.to_const_c_void(), data.len()) }, "cursor::put".to_string()).err();
   }
 /*
   fn put4(
@@ -65,7 +65,7 @@ impl<T> Cursor<T> {
       id: obx_id,
       data: &Vec<u8>,
   ) {
-      self.error = c::call(unsafe { obx_cursor_put_new(self.obx_cursor, id, data.to_const_c_void(), data.len()) }).err()
+      self.error = c::call(unsafe { obx_cursor_put_new(self.obx_cursor, id, data.to_const_c_void(), data.len()) }, "cursor::put_new".to_string()).err()
   }
 /*
   fn insert(
@@ -107,7 +107,7 @@ impl<T> Cursor<T> {
       data : MutConstVoidPtr,
       size: *mut usize,
   ) {
-    self.error = c::call(unsafe { obx_cursor_get(self.obx_cursor, id, data, size) }).err()
+    self.error = c::call(unsafe { obx_cursor_get(self.obx_cursor, id, data, size) }, "cursor::get".to_string()).err()
   }
 
   fn get_all(&self) -> *mut OBX_bytes_array {
@@ -135,7 +135,7 @@ impl<T> Cursor<T> {
   }
 
   fn seek(&mut self, id: obx_id) {
-      self.error = c::call(unsafe {obx_cursor_seek(self.obx_cursor, id)}).err();
+      self.error = c::call(unsafe {obx_cursor_seek(self.obx_cursor, id)}, "cursor::seek".to_string()).err();
   }
 
   fn current(
@@ -143,21 +143,21 @@ impl<T> Cursor<T> {
       data: MutConstVoidPtr,
       size: *mut usize,
   ) {
-      self.error = c::call(unsafe {obx_cursor_current(self.obx_cursor, data, size)}).err();
+      self.error = c::call(unsafe {obx_cursor_current(self.obx_cursor, data, size)}, "cursor::current".to_string()).err();
   }
 
   fn remove(&mut self, id: obx_id) {
-      self.error = c::call(unsafe {obx_cursor_remove(self.obx_cursor, id)}).err();
+      self.error = c::call(unsafe {obx_cursor_remove(self.obx_cursor, id)}, "cursor::remove".to_string()).err();
   }
 
   fn remove_all(&mut self) {
-      self.error = c::call(unsafe {obx_cursor_remove_all(self.obx_cursor)}).err();
+      self.error = c::call(unsafe {obx_cursor_remove_all(self.obx_cursor)}, "cursor::remove_all".to_string()).err();
   }
 
   pub(crate)fn count(&mut self) -> u64 {
     unsafe {
       let count: *mut u64 = &mut 0;
-      self.error = c::call(obx_cursor_count(self.obx_cursor, count as *mut u64)).err();
+      self.error = c::call(obx_cursor_count(self.obx_cursor, count as *mut u64), "cursor::count".to_string()).err();
       *count  
     }
   }
@@ -168,7 +168,7 @@ impl<T> Cursor<T> {
   ) -> u64 {
     unsafe {
       let count: *mut u64 = &mut 0;
-      self.error = c::call(obx_cursor_count_max(self.obx_cursor, max_count, count as *mut u64)).err();
+      self.error = c::call(obx_cursor_count_max(self.obx_cursor, max_count, count as *mut u64), "cursor::count_max".to_string()).err();
       *count
     }
   }
@@ -178,7 +178,7 @@ impl<T> Cursor<T> {
   fn is_empty(&mut self) -> bool {
     unsafe {
       let out_is_empty: *mut bool = &mut false; // coerce
-      self.error = c::call(obx_cursor_is_empty(self.obx_cursor, out_is_empty as *mut bool)).err();
+      self.error = c::call(obx_cursor_is_empty(self.obx_cursor, out_is_empty as *mut bool), "cursor::is_empty".to_string()).err();
       *out_is_empty  
     }
   }
@@ -207,11 +207,11 @@ impl<T> Cursor<T> {
       source_id: obx_id,
       target_id: obx_id,
   ) {
-      self.error = c::call(unsafe {obx_cursor_rel_put(self.obx_cursor, relation_id, source_id, target_id)}).err();
+      self.error = c::call(unsafe {obx_cursor_rel_put(self.obx_cursor, relation_id, source_id, target_id)}, "cursor::rel_put".to_string()).err();
   }
 
   fn rel_remove(&mut self, relation_id: obx_schema_id, source_id: obx_id, target_id: obx_id) {
-    self.error = c::call(unsafe {obx_cursor_rel_remove(self.obx_cursor, relation_id, source_id, target_id)}).err();
+    self.error = c::call(unsafe {obx_cursor_rel_remove(self.obx_cursor, relation_id, source_id, target_id)}, "cursor::rel_remove".to_string()).err();
   }
 
   fn rel_ids(&self, relation_id: obx_schema_id, source_id: obx_id) -> *mut OBX_id_array {

@@ -1,3 +1,4 @@
+use std::ptr;
 use std::rc::Rc;
 use std::slice::from_raw_parts;
 
@@ -44,25 +45,28 @@ impl<T: OBBlanket> Box<'_, T> {
     }
   }
 
+  // TODO write test
   pub fn contains(&mut self, id: obx_id) -> bool {
     let mut contains = false;
-    self.error = c::call(unsafe { obx_box_contains(self.obx_box, id, &mut contains) }).err();
+    self.error = c::call(unsafe { obx_box_contains(self.obx_box, id, &mut contains) }, "box::contains".to_string()).err();
     contains
   }
 
+  /*
   // TODO extension trait for Vec<u32?/OBX_id> -> OBX_id_array, see util.rs
+  // TODO alternative: run contains one by one
   pub fn contains_many_id_array(&mut self, ids: *const OBX_id_array) -> bool {
       let mut contains = false;
       self.error = c::call(unsafe { obx_box_contains_many(self.obx_box, ids, &mut contains) }).err();
       contains
   }
-/*
+
   // TODO extension trait for mut_const_c_void -> slice -> Vec<u8> to be processed by flatbuffers
   pub fn get_raw_ptr(
       &mut self,
       id: obx_id,
   ) -> (*mut *const ::std::os::raw::c_void, usize) {
-      let data = std::ptr::null_mut();
+      let data = std::ptr::null_mut(); // this is wrong, and will explode
       let mut size = 0;
       self.error = c::call(unsafe { obx_box_get(self.obx_box, id, data, &mut size) }).err();
       (data, size)
@@ -153,16 +157,18 @@ impl<T: OBBlanket> Box<'_, T> {
     self.error = c::call(unsafe { obx_box_remove(self.obx_box, id) }).err();
   }
 */
-  pub fn remove_many_id_array(&mut self, ids: *const OBX_id_array) -> u64 {
+
+  // TODO size 16, align 8
+  fn remove_many_id_array(&mut self, ids: *const OBX_id_array) -> u64 {
     let out_count: u64 = 0;
-    self.error = c::call(unsafe { obx_box_remove_many(self.obx_box, ids, out_count as *mut u64) }).err();
+    self.error = c::call(unsafe { obx_box_remove_many(self.obx_box, ids, out_count as *mut u64) }, "box::remove_many_id_array".to_string()).err();
     out_count
   }
 
   pub fn remove_all(&mut self) -> u64 {
     unsafe {
       let out_count: *mut u64 = &mut 0;
-      self.error = c::call(unsafe { obx_box_remove_all(self.obx_box, out_count as *mut u64) }).err();
+      self.error = c::call(unsafe { obx_box_remove_all(self.obx_box, out_count as *mut u64) }, "box::remove_all".to_string()).err();
       *out_count  
     }
   }
@@ -170,7 +176,7 @@ impl<T: OBBlanket> Box<'_, T> {
   pub fn is_empty(&mut self) -> bool {
     unsafe {
       let out_is_empty: *mut bool = &mut false; // coerce
-      self.error = c::call(obx_box_is_empty(self.obx_box, out_is_empty)).err();
+      self.error = c::call(obx_box_is_empty(self.obx_box, out_is_empty), "box::is_empty".to_string()).err();
       *out_is_empty
     }
   }
@@ -182,7 +188,7 @@ impl<T: OBBlanket> Box<'_, T> {
   pub fn count_with_limit(&mut self, limit: u64) -> u64 {
     unsafe {
       let out_count: *mut u64 = &mut 0;
-      self.error = c::call(obx_box_count(self.obx_box, limit, out_count)).err();
+      self.error = c::call(obx_box_count(self.obx_box, limit, out_count), "box::count_with_limit".to_string()).err();
       *out_count
     }
   }
@@ -319,7 +325,9 @@ impl<T: OBBlanket> Box<'_, T> {
   pub(crate) fn get_entity_from_ob(&self, cursor: &mut Cursor<T>, id: c::obx_id) -> Option<T> {
     unsafe {
       // TODO determine: rust has ownership of pointers, and no leaks will occur
-      let data_ptr = std::ptr::null_mut::<u8>();
+      // let data_ptr = std::ptr::null_mut::<u8>();
+      let stack_u8: u8 = 0;
+      let data_ptr = ptr::addr_of!(stack_u8);
       let size_ptr: *mut usize = &mut 0;
       cursor.get(id, data_ptr as MutConstVoidPtr, size_ptr);
       if data_ptr.is_null() {
@@ -385,7 +393,7 @@ impl<T: OBBlanket> Box<'_, T> {
       code = cursor.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);
 
       if code != SUCCESS_0 /* c::OBX_SUCCESS */ && code != NOT_FOUND_404 /* c::OBX_NOT_FOUND */ {
-        let err = c::call(code).err();
+        let err = c::call(code, "box::get_all".to_string()).err();
         if let Some(err) = &err {
           cursor.error = Some(err.to_owned());
         }

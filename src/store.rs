@@ -47,7 +47,7 @@ impl Store {
     if let Some(err) = &opt.error {
       panic!("Error: store: {err}");
     }
-    match c::new_mut(unsafe { obx_store_open(opt.obx_opt) }) {
+    match c::new_mut(unsafe { obx_store_open(opt.obx_opt) }, "store::from_options".to_string()) {
       Ok(obx_store) => {
         opt.ptr_consumed = !obx_store.is_null();
         Store {
@@ -170,7 +170,7 @@ impl Store {
   }
 
   pub fn debug_flags(&mut self, flags: OBXDebugFlags) {
-    self.error = c::call(unsafe { obx_store_debug_flags(self.obx_store, flags) }).err();
+    self.error = c::call(unsafe { obx_store_debug_flags(self.obx_store, flags) }, "store::debug_flags".to_string()).err();
   }
 
   pub fn opened_with_previous_commit(&self) -> bool {
@@ -178,10 +178,10 @@ impl Store {
   }
 
   pub(crate) fn prepare_to_close(&mut self) {
-    self.error = c::call(unsafe { obx_store_prepare_to_close(self.obx_store) }).err()
+    self.error = c::call(unsafe { obx_store_prepare_to_close(self.obx_store) }, "store::prepare_to_close".to_string()).err()
   }
 
   pub(crate) fn close(&mut self) {
-    self.error = c::call(unsafe { obx_store_close(self.obx_store) }).err();
+    self.error = c::call(unsafe { obx_store_close(self.obx_store) }, "store::close".to_string()).err();
   }
 }

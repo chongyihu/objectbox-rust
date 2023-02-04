@@ -51,7 +51,7 @@ impl Opt {
   }
 
   pub fn directory(&mut self, dir: &Path) -> &mut Self {
-    self.error = call(unsafe { obx_opt_directory(self.obx_opt, dir.to_c_char()) }).err();
+    self.error = call(unsafe { obx_opt_directory(self.obx_opt, dir.to_c_char()) }, "opt::directory".to_string()).err();
     self
   }
 
@@ -91,17 +91,16 @@ impl Opt {
   }
 
   pub(crate) fn model(&mut self, model: &mut Model) {
-    self.error = call(unsafe { obx_opt_model(self.obx_opt, model.obx_model) }).err();
+    self.error = call(unsafe { obx_opt_model(self.obx_opt, model.obx_model) }, "opt::model".to_string()).err();
   }
 
   pub fn model_bytes(&mut self, bytes: &Vec<u8>, size: usize) -> &mut Self {
-
-    self.error = call(unsafe { obx_opt_model_bytes(self.obx_opt, bytes.to_const_c_void(), size) }).err();
+    self.error = call(unsafe { obx_opt_model_bytes(self.obx_opt, bytes.to_const_c_void(), size) }, "opt::model_bytes".to_string()).err();
     self
   }
 
   pub fn model_bytes_direct(&mut self, bytes: &Vec<u8>, size: usize) -> &mut Self {
-    self.error = call(unsafe { obx_opt_model_bytes_direct(self.obx_opt, bytes.to_const_c_void(), size) }).err();
+    self.error = call(unsafe { obx_opt_model_bytes_direct(self.obx_opt, bytes.to_const_c_void(), size) }, "opt::model_bytes_direct".to_string()).err();
     self
   }
 
