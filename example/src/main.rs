@@ -62,10 +62,59 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use std::rc;
-    use objectbox::traits::{self, IdExt};
+    use objectbox::flatbuffers::{FlatBufferBuilder, Table};
+    use objectbox::traits::{self, IdExt, FBOBBridge};
     use objectbox::{opt::Opt,store::Store};
 
     use super::*;
+
+    #[test]
+    fn test_write_and_read_fb () {
+      let trait_map2 = ob::make_factory_map();
+      let f1 = trait_map2.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity>>>().unwrap().clone();
+      let f2 = trait_map2.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity2>>>().unwrap().clone();
+      let f3 = trait_map2.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity3>>>().unwrap().clone();
+
+      let mut e1 = f1.new_entity();
+      let mut e2 = f2.new_entity();
+      let mut e3 = f3.new_entity();
+
+      e1.id = 0xFFFFFFFF;
+      e2.id = 0xFFFFFFFF;
+      e3.id = 0xFFFFFFFF;
+
+      let mut fbb = FlatBufferBuilder::new();
+
+      unsafe {
+        e3.to_fb(&mut fbb);
+        let vec = Vec::from(fbb.finished_data());
+  
+        let mut table = Table::new(vec.as_slice(), 16);
+        let e3_copy = f3.make(&mut table);
+
+        assert_eq!(e3_copy.id, e3.id);
+      }
+
+      unsafe {
+        e2.to_fb(&mut fbb);
+        let vec = Vec::from(fbb.finished_data());
+  
+        let mut table = Table::new(vec.as_slice(), 4);
+        let e2_copy = f2.make(&mut table);
+
+        assert_eq!(e2_copy.id, e2.id);
+      }
+
+      unsafe {
+        e1.to_fb(&mut fbb);
+        let vec = Vec::from(fbb.finished_data());
+  
+        let mut table = Table::new(vec.as_slice(), 4);
+        let e1_copy = f1.make(&mut table);
+
+        assert_eq!(e1_copy.id, e1.id);
+      }
+    }
 
     #[test]
     fn test_box_put_and_count_and_remove_all() {
