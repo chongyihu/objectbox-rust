@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 flatbuffers = "22.10.26"
-objectbox = { path = "../../" }
+objectbox = { path = "../" }
 
 [build-dependencies]
-objectbox = { path = "../../" }
+objectbox = { path = "../" }
