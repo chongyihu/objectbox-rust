@@ -1,6 +1,6 @@
 use core::panic;
 use std::fs;
-use std::path::Path;
+use std::path::PathBuf;
 
 use genco::fmt;
 use genco::prelude::*;
@@ -258,7 +258,7 @@ impl CodeGenEntityExt for ModelEntity {
 
 // TODO Fix visibility on all the trait extensions
 pub(crate) trait CodeGenExt {
-  fn generate_code(&self, path: &Path);
+  fn generate_code(&self, path: &PathBuf);
 }
 
 fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
@@ -352,7 +352,7 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
 
 
 impl CodeGenExt for ModelInfo {
-  fn generate_code(&self, path: &Path) {
+  fn generate_code(&self, dest_path: &PathBuf) {
     let tokens = &mut rust::Tokens::new();
     
     for e in self.entities.iter() {
@@ -379,7 +379,7 @@ impl CodeGenExt for ModelInfo {
     // it seems that genco's code formatting is broken on stable
     let formatted = prettyplease::unparse(&syntax_tree);
 
-    if let Err(error) = fs::write(&path, formatted.as_str()) {
+    if let Err(error) = fs::write(&dest_path, formatted.as_str()) {
         panic!("There is a problem writing the generated rust code: {:?}", error);
     }
   }

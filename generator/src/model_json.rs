@@ -79,7 +79,7 @@ impl ModelInfo {
         self
     }
 
-    pub fn from_json_file(path: &Path) -> Self {
+    pub fn from_json_file(path: &PathBuf) -> Self {
         match fs::read_to_string(path) {
             Ok(content) => {
                 match serde_json::from_str(content.as_str()) {
@@ -118,6 +118,18 @@ impl ModelEntity {
             }
         }else {
             panic!("Missing OUT_DIR environment variable, due to calling this function outside of build.rs");
+        }
+    }
+
+    pub fn from_json_file(path: &PathBuf) -> Self {
+        match fs::read_to_string(path) {
+            Ok(content) => {
+                match serde_json::from_str(content.as_str()) {
+                    Ok(json) => return json,
+                    Err(error) => panic!("Problem parsing the json: {:?}", error),
+                }
+            }
+            Err(error) => panic!("Problem reading the json file: {:?}", error),
         }
     }
 }

@@ -2,6 +2,7 @@ pub mod id;
 pub mod model_json;
 pub mod ob_consts;
 
+use std::collections::HashMap;
 use std::{path::PathBuf, fs};
 use glob::glob;
 use model_json::{ModelEntity, ModelInfo};
@@ -164,22 +165,69 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
         return
     }
 
-    let json_dest_path = &cargo_manifest_dir.as_path().join("src/objectbox-model.json");
-    let ob_dest_path = &cargo_manifest_dir.as_path().join("src/objectbox_gen.rs");
-    if let Ok(exists) = json_dest_path.try_exists() {
-        // Exports everything a user needs from objectbox, fully generated
-        if exists {
-            let model_info_from_one_file = ModelInfo::from_json_file(json_dest_path);
+    let mut json_dest_path = cargo_manifest_dir.join("src/objectbox-model.json");
+    let mut ob_dest_path = cargo_manifest_dir.join("src/objectbox_gen.rs");
+    let mut model_has_changed = false;
+    // Exports everything a user needs from objectbox, fully generated
+    if json_dest_path.exists() {
+        let model_info_from_one_file = ModelInfo::from_json_file(&json_dest_path);
 
-            if model_info_from_one_file.entities.len() != pbs.len() {
-                println!("cargo:warning=The number of entities have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json");
-            }        
-
-            model_info_from_one_file.generate_code(ob_dest_path);
-            return;
+        // Check difference in number of Entities
+        if model_info_from_one_file.entities.len() != pbs.len() {
+            model_has_changed = true;
+            println!("cargo:warning=The number of entities have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json");
         }
+
+        let e_afters = pbs.iter().map(|p|ModelEntity::from_json_file(p)).collect::<Vec<ModelEntity>>();
+        let mut map = HashMap::new();
+        e_afters.iter().for_each(|e|{ map.insert(e.name.as_str(), e); });
+        
+        let mut names_changed = false;
+        
+        // Check difference in number of properties
+        for e_before in model_info_from_one_file.entities {
+            if let Some(e_new) = map.get(e_before.name.as_str()) {
+                let count_properties_changed = e_new.properties.len() != e_before.properties.len();
+                if count_properties_changed {
+                    println!("cargo:warning=The number of properties ({}) have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json", e_before.name);
+                }
+                model_has_changed |= count_properties_changed;
+
+                let mut p_map = HashMap::new();
+                e_new.properties.iter().for_each(|p|{ p_map.insert(p.name.as_str(), p); });
+
+                let mut flags_changed = false;
+                let mut types_changed = false;
+                for p_before in e_before.properties {
+                    if let Some(p_new) = p_map.get(p_before.name.as_str()) {
+                        flags_changed |= p_new.flags != p_before.flags;
+                        types_changed |= p_new.type_field != p_before.type_field;
+                        model_has_changed |= flags_changed || types_changed;
+                    }else {
+                        println!("cargo:warning=The names of properties ({}) have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json", e_before.name);
+                        names_changed |= true;
+                    }
+                }    
+            }else {
+                println!("cargo:warning=The names of entities have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json");
+                names_changed |= true;
+            }
+        }
+
+        model_has_changed |= names_changed;
     }
 
+    if model_has_changed {
+        json_dest_path.set_extension("json.new");
+        ob_dest_path.set_extension("rs.new");
+    }else {
+        // do relatively inexpensive(?) checks to prevent generating files,
+        // and randomly generate uids and assign them
+        if ob_dest_path.exists() && json_dest_path.exists() {
+            return; 
+        }
+    }    
+    
     let mut entities = Vec::<ModelEntity>::new();
 
     // read what is provided by the user
@@ -188,6 +236,6 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
         .assign_id_to_entities().assign_id_to_indexables();
 
     ModelInfo::from_entities(entities.as_slice())
-    .write_json(json_dest_path)
-    .generate_code(ob_dest_path);
+    .write_json(&json_dest_path)
+    .generate_code(&ob_dest_path);
 }
