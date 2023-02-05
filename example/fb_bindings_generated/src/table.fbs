@@ -1,25 +1,27 @@
 namespace ob;
 
 table entity {
-	t_i8:   byte;
-	t_u8:   ubyte;
-	t_bool: bool;
+    id:  ulong;
 
-        t_i16:  short;
-        t_u16:  ushort;
+    t_i8:   byte;
+    t_u8:   ubyte;
+    t_bool: bool;
 
-        t_i32:  int;
-	t_u32:  uint;
-        t_f32:  float;
+    t_i16:  short;
+    t_u16:  ushort;
 
-	t_u64:  ulong;
-        t_i64:  long;
-        t_f64:  double;
+    t_i32:  int;
+    t_u32:  uint;
+    t_f32:  float;
 
-        t_string: string;
+    t_u64:  ulong;
+    t_i64:  long;
+    t_f64:  double;
 
-        t_vec_u8: [ubyte];
-        t_vec_string: [string];
+    t_string: string;
+
+    t_vec_u8: [ubyte];
+    t_vec_string: [string];
 }
 
 root_type entity;

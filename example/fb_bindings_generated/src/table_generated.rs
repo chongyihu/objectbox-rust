@@ -34,20 +34,21 @@ impl<'a> flatbuffers::Follow<'a> for entity<'a> {
 }
 
 impl<'a> entity<'a> {
-  pub const VT_T_I8: flatbuffers::VOffsetT = 4;
-  pub const VT_T_U8: flatbuffers::VOffsetT = 6;
-  pub const VT_T_BOOL: flatbuffers::VOffsetT = 8;
-  pub const VT_T_I16: flatbuffers::VOffsetT = 10;
-  pub const VT_T_U16: flatbuffers::VOffsetT = 12;
-  pub const VT_T_I32: flatbuffers::VOffsetT = 14;
-  pub const VT_T_U32: flatbuffers::VOffsetT = 16;
-  pub const VT_T_F32: flatbuffers::VOffsetT = 18;
-  pub const VT_T_U64: flatbuffers::VOffsetT = 20;
-  pub const VT_T_I64: flatbuffers::VOffsetT = 22;
-  pub const VT_T_F64: flatbuffers::VOffsetT = 24;
-  pub const VT_T_STRING: flatbuffers::VOffsetT = 26;
-  pub const VT_T_VEC_U8: flatbuffers::VOffsetT = 28;
-  pub const VT_T_VEC_STRING: flatbuffers::VOffsetT = 30;
+  pub const VT_ID: flatbuffers::VOffsetT = 4;
+  pub const VT_T_I8: flatbuffers::VOffsetT = 6;
+  pub const VT_T_U8: flatbuffers::VOffsetT = 8;
+  pub const VT_T_BOOL: flatbuffers::VOffsetT = 10;
+  pub const VT_T_I16: flatbuffers::VOffsetT = 12;
+  pub const VT_T_U16: flatbuffers::VOffsetT = 14;
+  pub const VT_T_I32: flatbuffers::VOffsetT = 16;
+  pub const VT_T_U32: flatbuffers::VOffsetT = 18;
+  pub const VT_T_F32: flatbuffers::VOffsetT = 20;
+  pub const VT_T_U64: flatbuffers::VOffsetT = 22;
+  pub const VT_T_I64: flatbuffers::VOffsetT = 24;
+  pub const VT_T_F64: flatbuffers::VOffsetT = 26;
+  pub const VT_T_STRING: flatbuffers::VOffsetT = 28;
+  pub const VT_T_VEC_U8: flatbuffers::VOffsetT = 30;
+  pub const VT_T_VEC_STRING: flatbuffers::VOffsetT = 32;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
@@ -62,6 +63,7 @@ impl<'a> entity<'a> {
     builder.add_t_f64(args.t_f64);
     builder.add_t_i64(args.t_i64);
     builder.add_t_u64(args.t_u64);
+    builder.add_id(args.id);
     if let Some(x) = args.t_vec_string { builder.add_t_vec_string(x); }
     if let Some(x) = args.t_vec_u8 { builder.add_t_vec_u8(x); }
     if let Some(x) = args.t_string { builder.add_t_string(x); }
@@ -77,6 +79,13 @@ impl<'a> entity<'a> {
   }
 
 
+  #[inline]
+  pub fn id(&self) -> u64 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u64>(entity::VT_ID, Some(0)).unwrap()}
+  }
   #[inline]
   pub fn t_i8(&self) -> i8 {
     // Safety:
@@ -184,6 +193,7 @@ impl flatbuffers::Verifiable for entity<'_> {
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
+     .visit_field::<u64>("id", Self::VT_ID, false)?
      .visit_field::<i8>("t_i8", Self::VT_T_I8, false)?
      .visit_field::<u8>("t_u8", Self::VT_T_U8, false)?
      .visit_field::<bool>("t_bool", Self::VT_T_BOOL, false)?
@@ -203,6 +213,7 @@ impl flatbuffers::Verifiable for entity<'_> {
   }
 }
 pub struct entityArgs<'a> {
+    pub id: u64,
     pub t_i8: i8,
     pub t_u8: u8,
     pub t_bool: bool,
@@ -222,6 +233,7 @@ impl<'a> Default for entityArgs<'a> {
   #[inline]
   fn default() -> Self {
     entityArgs {
+      id: 0,
       t_i8: 0,
       t_u8: 0,
       t_bool: false,
@@ -245,6 +257,10 @@ pub struct entityBuilder<'a: 'b, 'b> {
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
 impl<'a: 'b, 'b> entityBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_id(&mut self, id: u64) {
+    self.fbb_.push_slot::<u64>(entity::VT_ID, id, 0);
+  }
   #[inline]
   pub fn add_t_i8(&mut self, t_i8: i8) {
     self.fbb_.push_slot::<i8>(entity::VT_T_I8, t_i8, 0);
@@ -319,6 +335,7 @@ impl<'a: 'b, 'b> entityBuilder<'a, 'b> {
 impl core::fmt::Debug for entity<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
     let mut ds = f.debug_struct("entity");
+      ds.field("id", &self.id());
       ds.field("t_i8", &self.t_i8());
       ds.field("t_u8", &self.t_u8());
       ds.field("t_bool", &self.t_bool());

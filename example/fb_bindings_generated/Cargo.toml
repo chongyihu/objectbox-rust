@@ -3,7 +3,9 @@ name = "fb_bindings_generated"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 flatbuffers = "22.10.26"
+objectbox = { path = "../../" }
+
+[build-dependencies]
+objectbox = { path = "../../" }
