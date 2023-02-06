@@ -2,12 +2,12 @@ pub mod id;
 pub mod model_json;
 pub mod ob_consts;
 
-use std::collections::HashMap;
-use std::{path::PathBuf, fs};
 use glob::glob;
 use model_json::{ModelEntity, ModelInfo};
-use rand::Rng;
 use rand;
+use rand::Rng;
+use std::collections::HashMap;
+use std::{fs, path::PathBuf};
 
 // TODO implement collision detection and evasion with predefined id and uid
 // TODO general idea: maintain a set of id and uid, when incrementing the counter,
@@ -22,31 +22,31 @@ fn parse_colon_separated_integers(str: &String, counter: u64) -> (u64, u64) {
             let right = str.substring(1, str.len());
             if let Ok(u) = str::parse::<u64>(right) {
                 uid = u;
-            }else {
+            } else {
                 panic!("A u64 could not be parsed from this string");
             }
-        }else if str.ends_with(":") {
-            let left = str.substring(0, str.len()-1);
+        } else if str.ends_with(":") {
+            let left = str.substring(0, str.len() - 1);
             if let Ok(u) = str::parse::<u64>(left) {
                 id = u;
-            }else {
+            } else {
                 panic!("A u64 could not be parsed from this string");
             }
-        }else {
+        } else {
             let collect: Vec<&str> = str.split(":").collect();
             if collect.len() == 2 {
-              let left = collect[0];
-              let right = collect[1];
-              if let Ok(i) = str::parse::<u64>(left) {
-                id = i;
-              }else {
-                panic!("A u64 could not be parsed from this string");
-              }
-              if let Ok(u) = str::parse::<u64>(right) {
-                uid = u;
-              }else {
-                panic!("A u64 could not be parsed from this string");
-              }
+                let left = collect[0];
+                let right = collect[1];
+                if let Ok(i) = str::parse::<u64>(left) {
+                    id = i;
+                } else {
+                    panic!("A u64 could not be parsed from this string");
+                }
+                if let Ok(u) = str::parse::<u64>(right) {
+                    uid = u;
+                } else {
+                    panic!("A u64 could not be parsed from this string");
+                }
             }
         }
     }
@@ -67,11 +67,11 @@ mod tests {
     fn colon_separated_integers() {
         {
             let result = parse_colon_separated_integers(&String::from("1:1337"), 0);
-            assert_eq!(result, (1,1337));
+            assert_eq!(result, (1, 1337));
         }
         {
             let result = parse_colon_separated_integers(&String::from(":1337"), 0);
-            assert_eq!(result, (1,1337));    
+            assert_eq!(result, (1, 1337));
         }
         {
             let result = parse_colon_separated_integers(&String::from("7:"), 0);
@@ -124,14 +124,14 @@ impl EntityVecHelper for Vec<ModelEntity> {
             let id = parse_colon_separated_integers(&e.id, counter);
             counter = id.0;
             e.id = format!("{}:{}", id.0, id.1);
-    
+
             let mut counter_p: u64 = 0;
             for v in e.properties.iter_mut() {
                 let id = parse_colon_separated_integers(&v.id, counter_p);
                 counter_p = id.0;
                 v.id = format!("{}:{}", id.0, id.1);
             }
-    
+
             let last_property = e.properties.last().unwrap();
             e.last_property_id = last_property.id.clone();
         }
@@ -145,7 +145,7 @@ impl EntityVecHelper for Vec<ModelEntity> {
             for p in e.properties.as_mut_slice() {
                 if p.index_id.is_some() {
                     p.index_id = Some(format!("{}:{}", counter, rng.gen::<u64>()));
-                    counter+=1;
+                    counter += 1;
                 }
             }
         }
@@ -162,7 +162,7 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
 
     if pbs.is_empty() {
         println!("cargo:warning=No entities declared!");
-        return
+        return;
     }
 
     let mut json_dest_path = cargo_manifest_dir.join("src/objectbox-model.json");
@@ -178,12 +178,17 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
             println!("cargo:warning=The number of entities have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json");
         }
 
-        let e_afters = pbs.iter().map(|p|ModelEntity::from_json_file(p)).collect::<Vec<ModelEntity>>();
+        let e_afters = pbs
+            .iter()
+            .map(|p| ModelEntity::from_json_file(p))
+            .collect::<Vec<ModelEntity>>();
         let mut map = HashMap::new();
-        e_afters.iter().for_each(|e|{ map.insert(e.name.as_str(), e); });
-        
+        e_afters.iter().for_each(|e| {
+            map.insert(e.name.as_str(), e);
+        });
+
         let mut names_changed = false;
-        
+
         // Check difference in number of properties
         for e_before in model_info_from_one_file.entities {
             if let Some(e_new) = map.get(e_before.name.as_str()) {
@@ -194,7 +199,9 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
                 model_has_changed |= count_properties_changed;
 
                 let mut p_map = HashMap::new();
-                e_new.properties.iter().for_each(|p|{ p_map.insert(p.name.as_str(), p); });
+                e_new.properties.iter().for_each(|p| {
+                    p_map.insert(p.name.as_str(), p);
+                });
 
                 let mut flags_changed = false;
                 let mut types_changed = false;
@@ -203,12 +210,12 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
                         flags_changed |= p_new.flags != p_before.flags;
                         types_changed |= p_new.type_field != p_before.type_field;
                         model_has_changed |= flags_changed || types_changed;
-                    }else {
+                    } else {
                         println!("cargo:warning=The names of properties ({}) have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json", e_before.name);
                         names_changed |= true;
                     }
-                }    
-            }else {
+                }
+            } else {
                 println!("cargo:warning=The names of entities have changed,\nconsider backing up and/or modifying or deleting objectbox-model.json");
                 names_changed |= true;
             }
@@ -220,22 +227,23 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
     if model_has_changed {
         json_dest_path.set_extension("json.new");
         ob_dest_path.set_extension("rs.new");
-    }else {
+    } else {
         // do relatively inexpensive(?) checks to prevent generating files,
         // and randomly generate uids and assign them
         if ob_dest_path.exists() && json_dest_path.exists() {
-            return; 
+            return;
         }
-    }    
-    
+    }
+
     let mut entities = Vec::<ModelEntity>::new();
 
     // read what is provided by the user
     entities
         .add_entities_to_model(pbs.as_slice())
-        .assign_id_to_entities().assign_id_to_indexables();
+        .assign_id_to_entities()
+        .assign_id_to_indexables();
 
     ModelInfo::from_entities(entities.as_slice())
-    .write_json(&json_dest_path)
-    .generate_code(&ob_dest_path);
+        .write_json(&json_dest_path)
+        .generate_code(&ob_dest_path);
 }

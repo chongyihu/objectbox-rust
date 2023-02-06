@@ -4,14 +4,16 @@
 
 #[derive(Default, Debug, Clone)]
 pub struct IdUid {
-  pub id: u64,
-  pub uid: u64
+    pub id: u64,
+    pub uid: u64,
 }
 
 impl IdUid {
-  pub fn zero() -> Self { IdUid{ id: 0, uid: 0 } }
+    pub fn zero() -> Self {
+        IdUid { id: 0, uid: 0 }
+    }
 
-  pub fn to_string(&self) -> String {
-    format!("{}:{}", self.id, self.uid)
-  }
+    pub fn to_string(&self) -> String {
+        format!("{}:{}", self.id, self.uid)
+    }
 }

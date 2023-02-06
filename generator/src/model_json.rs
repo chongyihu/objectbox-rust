@@ -1,14 +1,14 @@
-use genco::prelude::Rust;
 use genco::prelude::rust;
-use genco::tokens::quoted;
+use genco::prelude::Rust;
 use genco::quote;
+use genco::tokens::quoted;
 use genco::Tokens;
-use serde_derive::{Deserialize,Serialize};
+use serde_derive::{Deserialize, Serialize};
 use serde_json::Value;
 
 use std::env;
 use std::fs;
-use std::path::{PathBuf, Path};
+use std::path::{Path, PathBuf};
 
 use crate::ob_consts;
 
@@ -39,18 +39,28 @@ pub struct ModelInfo {
 
 impl ModelInfo {
     pub fn from_entities(slices: &[ModelEntity]) -> Self {
-      let mut entities = Vec::from(slices);
-      entities.sort_by(|a, b| a.name.cmp(&b.name));
-      let last_entity = entities.last().unwrap(); // TODO remove unwrap, unpack result and return proper error
-      let last_entity_id = last_entity.id.as_str();
+        let mut entities = Vec::from(slices);
+        entities.sort_by(|a, b| a.name.cmp(&b.name));
+        let last_entity = entities.last().unwrap(); // TODO remove unwrap, unpack result and return proper error
+        let last_entity_id = last_entity.id.as_str();
 
-      let last_property_with_index_id =
-        entities.last().unwrap().properties.iter()
-        .filter(|x|x.index_id.is_some() || (x.flags.unwrap_or_else(||0) & ob_consts::OBXPropertyFlags_ID) == 1).last().unwrap();
-      let last_index_id = if let Some(x) = &last_property_with_index_id.index_id
-        { x.to_string() }
-        else { last_property_with_index_id.id.to_string() };
-      ModelInfo {
+        let last_property_with_index_id = entities
+            .last()
+            .unwrap()
+            .properties
+            .iter()
+            .filter(|x| {
+                x.index_id.is_some()
+                    || (x.flags.unwrap_or_else(|| 0) & ob_consts::OBXPropertyFlags_ID) == 1
+            })
+            .last()
+            .unwrap();
+        let last_index_id = if let Some(x) = &last_property_with_index_id.index_id {
+            x.to_string()
+        } else {
+            last_property_with_index_id.id.to_string()
+        };
+        ModelInfo {
         note1: String::from("KEEP THIS FILE! Check it into a version control system (VCS) like git."),
         note2: String::from("ObjectBox manages crucial IDs for your object model. See docs for details."),
         note3: String::from("If you have VCS merge conflicts, you must resolve them according to ObjectBox docs."),
@@ -73,7 +83,7 @@ impl ModelInfo {
         if let Ok(json) = serde_json::to_string_pretty(self) {
             match fs::write(&dest_path, json) {
                 Err(error) => panic!("Problem writing the objectbox-model.json file: {:?}", error),
-                _ => {},
+                _ => {}
             }
         }
         self
@@ -81,12 +91,10 @@ impl ModelInfo {
 
     pub fn from_json_file(path: &PathBuf) -> Self {
         match fs::read_to_string(path) {
-            Ok(content) => {
-                match serde_json::from_str(content.as_str()) {
-                    Ok(json) => return json,
-                    Err(error) => panic!("Problem parsing the json: {:?}", error),
-                }
-            }
+            Ok(content) => match serde_json::from_str(content.as_str()) {
+                Ok(json) => return json,
+                Err(error) => panic!("Problem parsing the json: {:?}", error),
+            },
             Err(error) => panic!("Problem reading the json file: {:?}", error),
         }
     }
@@ -105,30 +113,26 @@ pub struct ModelEntity {
 impl ModelEntity {
     pub fn write(&mut self) {
         if let Some(out_dir) = env::var_os("OUT_DIR") {
-            let dest_path = Path::new(&out_dir).join(format!("{}.objectbox.info", self.name.clone()));
+            let dest_path =
+                Path::new(&out_dir).join(format!("{}.objectbox.info", self.name.clone()));
             if let Ok(json) = serde_json::to_string(self) {
-                let result = fs::write(
-                    &dest_path,
-                    json.as_str(),
-                    );
+                let result = fs::write(&dest_path, json.as_str());
                 match result {
                     Err(error) => panic!("{}", error),
                     _ => {}
                 }
             }
-        }else {
+        } else {
             panic!("Missing OUT_DIR environment variable, due to calling this function outside of build.rs");
         }
     }
 
     pub fn from_json_file(path: &PathBuf) -> Self {
         match fs::read_to_string(path) {
-            Ok(content) => {
-                match serde_json::from_str(content.as_str()) {
-                    Ok(json) => return json,
-                    Err(error) => panic!("Problem parsing the json: {:?}", error),
-                }
-            }
+            Ok(content) => match serde_json::from_str(content.as_str()) {
+                Ok(json) => return json,
+                Err(error) => panic!("Problem parsing the json: {:?}", error),
+            },
             Err(error) => panic!("Problem reading the json file: {:?}", error),
         }
     }
@@ -141,9 +145,9 @@ pub struct ModelProperty {
     pub name: String,
     #[serde(rename = "type")]
     pub type_field: ob_consts::OBXPropertyType,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub flags: Option<ob_consts::OBXPropertyFlags>,
-    #[serde(skip_serializing_if="Option::is_none")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub index_id: Option<String>,
 }
 
@@ -211,7 +215,9 @@ impl ModelProperty {
 
         let name = &self.name;
         if let Some(f) = self.flags {
-            if f == (ob_consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE | ob_consts::OBXPropertyFlags_ID) {
+            if f == (ob_consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE
+                | ob_consts::OBXPropertyFlags_ID)
+            {
                 let t: Tokens<Rust> = quote! {
                     *$name = table.get::<u64>($offset, Some(0)).unwrap();
                 };
@@ -261,17 +267,22 @@ impl ModelProperty {
             _ => {
                 let unsigned_flag = match self.flags {
                     Some(f) => f,
-                    _ => 0
+                    _ => 0,
                 };
-                let sign: Tokens<Rust> = if (unsigned_flag & ob_consts::OBXPropertyFlags_UNSIGNED) == ob_consts::OBXPropertyFlags_UNSIGNED
-                { quote!(u) } else { quote!(i) };
-    
+                let sign: Tokens<Rust> = if (unsigned_flag & ob_consts::OBXPropertyFlags_UNSIGNED)
+                    == ob_consts::OBXPropertyFlags_UNSIGNED
+                {
+                    quote!(u)
+                } else {
+                    quote!(i)
+                };
+
                 let bits: Tokens<Rust> = match self.type_field {
                     ob_consts::OBXPropertyType_Byte => quote!(8),
                     ob_consts::OBXPropertyType_Short => quote!(16),
                     ob_consts::OBXPropertyType_Int => quote!(32),
                     ob_consts::OBXPropertyType_Long => quote!(64),
-                    _ => panic!("Unknown OBXPropertyType")
+                    _ => panic!("Unknown OBXPropertyType"),
                 };
                 quote! {
                     *$name = table.get::<$sign$bits>($offset, Some(0)).unwrap();
@@ -282,18 +293,18 @@ impl ModelProperty {
 
     pub fn to_sorting_priority(&self) -> usize {
         match self.type_field {
-            ob_consts::OBXPropertyType_Double       => 1,
-            ob_consts::OBXPropertyType_Long         => 1,
+            ob_consts::OBXPropertyType_Double => 1,
+            ob_consts::OBXPropertyType_Long => 1,
             ob_consts::OBXPropertyType_StringVector => 2,
-            ob_consts::OBXPropertyType_ByteVector   => 3,
-            ob_consts::OBXPropertyType_String       => 4,
-            ob_consts::OBXPropertyType_Float        => 5,
-            ob_consts::OBXPropertyType_Int          => 5,
-            ob_consts::OBXPropertyType_Char         => 5,
-            ob_consts::OBXPropertyType_Short        => 6,
-            ob_consts::OBXPropertyType_Bool         => 7,
-            ob_consts::OBXPropertyType_Byte         => 7,
-            _  => 8, // TODO refine this for the remaining types, no support for now
+            ob_consts::OBXPropertyType_ByteVector => 3,
+            ob_consts::OBXPropertyType_String => 4,
+            ob_consts::OBXPropertyType_Float => 5,
+            ob_consts::OBXPropertyType_Int => 5,
+            ob_consts::OBXPropertyType_Char => 5,
+            ob_consts::OBXPropertyType_Short => 6,
+            ob_consts::OBXPropertyType_Bool => 7,
+            ob_consts::OBXPropertyType_Byte => 7,
+            _ => 8, // TODO refine this for the remaining types, no support for now
         }
     }
 }
@@ -307,6 +318,8 @@ fn model_property_fluent_builder_test() {
         type_field: 0,
         flags: Some(0),
         index_id: Some("2:3").to_owned(),
-    }.as_fluent_builder_invocation().to_string();
+    }
+    .as_fluent_builder_invocation()
+    .to_string();
     assert_eq!(str, ".property(name, 0, 0, 1, 2).property_index(2, 3)");
 }
