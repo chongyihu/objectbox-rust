@@ -105,6 +105,10 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
   }).collect::<TokenStream>()
 }
 
+// TODO figure out how to silence the macro checker
+// that it isn't a derive macro on top of a type
+// #[proc_macro_derive(Entity)]
+
 
 #[proc_macro_attribute]
 pub fn sync(_attribute: TokenStream, input: TokenStream) -> TokenStream {
