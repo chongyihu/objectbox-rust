@@ -189,8 +189,11 @@ impl CodeGenEntityExt for ModelEntity {
     let unnested_props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
     .map(|(i, p)| encode_to_fb_unnested(p.type_field, i*2+4, &p.name) ).collect();
     
-    let props: Vec<Tokens<Rust>> = self.properties.iter().enumerate()
-    .map(|(i, p)| encode_to_fb(p.type_field, p.flags, i*2+4, &p.name) ).collect();
+    let mut props_unsorted: Vec<(usize, Tokens<Rust>)> = self.properties.iter().enumerate()
+    .map(|(i, p)| (p.to_sorting_priority(), encode_to_fb(p.type_field, p.flags, i*2+4, &p.name)) ).collect();
+
+    props_unsorted.sort_by(|a, b| a.0.cmp(&b.0));
+    let props: Vec<Tokens<Rust>> = props_unsorted.iter().map(|t|t.1.clone()).collect();
     
     quote! {
       impl $bridge_trait for $entity {

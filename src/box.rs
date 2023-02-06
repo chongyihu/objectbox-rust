@@ -1,3 +1,4 @@
+use std::ptr;
 use std::rc::Rc;
 use std::slice::from_raw_parts;
 
@@ -167,7 +168,7 @@ impl<T: OBBlanket> Box<'_, T> {
   pub fn remove_all(&mut self) -> u64 {
     unsafe {
       let out_count: *mut u64 = &mut 0;
-      self.error = c::call(unsafe { obx_box_remove_all(self.obx_box, out_count as *mut u64) }, "box::remove_all".to_string()).err();
+      self.error = c::call(obx_box_remove_all(self.obx_box, out_count as *mut u64), "box::remove_all".to_string()).err();
       *out_count  
     }
   }
@@ -323,19 +324,22 @@ impl<T: OBBlanket> Box<'_, T> {
 
   pub(crate) fn get_entity_from_ob(&self, cursor: &mut Cursor<T>, id: c::obx_id) -> Option<T> {
     unsafe {
-      // increasing the capacity doesn't help either,
-      // the data from ob, keeps mutating, according to the debugger
-      let mut vec_data_ptr: Vec<u8> = Vec::with_capacity(100);
-      let data_ptr = vec_data_ptr.as_mut_ptr();
+      let data_ptr_ptr: *mut *mut u8 = &mut ptr::null_mut();
 
       let size_ptr: *mut usize = &mut 0;
-      cursor.get(id, data_ptr as MutConstVoidPtr, size_ptr);
+      let code = cursor.get(id, data_ptr_ptr as MutConstVoidPtr, size_ptr);
 
-      if data_ptr.is_null() {
+      // ensure first offset is within bounds
+
+      if data_ptr_ptr.is_null() || code == NOT_FOUND_404 {
         None
       }else {
-        vec_data_ptr.set_len(*size_ptr);
-        let mut table = flatbuffers::Table::new(vec_data_ptr.as_slice(), 0);
+        let data_slice = from_raw_parts(*data_ptr_ptr, *size_ptr);
+        let first_offset: usize = data_slice[0].into();
+
+        assert!(first_offset > 0 && first_offset < *size_ptr, "Data from OB should be within bounds");
+
+        let mut table = flatbuffers::Table::new(data_slice, first_offset);
         Some(self.helper.make(&mut table))
       }  
     }
@@ -358,7 +362,14 @@ impl<T: OBBlanket> Box<'_, T> {
 
   pub fn get_many(&self, ids: &[c::obx_id]) -> error::Result<Vec<Option<T>>> {
     let (tx, mut cursor) = self.get_tx_cursor();
-    let r = ids.iter().map(|id| self.get_entity_from_ob(&mut cursor, *id)).collect::<Vec<Option<T>>>();
+
+    // kill your darling, it's correct but hard to debug
+    // let r = ids.iter().map(|id| self.get_entity_from_ob(&mut cursor, *id)).collect::<Vec<Option<T>>>();
+    let mut r = Vec::<Option<T>>::new();
+
+    for id in ids {
+      r.push(self.get_entity_from_ob(&mut cursor, *id));
+    }
 
     if let Some(err) = &self.error {
       Err(err.clone())    
@@ -375,8 +386,8 @@ impl<T: OBBlanket> Box<'_, T> {
   pub fn get_all(&self) -> error::Result<Vec<T>> {
     let (tx, mut cursor) = self.get_tx_cursor();
 
-    let mut ptr: *mut u8 = std::ptr::null_mut();
-    let data_ptr_ptr: *mut *mut u8 = &mut ptr;
+    let data_ptr_ptr: *mut *mut u8 = &mut ptr::null_mut();
+
     let size_ptr: *mut usize = &mut 0;
 
     let mut r: Vec<T> = Vec::new();
@@ -387,8 +398,10 @@ impl<T: OBBlanket> Box<'_, T> {
     // which is incompatible with obx_err === i32
     while code != NOT_FOUND_404 {
       unsafe {
-        let array = from_raw_parts(data_ptr_ptr as *mut u8, *size_ptr);
-        let mut table = flatbuffers::Table::new(array, 0);
+        let data_slice = from_raw_parts(*data_ptr_ptr, *size_ptr);
+        let first_offset: usize = data_slice[0].into();
+
+        let mut table = flatbuffers::Table::new(data_slice, first_offset);
         r.push(self.helper.make(&mut table));
       }
       code = cursor.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);

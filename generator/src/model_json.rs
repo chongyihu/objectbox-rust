@@ -279,6 +279,23 @@ impl ModelProperty {
             }
         }
     }
+
+    pub fn to_sorting_priority(&self) -> usize {
+        match self.type_field {
+            ob_consts::OBXPropertyType_Double       => 1,
+            ob_consts::OBXPropertyType_Long         => 1,
+            ob_consts::OBXPropertyType_StringVector => 2,
+            ob_consts::OBXPropertyType_ByteVector   => 3,
+            ob_consts::OBXPropertyType_String       => 4,
+            ob_consts::OBXPropertyType_Float        => 5,
+            ob_consts::OBXPropertyType_Int          => 5,
+            ob_consts::OBXPropertyType_Char         => 5,
+            ob_consts::OBXPropertyType_Short        => 6,
+            ob_consts::OBXPropertyType_Bool         => 7,
+            ob_consts::OBXPropertyType_Byte         => 7,
+            _  => 8, // TODO refine this for the remaining types, no support for now
+        }
+    }
 }
 
 #[cfg(test)]

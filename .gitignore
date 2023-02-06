@@ -4,7 +4,6 @@ Cargo.lock
 download*
 lib
 .vs*
-
 .idea
-example/src/objectbox_gen.rs
-example/src/objectbox-model.json
+.DS_Store
+**/.DS_Store

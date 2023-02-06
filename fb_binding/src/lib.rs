@@ -8,14 +8,18 @@ use objectbox::macros::entity;
 // when the mod hasn't been generated yet
 mod objectbox_gen;
 use objectbox_gen as ob;
-use objectbox::traits::FBOBBridge;
 
-mod table_generated;
+use objectbox::traits::FBOBBridge;
+use flatbuffers::Table;
+use std::rc;
+use objectbox::traits;
+
+mod fb_gen;
 
 use flatbuffers::FlatBufferBuilder;
-use crate::table_generated::ob::finish_entity_buffer;
-use crate::table_generated::ob::entityArgs;
-use crate::table_generated::ob::entity;
+use crate::fb_gen::finish_entity_buffer;
+use crate::fb_gen::entityArgs;
+use crate::fb_gen::entity;
 
 /*
 table entity {
@@ -69,7 +73,7 @@ pub struct Entity {
   t_vec_string: Vec<String>,
 }
 
-fn fb_make_entity(builder: &mut FlatBufferBuilder, dest: &mut Vec<u8>) {
+fn fb_make_entity<'a>(builder: &'a mut FlatBufferBuilder<'a>, dest: &'a mut Vec<u8>) -> entity<'a> {
     dest.clear();
     builder.reset();
     let args = entityArgs {
@@ -93,9 +97,17 @@ fn fb_make_entity(builder: &mut FlatBufferBuilder, dest: &mut Vec<u8>) {
     let entity_offset = entity::create(builder, &args);
     finish_entity_buffer(builder, entity_offset);
     dest.extend_from_slice(builder.finished_data());
+
+    let dest_slice = dest.as_slice();
+
+    unsafe {
+        // root_as_entity_unchecked(dest.as_slice()) // works
+        // flatbuffers::root_unchecked::<entity>(dest.as_slice()) // works
+        entity::init_from_table(Table::new(dest_slice, dest_slice[0].into())) // 
+    }
 }
 
-fn ob_make_entity(builder: &mut FlatBufferBuilder, dest: &mut Vec<u8>) {
+fn ob_make_entity(builder: &mut FlatBufferBuilder, dest: &mut Vec<u8>) -> crate::Entity {
     dest.clear();
     builder.reset();
     let e1 = Entity {
@@ -111,43 +123,47 @@ fn ob_make_entity(builder: &mut FlatBufferBuilder, dest: &mut Vec<u8>) {
         t_u64: 8,
         t_i64: 9,
         t_f64: 10.0,
-        t_string: "".to_string(),
-        t_vec_u8: Vec::new(),
-        t_vec_string: Vec::new(),
+        t_string: "7".to_string(),
+        t_vec_u8: vec![1,2,3,4,5,6,7],
+        t_vec_string: vec!["1".to_string(),"1".to_string(),"1".to_string(),"1".to_string(),"1".to_string(),"1".to_string(),"1".to_string(),],
     };
 
     e1.to_fb(builder);
     dest.extend_from_slice(builder.finished_data());
+
+    let trait_map = ob::make_factory_map();
+    let f1 = trait_map.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity>>>().unwrap().clone();
+    
+    let dest_slice = dest.as_slice();
+    unsafe {
+        let mut table = Table::new(dest_slice, dest_slice[0].into());
+        f1.make(&mut table)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use flatbuffers::FlatBufferBuilder;
-    
-    // use flatbuffers::{FlatBufferBuilder, Table};
-
-    // use std::rc;
-    // use objectbox::traits::{self, IdExt, FBOBBridge};
 
     #[test]
     fn compare_ob_vs_fb_created_entities() {
-        let mut fbb = FlatBufferBuilder::new();
+        let mut fbb1 = FlatBufferBuilder::new();
+        let mut fbb2 = FlatBufferBuilder::new();
         let mut fb_out = Vec::<u8>::new();
         let mut ob_out = Vec::<u8>::new();
-        fb_make_entity(&mut fbb, &mut fb_out); // contains specific values
-        ob_make_entity(&mut fbb, &mut ob_out); // should more or less contain the same values
 
-        assert_eq!(fb_out, ob_out);
+        let fb_e = fb_make_entity(&mut fbb1, &mut fb_out);
+        let ob_e = ob_make_entity(&mut fbb2, &mut ob_out);
 
-        // unsafe {
-        //     let trait_map = ob::make_factory_map();
-        //     let f1 = trait_map.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity>>>().unwrap().clone();
-        //     let mut table = Table::new(vec.as_slice(), 4);
-        //     let e1_copy = f1.make(&mut table);
+        assert_eq!(fb_e.id(), 1);
+        assert_eq!(fb_e.t_f64(), 10.0);
 
-        //     assert_eq!(e1_copy.id, e1.id);
-        // }
+        assert_eq!(fb_e.id(), ob_e.id);
+        assert_eq!(fb_e.t_f64(), ob_e.t_f64);
 
+        assert_eq!("7", ob_e.t_string.as_str());
+        assert_eq!(7, ob_e.t_vec_u8.len());
+        assert_eq!(7, ob_e.t_vec_string.len());
     }
 }

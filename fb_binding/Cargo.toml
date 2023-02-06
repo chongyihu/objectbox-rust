@@ -1,5 +1,5 @@
 [package]
-name = "fb_bindings_generated"
+name = "fb_binding"
 version = "0.1.0"
 edition = "2021"
 

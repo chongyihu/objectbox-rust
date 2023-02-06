@@ -94,7 +94,9 @@ pub fn new_mut<T>(ptr: *mut T, module: String) -> Result<*mut T, Error> {
 
 /// Validates the obx_err returned from a native call and if it's not 0, fetches the error text
 pub fn call(result: obx_err, module: String) -> Result<(), Error> {
-    if result == 0 {
+    if result == 404 {
+        Ok(())
+    }else if result == 0 {
         Ok(())
     } else {
         Err(Error::new_native(NativeError::_new(NativeErrorKind::Other, module)))

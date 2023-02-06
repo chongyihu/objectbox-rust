@@ -26,20 +26,20 @@ impl traits::FBOBBridge for crate::Entity {
         let vec_32 = builder.create_vector(strs_vec_32.as_slice());
         let wip_offset_unfinished = builder.start_table();
         builder.push_slot::<u64>(4, self.id, 0);
-        builder.push_slot::<i8>(6, self.t_i8, 0);
-        builder.push_slot::<u8>(8, self.t_u8, 0);
-        builder.push_slot::<bool>(10, self.t_bool, false);
-        builder.push_slot::<i16>(12, self.t_i16, 0);
-        builder.push_slot::<u16>(14, self.t_u16, 0);
-        builder.push_slot::<i32>(16, self.t_i32, 0);
-        builder.push_slot::<u32>(18, self.t_u32, 0);
-        builder.push_slot::<f32>(20, self.t_f32, 0.0);
         builder.push_slot::<u64>(22, self.t_u64, 0);
         builder.push_slot::<i64>(24, self.t_i64, 0);
         builder.push_slot::<f64>(26, self.t_f64, 0.0);
-        builder.push_slot_always(28, str_28);
-        builder.push_slot_always(30, byte_vec_30);
         builder.push_slot_always(32, vec_32);
+        builder.push_slot_always(30, byte_vec_30);
+        builder.push_slot_always(28, str_28);
+        builder.push_slot::<i32>(16, self.t_i32, 0);
+        builder.push_slot::<u32>(18, self.t_u32, 0);
+        builder.push_slot::<f32>(20, self.t_f32, 0.0);
+        builder.push_slot::<i16>(12, self.t_i16, 0);
+        builder.push_slot::<u16>(14, self.t_u16, 0);
+        builder.push_slot::<i8>(6, self.t_i8, 0);
+        builder.push_slot::<u8>(8, self.t_u8, 0);
+        builder.push_slot::<bool>(10, self.t_bool, false);
         let wip_offset_finished = builder.end_table(wip_offset_unfinished);
         builder.finish_minimal(wip_offset_finished);
     }
@@ -123,24 +123,24 @@ impl traits::FactoryHelper<crate::Entity> for traits::Factory<crate::Entity> {
 pub fn make_model() -> model::Model {
     let builder = Box::new(entity_builder::EntityBuilder::new());
     model::Model::new(builder)
-        .entity("Entity", 1, 15452510860359729572)
-        .property("id", 1, 10313449018668933947, 6, 129)
-        .property("t_i8", 2, 3830372827350786645, 2, 0)
-        .property("t_u8", 3, 10952233183169727153, 2, 8192)
-        .property("t_bool", 4, 15571530370830065955, 1, 0)
-        .property("t_i16", 5, 11613688133037110828, 3, 0)
-        .property("t_u16", 6, 18265431932756421895, 3, 8192)
-        .property("t_i32", 7, 2725745992398581889, 5, 0)
-        .property("t_u32", 8, 11742068401161511297, 5, 8192)
-        .property("t_f32", 9, 902343158669776659, 7, 0)
-        .property("t_u64", 10, 12455433643327311951, 6, 8192)
-        .property("t_i64", 11, 11085045505002422551, 6, 0)
-        .property("t_f64", 12, 8620002425694515782, 8, 0)
-        .property("t_string", 13, 1926874115772933628, 9, 0)
-        .property("t_vec_u8", 14, 7803916618768440517, 23, 0)
-        .property("t_vec_string", 15, 16560557739183397927, 30, 0)
-        .last_property_id(15, 16560557739183397927)
-        .last_entity_id(1, 15452510860359729572)
+        .entity("Entity", 1, 7551803668634645716)
+        .property("id", 1, 9943366999632794820, 6, 129)
+        .property("t_i8", 2, 7937178564250802941, 2, 0)
+        .property("t_u8", 3, 7735704263686443859, 2, 8192)
+        .property("t_bool", 4, 9383799058200708867, 1, 0)
+        .property("t_i16", 5, 6143935949328131354, 3, 0)
+        .property("t_u16", 6, 8090067461108831747, 3, 8192)
+        .property("t_i32", 7, 13668939779110250598, 5, 0)
+        .property("t_u32", 8, 10168178769468024933, 5, 8192)
+        .property("t_f32", 9, 4251174597276613234, 7, 0)
+        .property("t_u64", 10, 1306951904039029772, 6, 8192)
+        .property("t_i64", 11, 15424638261835058189, 6, 0)
+        .property("t_f64", 12, 8940604438827748056, 8, 0)
+        .property("t_string", 13, 11273009364328282404, 9, 0)
+        .property("t_vec_u8", 14, 15023020076450076132, 23, 0)
+        .property("t_vec_string", 15, 6919323261465852311, 30, 0)
+        .last_property_id(15, 6919323261465852311)
+        .last_entity_id(1, 7551803668634645716)
 }
 pub fn make_factory_map() -> map::AnyMap {
     let mut map = map::AnyMap::new();

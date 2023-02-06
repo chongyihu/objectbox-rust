@@ -1,1 +1,4 @@
 objectbox
+.DS_Store
+src/objectbox_gen.rs
+src/objectbox-model.json

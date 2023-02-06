@@ -106,8 +106,12 @@ impl<T> Cursor<T> {
       id: obx_id,
       data : MutConstVoidPtr,
       size: *mut usize,
-  ) {
-    self.error = c::call(unsafe { obx_cursor_get(self.obx_cursor, id, data, size) }, "cursor::get".to_string()).err()
+  ) -> c::obx_err {
+    unsafe {
+      let code = obx_cursor_get(self.obx_cursor, id, data, size);
+      self.error = c::call(code, "cursor::get".to_string()).err();
+      code
+    }
   }
 
   fn get_all(&self) -> *mut OBX_bytes_array {
@@ -120,7 +124,9 @@ impl<T> Cursor<T> {
       size: *mut usize,
   ) -> c::obx_err {
     unsafe {
-      obx_cursor_first(self.obx_cursor, data, size)
+      let code = obx_cursor_first(self.obx_cursor, data, size);
+      self.error = c::call(code, "cursor::first".to_string()).err();
+      code
     }
   }
 
@@ -130,7 +136,9 @@ impl<T> Cursor<T> {
       size: *mut usize,
   ) -> c::obx_err {
       unsafe {
-        obx_cursor_next(self.obx_cursor, data, size)
+        let code = obx_cursor_next(self.obx_cursor, data, size);
+        self.error = c::call(code, "cursor::next".to_string()).err();
+        code  
       }
   }
 

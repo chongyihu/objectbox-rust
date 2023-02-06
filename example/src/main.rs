@@ -88,8 +88,9 @@ mod tests {
       unsafe {
         e3.to_fb(&mut fbb);
         let vec = Vec::from(fbb.finished_data());
+        let vec_slice = vec.as_slice();
   
-        let mut table = Table::new(vec.as_slice(), 16);
+        let mut table = Table::new(vec_slice, vec_slice[0].into());
         let e3_copy = f3.make(&mut table);
 
         assert_eq!(e3_copy.id, e3.id);
@@ -98,8 +99,9 @@ mod tests {
       unsafe {
         e2.to_fb(&mut fbb);
         let vec = Vec::from(fbb.finished_data());
+        let vec_slice = vec.as_slice();
   
-        let mut table = Table::new(vec.as_slice(), 4);
+        let mut table = Table::new(vec_slice, vec_slice[0].into());
         let e2_copy = f2.make(&mut table);
 
         assert_eq!(e2_copy.id, e2.id);
@@ -108,8 +110,9 @@ mod tests {
       unsafe {
         e1.to_fb(&mut fbb);
         let vec = Vec::from(fbb.finished_data());
+        let vec_slice = vec.as_slice();
   
-        let mut table = Table::new(vec.as_slice(), 4);
+        let mut table = Table::new(vec_slice, vec_slice[0].into());
         let e1_copy = f1.make(&mut table);
 
         assert_eq!(e1_copy.id, e1.id);
@@ -184,7 +187,7 @@ mod tests {
       // put then get, then clear
       {
         let mut e1 = f1.new_entity();
-        e1.t_u16 = 1337;
+        e1.t_u16 = 0xFFF;
 
         let new_id = match box1.put(&mut e1) {
           Err(err) => panic!("{err}"),
@@ -194,7 +197,7 @@ mod tests {
         match box1.get(new_id) {
           Err(err) => panic!("{err}"),
           Ok(opt) => {
-            assert_eq!(1337, opt.unwrap().t_u16);
+            assert_eq!(0xFFF, opt.unwrap().t_u16);
           }
         }
         box1.remove_all();
@@ -223,7 +226,7 @@ mod tests {
           Ok(objs) => objs
         };
 
-        assert!(all_objects.iter().all(|o|o.id > 0));
+        assert_eq!(2, all_objects.len());
       }
     }
 }

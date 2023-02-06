@@ -9,15 +9,6 @@ use core::cmp::Ordering;
 extern crate flatbuffers;
 use self::flatbuffers::{EndianScalar, Follow};
 
-#[allow(unused_imports, dead_code)]
-pub mod ob {
-
-  use core::mem;
-  use core::cmp::Ordering;
-
-  extern crate flatbuffers;
-  use self::flatbuffers::{EndianScalar, Follow};
-
 pub enum entityOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -424,5 +415,3 @@ pub fn finish_entity_buffer<'a, 'b>(
 pub fn finish_size_prefixed_entity_buffer<'a, 'b>(fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>, root: flatbuffers::WIPOffset<entity<'a>>) {
   fbb.finish_size_prefixed(root, None);
 }
-}  // pub mod ob
-
