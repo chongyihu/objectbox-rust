@@ -1,6 +1,6 @@
 extern crate objectbox;
 
-use objectbox::macros::entity;
+use objectbox::{macros::entity, opt::Opt, store::Store};
 
 // uncomment the next two lines
 // when the mod hasn't been generated yet
@@ -15,6 +15,7 @@ use objectbox_gen as ob;
 pub struct Entity3 {
   #[id]
   id: u64,
+  hello: String,
 }
 
 #[derive(Debug)]
@@ -54,9 +55,34 @@ pub struct Entity {
 }
 
 fn main() {
-  // let mut model = objectbox_gen::make_model();
-  // let mut opt = Opt::from_model(&mut model);
-  // let mut store = Store::from_options(&mut opt);
+  let mut model = ob::make_model();
+  let mut opt = Opt::from_model(&mut model);
+  let mut store = Store::from_options(&mut opt);
+
+  let trait_map = ob::make_factory_map();
+  store.trait_map = Some(trait_map);
+
+  // box is a reserved keyword use r#box or simply something else
+  let mut box1 = store.get_box::<Entity3>();
+
+  let mut e_before = Entity3 {
+    id: 0,
+    hello: "Hello world!".to_string(),
+  };
+
+  let new_id = match box1.put(&mut e_before) {
+    Err(err) => panic!("{err}"),
+    Ok(item_id) => item_id
+  };
+
+  match box1.get(new_id) {
+    Err(err) => panic!("{err}"),
+    Ok(found_item) => {
+      if let Some(object) = found_item {
+        println!("{}", object.hello);
+      }
+    }
+  }
 }
 
 #[cfg(test)]
