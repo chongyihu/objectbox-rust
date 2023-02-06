@@ -1,6 +1,5 @@
-
-extern crate objectbox;
 extern crate flatbuffers;
+extern crate objectbox;
 
 use objectbox::macros::entity;
 
@@ -9,34 +8,34 @@ use objectbox::macros::entity;
 mod objectbox_gen;
 use objectbox_gen as ob;
 
-use objectbox::traits::FBOBBridge;
 use flatbuffers::Table;
-use std::rc;
 use objectbox::traits;
+use objectbox::traits::FBOBBridge;
+use std::rc;
 
 mod fb_gen;
 
-use flatbuffers::FlatBufferBuilder;
-use crate::fb_gen::finish_entity_buffer;
-use crate::fb_gen::entityArgs;
 use crate::fb_gen::entity;
+use crate::fb_gen::entityArgs;
+use crate::fb_gen::finish_entity_buffer;
+use flatbuffers::FlatBufferBuilder;
 
 /*
 table entity {
     id:  ulong;
 
-	t_i8:   byte;
-	t_u8:   ubyte;
-	t_bool: bool;
+    t_i8:   byte;
+    t_u8:   ubyte;
+    t_bool: bool;
 
     t_i16:  short;
     t_u16:  ushort;
 
     t_i32:  int;
-	t_u32:  uint;
+    t_u32:  uint;
     t_f32:  float;
 
-	t_u64:  ulong;
+    t_u64:  ulong;
     t_i64:  long;
     t_f64:  double;
 
@@ -50,27 +49,27 @@ table entity {
 #[derive(Debug)]
 #[entity]
 pub struct Entity {
-  #[id]
-  id: u64,
-  t_i8:   i8,
-  t_u8:   u8,
-  t_bool: bool,
+    #[id]
+    id: u64,
+    t_i8: i8,
+    t_u8: u8,
+    t_bool: bool,
 
-  t_i16:  i16,
-  t_u16:  u16,
+    t_i16: i16,
+    t_u16: u16,
 
-  t_i32:  i32,
-  t_u32:  u32,
-  t_f32:  f32,
+    t_i32: i32,
+    t_u32: u32,
+    t_f32: f32,
 
-  t_u64:  u64,
-  t_i64:  i64,
-  t_f64:  f64,
+    t_u64: u64,
+    t_i64: i64,
+    t_f64: f64,
 
-  t_string: String,
+    t_string: String,
 
-  t_vec_u8: Vec<u8>,
-  t_vec_string: Vec<String>,
+    t_vec_u8: Vec<u8>,
+    t_vec_string: Vec<String>,
 }
 
 fn fb_make_entity<'a>(builder: &'a mut FlatBufferBuilder<'a>, dest: &'a mut Vec<u8>) -> entity<'a> {
@@ -103,7 +102,7 @@ fn fb_make_entity<'a>(builder: &'a mut FlatBufferBuilder<'a>, dest: &'a mut Vec<
     unsafe {
         // root_as_entity_unchecked(dest.as_slice()) // works
         // flatbuffers::root_unchecked::<entity>(dest.as_slice()) // works
-        entity::init_from_table(Table::new(dest_slice, dest_slice[0].into())) // 
+        entity::init_from_table(Table::new(dest_slice, dest_slice[0].into())) //
     }
 }
 
@@ -124,16 +123,27 @@ fn ob_make_entity(builder: &mut FlatBufferBuilder, dest: &mut Vec<u8>) -> crate:
         t_i64: 9,
         t_f64: 10.0,
         t_string: "7".to_string(),
-        t_vec_u8: vec![1,2,3,4,5,6,7],
-        t_vec_string: vec!["1".to_string(),"1".to_string(),"1".to_string(),"1".to_string(),"1".to_string(),"1".to_string(),"1".to_string(),],
+        t_vec_u8: vec![1, 2, 3, 4, 5, 6, 7],
+        t_vec_string: vec![
+            "1".to_string(),
+            "1".to_string(),
+            "1".to_string(),
+            "1".to_string(),
+            "1".to_string(),
+            "1".to_string(),
+            "1".to_string(),
+        ],
     };
 
     e1.to_fb(builder);
     dest.extend_from_slice(builder.finished_data());
 
     let trait_map = ob::make_factory_map();
-    let f1 = trait_map.get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity>>>().unwrap().clone();
-    
+    let f1 = trait_map
+        .get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity>>>()
+        .unwrap()
+        .clone();
+
     let dest_slice = dest.as_slice();
     unsafe {
         let mut table = Table::new(dest_slice, dest_slice[0].into());

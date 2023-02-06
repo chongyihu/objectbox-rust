@@ -80,17 +80,14 @@ impl traits::FactoryHelper<crate::Entity> for traits::Factory<crate::Entity> {
             if let Some(s) = table.get::<flatbuffers::ForwardsUOffset<&str>>(28, None) {
                 *t_string = s.to_string();
             }
-            let fb_vec_t_vec_u8 = table
-                .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<u8>>>(30, None);
+            let fb_vec_t_vec_u8 =
+                table.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<u8>>>(30, None);
             if let Some(bv) = fb_vec_t_vec_u8 {
                 *t_vec_u8 = bv.bytes().to_vec();
             }
-            let fb_vec_t_vec_string = table
-                .get::<
-                    flatbuffers::ForwardsUOffset<
-                        flatbuffers::Vector<flatbuffers::ForwardsUOffset<&str>>,
-                    >,
-                >(32, None);
+            let fb_vec_t_vec_string = table.get::<flatbuffers::ForwardsUOffset<
+                flatbuffers::Vector<flatbuffers::ForwardsUOffset<&str>>,
+            >>(32, None);
             if let Some(sv) = fb_vec_t_vec_string {
                 *t_vec_string = sv.iter().map(|s| s.to_string()).collect();
             }
