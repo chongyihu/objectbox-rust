@@ -169,7 +169,7 @@ impl<T> Cursor<T> {
         .err();
     }
 
-    fn remove_all(&mut self) {
+    pub(crate) fn remove_all(&mut self) {
         self.error = c::call(
             unsafe { obx_cursor_remove_all(self.obx_cursor) },
             "cursor::remove_all".to_string(),

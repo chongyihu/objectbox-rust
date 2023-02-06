@@ -11,7 +11,6 @@ use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
 use crate::{cursor::Cursor, txn::Tx};
 use flatbuffers::FlatBufferBuilder;
 
-// TODO implement proper error handling on remaining functions that don't call 'call'
 // This Box type will confuse a lot of rust users of std::boxed::Box
 pub struct Box<'a, T: OBBlanket> {
     pub(crate) helper: Rc<dyn FactoryHelper<T>>,
@@ -42,7 +41,6 @@ impl<T: OBBlanket> Box<'_, T> {
         unsafe { obx_box_store(self.obx_box) }
     }
 
-    // TODO write test
     pub fn contains(&mut self, id: obx_id) -> bool {
         let mut contains = false;
         self.error = c::call(
@@ -51,6 +49,17 @@ impl<T: OBBlanket> Box<'_, T> {
         )
         .err();
         contains
+    }
+
+    pub fn contains_many(&mut self, ids: &Vec<obx_id>) -> error::Result<Vec<bool>> {
+        let mut r = Vec::<bool>::new();
+        for id in ids {
+            r.push(self.contains(*id));
+            if let Some(err) = &self.error {
+                return Err(err.clone());
+            }
+        }
+        Ok(r)
     }
 
     /*
@@ -154,11 +163,6 @@ impl<T: OBBlanket> Box<'_, T> {
         self.error = c::call(unsafe { obx_box_put_many5(self.obx_box, objects, ids, mode, fail_on_id_failure) }).err();
       }
 
-      pub fn remove_with_id(&mut self, id: obx_id) {
-        self.error = c::call(unsafe { obx_box_remove(self.obx_box, id) }).err();
-      }
-    */
-
     // TODO size 16, align 8
     fn remove_many_id_array(&mut self, ids: *const OBX_id_array) -> u64 {
         let out_count: u64 = 0;
@@ -169,8 +173,33 @@ impl<T: OBBlanket> Box<'_, T> {
         .err();
         out_count
     }
+    */
 
-    pub fn remove_all(&mut self) -> u64 {
+    pub fn remove_with_id(&mut self, id: obx_id) -> error::Result<bool> {
+        unsafe {
+            let code = obx_box_remove(self.obx_box, id);
+            self.error = c::call(code, "Box::remove_with_id".to_string()).err();
+            if let Some(err) = &self.error {
+                Err(err.clone())
+            }else {
+                Ok(code == 0 /* else code == NOT_FOUND_404 */)
+            }
+        }
+    }
+
+    pub fn remove_many(&mut self, ids: &Vec<c::obx_id>) -> error::Result<Vec<bool>> {
+        let mut r = Vec::<bool>::new();
+        for id in ids {
+            match self.remove_with_id(*id) {
+                Ok(v)    => r.push(v),
+                Err(err) => return Err(err.clone()),
+            }
+        }
+        Ok(r)
+    }
+
+    // TODO check if this is ACID (or go with cursor instead)
+    pub fn remove_all(&mut self) -> error::Result<u64> {
         unsafe {
             let out_count: *mut u64 = &mut 0;
             self.error = c::call(
@@ -178,7 +207,12 @@ impl<T: OBBlanket> Box<'_, T> {
                 "box::remove_all".to_string(),
             )
             .err();
-            *out_count
+
+            if let Some(err) = &self.error {
+                Err(err.clone())
+            } else {
+                Ok(*out_count)
+            }    
         }
     }
 
@@ -321,18 +355,18 @@ impl<T: OBBlanket> Box<'_, T> {
             vec_out.push(self.put_entity_in_ob(&mut cursor, o));
         }
         if let Some(err) = &self.error {
-            return Err(err.clone());
+            Err(err.clone())
         } else if let Some(err) = &tx.error {
-            return Err(err.clone());
+            Err(err.clone())
         } else if let Some(err) = &cursor.error {
-            return Err(err.clone());
+            Err(err.clone())
+        }else {
+          tx.success();
+          Ok(vec_out)  
         }
-
-        tx.success();
-        Ok(vec_out)
     }
 
-    // For testing purposes
+    /// For testing purposes
     pub fn count_with_cursor(&self) -> u64 {
         let (_tx, mut cursor) = self.get_tx_cursor();
         let count = cursor.count();
@@ -383,8 +417,6 @@ impl<T: OBBlanket> Box<'_, T> {
     pub fn get_many(&self, ids: &[c::obx_id]) -> error::Result<Vec<Option<T>>> {
         let (tx, mut cursor) = self.get_tx_cursor();
 
-        // kill your darling, it's correct but hard to debug
-        // let r = ids.iter().map(|id| self.get_entity_from_ob(&mut cursor, *id)).collect::<Vec<Option<T>>>();
         let mut r = Vec::<Option<T>>::new();
 
         for id in ids {

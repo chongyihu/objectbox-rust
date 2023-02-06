@@ -272,5 +272,44 @@ mod tests {
 
             assert_eq!(2, all_objects.len());
         }
+
+        // contains*, remove_*
+        {
+            box1.remove_all();
+
+            let mut ids = match box1.put_many(
+                vec![&mut f1.new_entity(), &mut f1.new_entity(),
+                            &mut f1.new_entity(), &mut f1.new_entity(),
+                            &mut f1.new_entity()]) {
+                Err(e) => panic!("{e}"),
+                Ok(ids) => ids,
+            };
+
+            match box1.contains_many(&ids) {
+                Ok(v) => assert!(v.iter().all(|b|*b)),
+                Err(e) => panic!("{e}"),
+            }
+
+            ids.push(404);
+
+            match box1.contains_many(&ids) {
+                Ok(v) => assert!(v.iter().any(|b|!*b)),
+                Err(e) => panic!("{e}"),
+            }
+
+            assert_ne!(true, box1.contains(404));
+
+            if let Ok(r) = box1.remove_with_id(404) {
+                assert_ne!(true, r);
+            }
+
+            // remove_many uses remove_with_id, so its transitively tested
+            match box1.remove_many(&ids) {
+                Ok(r) => assert_ne!(true, r[5]),
+                Err(e) => panic!("{e}"),
+            }
+
+            assert!(box1.is_empty());
+        }
     }
 }
