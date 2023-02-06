@@ -57,7 +57,11 @@ impl NativeError {
 
 impl fmt::Display for NativeError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{} {} {} ({})", self.code, self.secondary, self.message, self.message)
+        write!(
+            f,
+            "{} {} {} ({})",
+            self.code, self.secondary, self.message, self.message
+        )
     }
 }
 
@@ -75,7 +79,7 @@ pub fn new<T>(ptr: *const T, module: String) -> Result<*const T, Error> {
     } else {
         Err(Error::new_native(NativeError::_new(
             NativeErrorKind::NullPtr,
-            module
+            module,
         )))
     }
 }
@@ -85,7 +89,7 @@ pub fn new_mut<T>(ptr: *mut T, module: String) -> Result<*mut T, Error> {
     if ptr.is_null() {
         Err(Error::new_native(NativeError::_new(
             NativeErrorKind::NullPtr,
-            module
+            module,
         )))
     } else {
         Ok(ptr)
@@ -96,10 +100,13 @@ pub fn new_mut<T>(ptr: *mut T, module: String) -> Result<*mut T, Error> {
 pub fn call(result: obx_err, module: String) -> Result<(), Error> {
     if result == 404 {
         Ok(())
-    }else if result == 0 {
+    } else if result == 0 {
         Ok(())
     } else {
-        Err(Error::new_native(NativeError::_new(NativeErrorKind::Other, module)))
+        Err(Error::new_native(NativeError::_new(
+            NativeErrorKind::Other,
+            module,
+        )))
     }
 }
 

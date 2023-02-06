@@ -1,26 +1,21 @@
 // pub extern crate predicates;
+pub extern crate anymap as map;
+pub extern crate flatbuffers as flatbuffers;
 pub extern crate objectbox_generator as generator;
 pub extern crate objectbox_macros as macros;
-pub extern crate flatbuffers as flatbuffers;
-pub extern crate anymap as map;
 
-pub mod util;
+pub mod r#box;
+pub mod c;
 pub mod error;
 pub mod model;
-pub mod version;
-pub mod store;
 pub mod opt;
-pub mod c;
-pub mod r#box;
+pub mod store;
+pub mod util;
+pub mod version;
 
-pub mod traits;
 pub mod entity_builder;
 pub mod query;
+pub mod traits;
 
 mod cursor;
 mod txn;
-
-
-
-
-

@@ -1,6 +1,6 @@
 // TODO implement Drop on QueryProperty etc.
 // TODO whichever holds a C ptr, that has a free/close C fn
-// 
+//
 // Reminder:
 // Expression in dart: box.query(i.greaterThan(0)).build().property(pq);
 // box.query -> QueryBuilder
@@ -9,7 +9,7 @@
 // ..build() -> Query
 // ..property(j) -> PropertyQuery (PQ) PQ vs QP are confusing as hell, I named it, mea culpa
 // j -> QP (like i)
-// 
+//
 // Traits to reuse: https://doc.rust-lang.org/std/ops/index.html
 // Ops: https://doc.rust-lang.org/book/appendix-02-operators.html
 /*
