@@ -17,5 +17,6 @@ pub mod entity_builder;
 pub mod query;
 pub mod traits;
 
+mod r#async;
 mod cursor;
 mod txn;

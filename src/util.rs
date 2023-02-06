@@ -7,6 +7,7 @@ pub const NOT_FOUND_404: i32 = 404;
 pub const SUCCESS_0: i32 = 0;
 
 pub type MutConstVoidPtr = *mut *const c_void;
+pub type ConstVoidPtr = *const c_void;
 
 // TODO verify correctness on all platforms
 pub(crate) fn str_to_c_char(path: &str) -> *const c_char {

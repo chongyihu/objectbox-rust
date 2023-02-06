@@ -181,7 +181,7 @@ impl<T: OBBlanket> Box<'_, T> {
             self.error = c::call(code, "Box::remove_with_id".to_string()).err();
             if let Some(err) = &self.error {
                 Err(err.clone())
-            }else {
+            } else {
                 Ok(code == 0 /* else code == NOT_FOUND_404 */)
             }
         }
@@ -191,7 +191,7 @@ impl<T: OBBlanket> Box<'_, T> {
         let mut r = Vec::<bool>::new();
         for id in ids {
             match self.remove_with_id(*id) {
-                Ok(v)    => r.push(v),
+                Ok(v) => r.push(v),
                 Err(err) => return Err(err.clone()),
             }
         }
@@ -212,7 +212,7 @@ impl<T: OBBlanket> Box<'_, T> {
                 Err(err.clone())
             } else {
                 Ok(*out_count)
-            }    
+            }
         }
     }
 
@@ -266,6 +266,13 @@ impl<T: OBBlanket> Box<'_, T> {
             obx_box_visit_all(self.obx_box, visitor, user_data)
         }
       }
+
+        // TODO fix sooner than later
+        fn visit_many(&mut self, ids: &[c::obx_id], visitor: obx_data_visitor, user_data: *mut ::std::os::raw::c_void) -> obx_err {
+            unsafe {
+                obx_box_visit_many(self.obx_box, ids.as_ptr(), visitor, user_data)
+            }
+        }
 
       pub fn rel_get_backlink_ids(&mut self, relation_id: obx_schema_id, id: obx_id) -> *mut OBX_id_array {
         unsafe {
@@ -360,9 +367,9 @@ impl<T: OBBlanket> Box<'_, T> {
             Err(err.clone())
         } else if let Some(err) = &cursor.error {
             Err(err.clone())
-        }else {
-          tx.success();
-          Ok(vec_out)  
+        } else {
+            tx.success();
+            Ok(vec_out)
         }
     }
 
