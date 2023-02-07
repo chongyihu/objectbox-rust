@@ -113,7 +113,7 @@ pub fn call(result: obx_err, module: String) -> Result<(), Error> {
 /// Validates the obx_err returned from a native call, and return a Result with some Ok(value).
 /// This should be used with the '?' operator
 pub fn get_result<T>(result: obx_err, returnValue: T) -> Result<T, Error> {
-    call(result, "c::get_result".to_string()).map(|_|returnValue)
+    call(result, "c::get_result".to_string()).map(|_| returnValue)
 }
 
 #[cfg(test)]

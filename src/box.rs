@@ -45,7 +45,7 @@ impl<T: OBBlanket> Box<'_, T> {
         let mut contains = false;
         c::get_result(
             unsafe { obx_box_contains(self.obx_box, id, &mut contains) },
-            contains
+            contains,
         )
     }
 
@@ -54,7 +54,7 @@ impl<T: OBBlanket> Box<'_, T> {
         for id in ids {
             match self.contains(*id) {
                 Ok(v) => r.push(v),
-                Err(err) => err.clone().as_result()?
+                Err(err) => err.clone().as_result()?,
             }
         }
         Ok(r)
@@ -197,7 +197,7 @@ impl<T: OBBlanket> Box<'_, T> {
             let out_count: *mut u64 = &mut 0;
             c::get_result(
                 obx_box_remove_all(self.obx_box, out_count as *mut u64),
-                *out_count
+                *out_count,
             )
         }
     }
@@ -205,10 +205,7 @@ impl<T: OBBlanket> Box<'_, T> {
     pub fn is_empty(&mut self) -> error::Result<bool> {
         unsafe {
             let out_is_empty: *mut bool = &mut false; // coerce
-            c::get_result(
-                obx_box_is_empty(self.obx_box, out_is_empty),
-                *out_is_empty
-            )
+            c::get_result(obx_box_is_empty(self.obx_box, out_is_empty), *out_is_empty)
         }
     }
 
@@ -219,10 +216,7 @@ impl<T: OBBlanket> Box<'_, T> {
     pub fn count_with_limit(&mut self, limit: u64) -> error::Result<u64> {
         unsafe {
             let out_count: *mut u64 = &mut 0;
-            c::get_result(
-                obx_box_count(self.obx_box, limit, out_count),
-                *out_count
-            )
+            c::get_result(obx_box_count(self.obx_box, limit, out_count), *out_count)
         }
     }
     /*
@@ -369,7 +363,11 @@ impl<T: OBBlanket> Box<'_, T> {
         Ok(cursor.count())
     }
 
-    unsafe fn from_raw_parts_to_object(&self, data_ptr_ptr: *mut *mut u8, size_ptr: *mut usize) -> T {
+    unsafe fn from_raw_parts_to_object(
+        &self,
+        data_ptr_ptr: *mut *mut u8,
+        size_ptr: *mut usize,
+    ) -> T {
         let data_slice = from_raw_parts(*data_ptr_ptr, *size_ptr);
         let first_offset: usize = data_slice[0].into();
 
@@ -383,7 +381,11 @@ impl<T: OBBlanket> Box<'_, T> {
         self.helper.make(&mut table)
     }
 
-    pub(crate) fn get_entity_from_cursor(&self, cursor: &mut Cursor<T>, id: c::obx_id) -> Option<T> {
+    pub(crate) fn get_entity_from_cursor(
+        &self,
+        cursor: &mut Cursor<T>,
+        id: c::obx_id,
+    ) -> Option<T> {
         unsafe {
             let data_ptr_ptr: *mut *mut u8 = &mut ptr::null_mut();
 
