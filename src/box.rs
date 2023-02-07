@@ -41,22 +41,20 @@ impl<T: OBBlanket> Box<'_, T> {
         unsafe { obx_box_store(self.obx_box) }
     }
 
-    pub fn contains(&mut self, id: obx_id) -> bool {
+    pub fn contains(&mut self, id: obx_id) -> error::Result<bool> {
         let mut contains = false;
-        self.error = c::call(
+        c::get_result(
             unsafe { obx_box_contains(self.obx_box, id, &mut contains) },
-            "box::contains".to_string(),
+            contains
         )
-        .err();
-        contains
     }
 
     pub fn contains_many(&mut self, ids: &Vec<obx_id>) -> error::Result<Vec<bool>> {
         let mut r = Vec::<bool>::new();
         for id in ids {
-            r.push(self.contains(*id));
-            if let Some(err) = &self.error {
-                return Err(err.clone());
+            match self.contains(*id) {
+                Ok(v) => r.push(v),
+                Err(err) => err.clone().as_result()?
             }
         }
         Ok(r)
@@ -178,12 +176,7 @@ impl<T: OBBlanket> Box<'_, T> {
     pub fn remove_with_id(&mut self, id: obx_id) -> error::Result<bool> {
         unsafe {
             let code = obx_box_remove(self.obx_box, id);
-            self.error = c::call(code, "Box::remove_with_id".to_string()).err();
-            if let Some(err) = &self.error {
-                Err(err.clone())
-            } else {
-                Ok(code == 0 /* else code == NOT_FOUND_404 */)
-            }
+            c::get_result(code, code == 0)
         }
     }
 
@@ -192,7 +185,7 @@ impl<T: OBBlanket> Box<'_, T> {
         for id in ids {
             match self.remove_with_id(*id) {
                 Ok(v) => r.push(v),
-                Err(err) => return Err(err.clone()),
+                Err(err) => err.clone().as_result()?,
             }
         }
         Ok(r)
@@ -202,45 +195,34 @@ impl<T: OBBlanket> Box<'_, T> {
     pub fn remove_all(&mut self) -> error::Result<u64> {
         unsafe {
             let out_count: *mut u64 = &mut 0;
-            self.error = c::call(
+            c::get_result(
                 obx_box_remove_all(self.obx_box, out_count as *mut u64),
-                "box::remove_all".to_string(),
+                *out_count
             )
-            .err();
-
-            if let Some(err) = &self.error {
-                Err(err.clone())
-            } else {
-                Ok(*out_count)
-            }
         }
     }
 
-    pub fn is_empty(&mut self) -> bool {
+    pub fn is_empty(&mut self) -> error::Result<bool> {
         unsafe {
             let out_is_empty: *mut bool = &mut false; // coerce
-            self.error = c::call(
+            c::get_result(
                 obx_box_is_empty(self.obx_box, out_is_empty),
-                "box::is_empty".to_string(),
+                *out_is_empty
             )
-            .err();
-            *out_is_empty
         }
     }
 
-    pub fn count(&mut self) -> u64 {
+    pub fn count(&mut self) -> error::Result<u64> {
         self.count_with_limit(0)
     }
 
-    pub fn count_with_limit(&mut self, limit: u64) -> u64 {
+    pub fn count_with_limit(&mut self, limit: u64) -> error::Result<u64> {
         unsafe {
             let out_count: *mut u64 = &mut 0;
-            self.error = c::call(
+            c::get_result(
                 obx_box_count(self.obx_box, limit, out_count),
-                "box::count_with_limit".to_string(),
+                *out_count
             )
-            .err();
-            *out_count
         }
     }
     /*
@@ -361,6 +343,7 @@ impl<T: OBBlanket> Box<'_, T> {
         for o in objects {
             vec_out.push(self.put_entity_in_ob(&mut cursor, o));
         }
+
         if let Some(err) = &self.error {
             Err(err.clone())
         } else if let Some(err) = &tx.error {
@@ -374,13 +357,33 @@ impl<T: OBBlanket> Box<'_, T> {
     }
 
     /// For testing purposes
-    pub fn count_with_cursor(&self) -> u64 {
-        let (_tx, mut cursor) = self.get_tx_cursor();
-        let count = cursor.count();
-        count
+    pub fn count_with_cursor(&self) -> error::Result<u64> {
+        let (tx, mut cursor) = self.get_tx_cursor();
+
+        if let Some(err) = &tx.error {
+            err.clone().as_result()?;
+        } else if let Some(err) = &cursor.error {
+            err.clone().as_result()?;
+        }
+
+        Ok(cursor.count())
     }
 
-    pub(crate) fn get_entity_from_ob(&self, cursor: &mut Cursor<T>, id: c::obx_id) -> Option<T> {
+    unsafe fn from_raw_parts_to_object(&self, data_ptr_ptr: *mut *mut u8, size_ptr: *mut usize) -> T {
+        let data_slice = from_raw_parts(*data_ptr_ptr, *size_ptr);
+        let first_offset: usize = data_slice[0].into();
+
+        assert!(
+            first_offset > 0 && first_offset < *size_ptr,
+            "Data from OB should be within bounds"
+        );
+
+        // TODO check speed improvement if table is recycled
+        let mut table = flatbuffers::Table::new(data_slice, first_offset);
+        self.helper.make(&mut table)
+    }
+
+    pub(crate) fn get_entity_from_cursor(&self, cursor: &mut Cursor<T>, id: c::obx_id) -> Option<T> {
         unsafe {
             let data_ptr_ptr: *mut *mut u8 = &mut ptr::null_mut();
 
@@ -392,23 +395,14 @@ impl<T: OBBlanket> Box<'_, T> {
             if data_ptr_ptr.is_null() || code == NOT_FOUND_404 {
                 None
             } else {
-                let data_slice = from_raw_parts(*data_ptr_ptr, *size_ptr);
-                let first_offset: usize = data_slice[0].into();
-
-                assert!(
-                    first_offset > 0 && first_offset < *size_ptr,
-                    "Data from OB should be within bounds"
-                );
-
-                let mut table = flatbuffers::Table::new(data_slice, first_offset);
-                Some(self.helper.make(&mut table))
+                Some(self.from_raw_parts_to_object(data_ptr_ptr, size_ptr))
             }
         }
     }
 
     pub fn get(&self, id: c::obx_id) -> error::Result<Option<T>> {
         let (tx, mut cursor) = self.get_tx_cursor();
-        let r = self.get_entity_from_ob(&mut cursor, id);
+        let r = self.get_entity_from_cursor(&mut cursor, id);
 
         if let Some(err) = &self.error {
             Err(err.clone())
@@ -427,7 +421,7 @@ impl<T: OBBlanket> Box<'_, T> {
         let mut r = Vec::<Option<T>>::new();
 
         for id in ids {
-            r.push(self.get_entity_from_ob(&mut cursor, *id));
+            r.push(self.get_entity_from_cursor(&mut cursor, *id));
         }
 
         if let Some(err) = &self.error {
@@ -457,11 +451,7 @@ impl<T: OBBlanket> Box<'_, T> {
         // which is incompatible with obx_err === i32
         while code != NOT_FOUND_404 {
             unsafe {
-                let data_slice = from_raw_parts(*data_ptr_ptr, *size_ptr);
-                let first_offset: usize = data_slice[0].into();
-
-                let mut table = flatbuffers::Table::new(data_slice, first_offset);
-                r.push(self.helper.make(&mut table));
+                r.push(self.from_raw_parts_to_object(data_ptr_ptr, size_ptr));
             }
             code = cursor.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);
 

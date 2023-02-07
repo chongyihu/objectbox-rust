@@ -202,31 +202,31 @@ mod tests {
         assert_eq!(false, e2.get_id() == 0);
         assert_eq!(false, e3.get_id() == 0);
 
-        assert_eq!(false, box1.is_empty(), "{:#?}", e1);
-        assert_eq!(false, box2.is_empty(), "{:#?}", e2);
-        assert_eq!(false, box3.is_empty(), "{:#?}", e3);
+        assert_eq!(false, box1.is_empty().expect("no crash"));
+        assert_eq!(false, box2.is_empty().expect("no crash"));
+        assert_eq!(false, box3.is_empty().expect("no crash"));
 
-        assert_eq!(1, box1.count());
-        assert_eq!(1, box2.count());
-        assert_eq!(1, box3.count());
-        assert_eq!(1, box1.count_with_limit(1));
-        assert_eq!(1, box2.count_with_limit(1));
-        assert_eq!(1, box3.count_with_limit(1));
-        assert_eq!(1, box1.count_with_cursor());
-        assert_eq!(1, box2.count_with_cursor());
-        assert_eq!(1, box3.count_with_cursor());
+        assert_eq!(1, box1.count().expect("no crash"));
+        assert_eq!(1, box2.count().expect("no crash"));
+        assert_eq!(1, box3.count().expect("no crash"));
+        assert_eq!(1, box1.count_with_limit(1).expect("no crash"));
+        assert_eq!(1, box2.count_with_limit(1).expect("no crash"));
+        assert_eq!(1, box3.count_with_limit(1).expect("no crash"));
+        assert_eq!(1, box1.count_with_cursor().expect("no crash"));
+        assert_eq!(1, box2.count_with_cursor().expect("no crash"));
+        assert_eq!(1, box3.count_with_cursor().expect("no crash"));
 
         box1.remove_all();
-        assert!(box1.is_empty());
-        assert_eq!(0, box1.count_with_cursor());
+        assert!(box1.is_empty().expect("no crash"));
+        assert_eq!(0, box1.count_with_cursor().expect("no crash"));
 
         box2.remove_all();
-        assert!(box2.is_empty());
-        assert_eq!(0, box2.count_with_cursor());
+        assert!(box2.is_empty().expect("no crash"));
+        assert_eq!(0, box2.count_with_cursor().expect("no crash"));
 
         box3.remove_all();
-        assert!(box3.is_empty());
-        assert_eq!(0, box3.count_with_cursor());
+        assert!(box3.is_empty().expect("no crash"));
+        assert_eq!(0, box3.count_with_cursor().expect("no crash"));
 
         // put then get, then clear
         {
@@ -297,7 +297,7 @@ mod tests {
                 Err(e) => panic!("{e}"),
             }
 
-            assert_ne!(true, box1.contains(404));
+            assert_ne!(true, box1.contains(404).expect("no crash"));
 
             if let Ok(r) = box1.remove_with_id(404) {
                 assert_ne!(true, r);
@@ -309,7 +309,7 @@ mod tests {
                 Err(e) => panic!("{e}"),
             }
 
-            assert!(box1.is_empty());
+            assert!(box1.is_empty().expect("no crash"));
         }
     }
 }

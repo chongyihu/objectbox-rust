@@ -17,6 +17,10 @@ impl Error {
             repr: Repr::Native(native_error),
         }
     }
+
+    pub fn as_result<T>(&self) -> Result<T> {
+        Err(self.clone())
+    }
 }
 
 impl fmt::Display for Error {
