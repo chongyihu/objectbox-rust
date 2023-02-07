@@ -42,10 +42,12 @@ enum _ConditionOp {
 // TODO depending on property type, allow only certain calls at compile time?
 // TODO compile time determined extension blanket traits?
 
+use std::ffi::CStr;
 use std::ptr;
 
 use crate::c::*;
 use crate::error;
+use crate::util::ConstVoidPtr;
 use crate::util::MutConstVoidPtr;
 use crate::util::PtrConstChar;
 
@@ -94,14 +96,17 @@ impl Query {
         }
     }
 
+    /// Paging related
     pub(crate) unsafe fn offset(&mut self, offset: usize) -> obx_err {
         obx_query_offset(self.obx_query, offset)
     }
 
+    /// Paging related
     pub(crate) unsafe fn offset_limit(&mut self, offset: usize, limit: usize) -> obx_err {
         obx_query_offset_limit(self.obx_query, offset, limit)
     }
 
+    /// Paging related
     pub(crate) unsafe fn limit(&mut self, limit: usize) -> obx_err {
         obx_query_limit(self.obx_query, limit)
     }
@@ -148,15 +153,32 @@ impl Query {
     }
 
     /// For testing and debugging
-    pub unsafe fn describe(&mut self) -> PtrConstChar {
-        obx_query_describe(self.obx_query)
-    }
+    pub fn describe(&mut self) -> Result<&str, std::str::Utf8Error> {
+        unsafe {
+            let out_ptr = obx_query_describe(self.obx_query);
+            if out_ptr.is_null() {
+              // TODO map error to error::Result?
+            }
+            let c_str = CStr::from_ptr(out_ptr);
+            c_str.to_str() // map error?
+          }
+      }
+  
 
     /// For testing and debugging
-    pub unsafe fn describe_params(&mut self) -> PtrConstChar {
-        obx_query_describe_params(self.obx_query)
+    pub fn describe_params(&mut self) -> Result<&str, std::str::Utf8Error> {
+        unsafe {
+          let out_ptr = obx_query_describe_params(self.obx_query);
+          if out_ptr.is_null() {
+            // TODO fetch error
+            // either: Err(Error()) or roundabout way by giving an error to ob first
+          }
+          let c_str = CStr::from_ptr(out_ptr);
+          c_str.to_str()
+        }
     }
 
+    // TODO create tx and cursor boilerplate macro
     pub(crate) unsafe fn cursor_visit(
         &mut self,
         cursor: &mut OBX_cursor,
@@ -189,6 +211,7 @@ impl Query {
     ) -> obx_err {
         obx_query_cursor_remove(self.obx_query, cursor, out_count)
     }
+    // end cursor
 
     pub(crate) unsafe fn param_string(
         &mut self,
@@ -214,7 +237,7 @@ impl Query {
         &mut self,
         entity_id: obx_schema_id,
         property_id: obx_schema_id,
-        values: *const PtrConstChar,
+        values: *const PtrConstChar, // ptr ptr === array of CString
         count: usize,
     ) -> obx_err {
         obx_query_param_strings(self.obx_query, entity_id, property_id, values, count)
@@ -297,7 +320,7 @@ impl Query {
         &mut self,
         entity_id: obx_schema_id,
         property_id: obx_schema_id,
-        value: *const ::std::os::raw::c_void,
+        value: ConstVoidPtr,
         size: usize,
     ) -> obx_err {
         obx_query_param_bytes(self.obx_query, entity_id, property_id, value, size)
@@ -384,7 +407,7 @@ impl Query {
     pub(crate) unsafe fn param_alias_bytes(
         &mut self,
         alias: PtrConstChar,
-        value: *const ::std::os::raw::c_void,
+        value: ConstVoidPtr,
         size: usize,
     ) -> obx_err {
         obx_query_param_alias_bytes(self.obx_query, alias, value, size)

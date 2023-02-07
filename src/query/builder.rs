@@ -73,14 +73,18 @@ impl Builder {
         unsafe { obx_qb_error_message(self.obx_query_builder) }
     }
 
+    // TODO this should be implemented when Option<OB/FB Primitive> properties are supported
     pub(crate) unsafe fn is_null(&mut self, property_id: obx_schema_id) -> obx_qb_cond {
         obx_qb_null(self.obx_query_builder, property_id)
     }
 
+    // TODO this should be implemented when Option<OB/FB Primitive> properties are supported
     pub(crate) unsafe fn not_null(&mut self, property_id: obx_schema_id) -> obx_qb_cond {
         obx_qb_not_null(self.obx_query_builder, property_id)
     }
 
+    // TODO create macro for property_id boilerplate
+    // TODO this belongs to trait PartialEq
     pub(crate) unsafe fn equals_string(
         &mut self,
         property_id: obx_schema_id,
@@ -168,6 +172,7 @@ impl Builder {
         }
     }
 
+    // TODO this belongs to PartialOrd trait, gt >
     pub(crate) unsafe fn greater_than_string(
         &mut self,
         property_id: obx_schema_id,
@@ -179,6 +184,7 @@ impl Builder {
         }
     }
 
+    // TODO this belongs to trait PartialEq, ge >=
     pub(crate) unsafe fn greater_or_equal_string(
         &mut self,
         property_id: obx_schema_id,
@@ -195,6 +201,7 @@ impl Builder {
         }
     }
 
+    // TODO this belongs to trait PartialEq, < lt
     pub(crate) unsafe fn less_than_string(
         &mut self,
         property_id: obx_schema_id,
@@ -206,6 +213,7 @@ impl Builder {
         }
     }
 
+    // TODO this belongs to trait PartialEq, <= le
     pub(crate) unsafe fn less_or_equal_string(
         &mut self,
         property_id: obx_schema_id,
@@ -246,6 +254,7 @@ impl Builder {
         }
     }
 
+    // TODO PartialEq
     pub(crate) unsafe fn equals_int(
         &mut self,
         property_id: obx_schema_id,
@@ -254,6 +263,7 @@ impl Builder {
         obx_qb_equals_int(self.obx_query_builder, property_id, value)
     }
 
+    // TODO PartialEq
     pub(crate) unsafe fn not_equals_int(
         &mut self,
         property_id: obx_schema_id,
@@ -262,6 +272,7 @@ impl Builder {
         obx_qb_not_equals_int(self.obx_query_builder, property_id, value)
     }
 
+    // TODO PartialOrd
     pub(crate) unsafe fn greater_than_int(
         &mut self,
         property_id: obx_schema_id,
@@ -339,6 +350,7 @@ impl Builder {
         obx_qb_not_in_int32s(self.obx_query_builder, property_id, values, count)
     }
 
+    // TODO this belongs to trait PartialEq, gt >
     pub(crate) unsafe fn greater_than_double(
         &self,
         property_id: obx_schema_id,
@@ -347,6 +359,7 @@ impl Builder {
         obx_qb_greater_than_double(self.obx_query_builder, property_id, value)
     }
 
+    // TODO this belongs to trait PartialEq, gt > etc.
     pub(crate) unsafe fn greater_or_equal_double(
         &self,
         property_id: obx_schema_id,
