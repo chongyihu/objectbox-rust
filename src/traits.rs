@@ -40,10 +40,6 @@ pub struct Factory<T> {
     pub schema_id: c::obx_schema_id,
 }
 
-unsafe fn make_table(buf: &[u8], loc: usize) -> Table {
-    Table::new(buf, loc)
-}
-
 pub fn make_from_trait<T>(map: anymap::AnyMap, table: &mut Table) -> Option<T>
 where
     T: 'static,
