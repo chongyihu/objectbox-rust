@@ -2,10 +2,17 @@ use core::marker::PhantomData;
 use crate::{c::*, traits::OBBlanket};
 
 // TODO write compile time determined extension blanket traits
+// Idea: lock down what which ops are available given the property type
+// Do dynamic dispatch down the line, with match.
+// Pass enums / tuples down to the builder.
+
+// Don't do any unnecessary up/down casting, this is a pita.
+// Get ready to kill your darlings.
+
 /*
 // Note: custom null trait (NullExt)
-is_null
-not_null
+or
+and
 */
 
 /// All condition are collected then passed on to a QueryBuilder
@@ -13,15 +20,58 @@ pub struct Condition<Entity: OBBlanket> {
   phantom_data: PhantomData<Entity>
 }
 
+// impl Condition {
+//   pub fn or(&self, that: &Condition) -> AnyCondition {
+
+//   }
+
+//   pub fn and(&self, that: &Condition) -> AllCondition {
+
+//   }
+//   pub fn or_many(&self, those: &[Condition]) -> AnyCondition {
+
+//   }
+
+//   pub fn and_many(&self, those: &[Condition]) -> AllCondition {
+
+//   }
+// }
+
 struct ConditionBuilder<Entity: OBBlanket> {
   phantom_data: PhantomData<Entity>,
   entity_id: obx_schema_id,
   property_id: obx_schema_id,
 }
 
+/*
+// Note: custom null trait (NullExt)
+is_null
+not_null
+*/
 trait NullExt<Entity: OBBlanket> {
   fn is_null() -> Condition<Entity>;
   fn is_not_null() -> Condition<Entity>;
+}
+
+// TODO figure out if std::ops really doesn't contain <, >, <=, >=
+// If op overloading has to be thru, the std::cmp::Partial{Ord,Eq}
+// then no op overloading, Because every op return type is bool.
+pub trait PartialEq<Rhs = Self>
+where
+    Rhs: ?Sized,
+{
+    fn eq(&self, other: &Rhs) -> Rhs;
+    fn ne(&self, other: &Rhs) -> Rhs;
+}
+
+pub trait PartialOrd<Rhs = Self>
+where
+    Rhs: ?Sized,
+{
+    fn lt(&self, other: &Rhs) -> Rhs;
+    fn gt(&self, other: &Rhs) -> Rhs;
+    fn le(&self, other: &Rhs) -> Rhs;
+    fn ge(&self, other: &Rhs) -> Rhs;
 }
 
 /*
@@ -105,9 +155,17 @@ greater_than_bytes
 greater_or_equal_bytes
 less_than_bytes
 less_or_equal_bytes
+*/
 
+/*
 all
 any
-
-order
 */
+
+// TODO
+// trait SetExt<Entity: OBBlanket> {
+//   or()
+//   and()
+// }
+
+// TODO order
