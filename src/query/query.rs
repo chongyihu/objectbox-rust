@@ -4,36 +4,18 @@
 // i -> QueryProperty (QP)
 // i.greaterThan(0) -> Condition
 // ..build() -> Query
-// ..property(j) -> PropertyQuery (PQ) PQ vs QP are confusing as hell, I named it, mea culpa
+// ..property(j) -> PropertyQuery (PQ) PQ vs QP are confusing as hell, mea culpa
 // j -> QP (like i)
 //
 // Traits to reuse: https://doc.rust-lang.org/std/ops/index.html
 // Ops: https://doc.rust-lang.org/book/appendix-02-operators.html
-/*
-enum _ConditionOp {
-  isNull, // TODO only feasible when Option<OB_Rust_Primitive> is introduced
-  notNull, // TODO only feasible when Option<OB_Rust_Primitive> is introduced
-  eq, // std::cmp::PartialEq, eq
-  notEq, // std::ops::PartialEq, ne
-  contains,
-  containsElement,
-  startsWith,
-  endsWith,
-  gt, // std::cmp::PartialOrd, gt
-  greaterOrEq, // std::cmp::PartialOrd, ge
-  lt, // std::cmp::PartialOrd, lt
-  lessOrEq, // std::cmp::PartialOrd, le
-  oneOf,
-  notOneOf,
-  between,
-}
+// Available ops should be known in compile time
 // For lack of variadic args on .query(), use query(vec!(condition...));
-*/
 
 // TODO write macro for boilerplate: fn obx_query_something(...) -> obx_err, rewrite to call,
 // TODO also error check before chaining the next call
 // TODO depending on property type, allow only certain calls at compile time?
-// TODO compile time determined extension blanket traits?
+
 
 use crate::c;
 use crate::c::*;
@@ -447,3 +429,61 @@ impl<T: OBBlanket> Query<T> {
     }
     */
 }
+
+// TODO write compile time determined extension blanket traits
+/*
+// Note: custom null trait (NullExt)
+is_null
+not_null
+
+// Note: PartialOrd, PartialEq, custom StringExt trait apply
+equals_string
+not_equals_string
+contains_string // custom
+contains_element_string // custom
+contains_key_value_string // wtf?
+starts_with_string // custom
+ends_with_string // custom
+greater_than_string
+greater_or_equal_string
+less_than_string
+less_or_equal_string
+in_strings // custom
+any_equals_string // custom
+
+// Note: PartialOrd and PartialEq apply
+equals_int
+not_equals_int
+greater_than_int
+greater_or_equal_int
+less_than_int
+less_or_equal_int
+between_2ints // custom between trait
+
+// Note: custom in / not_in trait
+in_int64s
+not_in_int64s
+
+// Note: custom in / not_in trait
+in_int32s
+not_in_int32s
+
+// Note: PartialEq does not apply here
+greater_than_double
+greater_or_equal_double
+less_than_double
+less_or_equal_double
+between_2doubles // custom between trait
+
+// Both: PartialEq and PartialOrd apply
+equals_bytes
+greater_than_bytes
+greater_or_equal_bytes
+less_than_bytes
+less_or_equal_bytes
+
+all
+any
+
+order
+*/
