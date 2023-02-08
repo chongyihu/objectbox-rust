@@ -344,6 +344,7 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
     let factory = &rust::import("objectbox::traits", "Factory");
     let factory_helper = &rust::import("objectbox::traits", "EntityFactoryExt");
     let rc = &rust::import("std::rc", "Rc");
+    let phantom = &rust::import("std::marker", "PhantomData");
 
     let tokens = &mut Tokens::<Rust>::new();
 
@@ -360,7 +361,7 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
         let entity_id_str = entity_id.as_str();
         let quote = quote! {
           let f$(entity_id_str) = $rc::new($factory::<$entity> {
-            _required_for_generic_trait: None,
+            phantom_data: $phantom,
             schema_id: $entity_id_str
           }) as $rc<dyn $factory_helper<$entity>>;
           map.insert(f$entity_id_str);

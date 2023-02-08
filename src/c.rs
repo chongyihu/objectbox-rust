@@ -65,7 +65,7 @@ impl fmt::Display for NativeError {
     }
 }
 
-// This is important for other errors to wrap this one.
+/// This is important for other errors to wrap this one.
 impl error::Error for NativeError {
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         None // this is the deepest we can go
@@ -114,6 +114,19 @@ pub fn call(result: obx_err, module: String) -> Result<(), Error> {
 /// This should be used with the '?' operator
 pub fn get_result<T>(result: obx_err, returnValue: T) -> Result<T, Error> {
     call(result, "c::get_result".to_string()).map(|_| returnValue)
+}
+
+/// Validates the *mut ptr returned from a native call, and return a Result with some Ok(value).
+/// This should be used with the '?' operator
+pub fn get_result_from_ptr<S, T>(ptr: *mut S, returnValue: T) -> Result<T, Error> {
+    if ptr.is_null() {
+        Err(Error::new_native(NativeError::_new(
+            NativeErrorKind::NullPtr,
+            "get_result_from_ptr".to_string(),
+        )))
+    } else {
+        Ok(returnValue)
+    }
 }
 
 #[cfg(test)]

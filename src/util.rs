@@ -1,4 +1,4 @@
-use std::ffi::{c_void, CString};
+use std::ffi::{c_void, CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
 
@@ -18,6 +18,24 @@ pub(crate) fn str_to_c_char(path: &str) -> *const c_char {
     }
     let c_str = CString::new(out_path.as_str()).unwrap();
     c_str.as_ptr() as *const c_char
+}
+
+pub fn test_fn_ptr_on_char_ptr(c_ptr: PtrConstChar, fn_ptr: fn(String) -> bool) -> bool {
+    // allow panic here, it's for testing anyway
+    if c_ptr.is_null() {
+        panic!("Encountered a null ptr");
+    }
+
+    let mut out_str = String::new();
+    unsafe {
+        let c_str = CStr::from_ptr(c_ptr); // assuming the ptr ends with '\0'
+        match c_str.to_str() {
+            // allow panic here, it's for testing anyway
+            Err(err) => panic!("{err}"),
+            Ok(s) => out_str.push_str(s),
+        }
+        fn_ptr(out_str)
+    }
 }
 
 pub trait ToCChar {

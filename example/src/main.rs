@@ -98,15 +98,15 @@ mod tests {
     fn test_write_and_read_fb() {
         let trait_map2 = ob::make_factory_map();
         let f1 = trait_map2
-            .get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity>>>()
+            .get::<rc::Rc<dyn traits::EntityFactoryExt<crate::Entity>>>()
             .unwrap()
             .clone();
         let f2 = trait_map2
-            .get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity2>>>()
+            .get::<rc::Rc<dyn traits::EntityFactoryExt<crate::Entity2>>>()
             .unwrap()
             .clone();
         let f3 = trait_map2
-            .get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity3>>>()
+            .get::<rc::Rc<dyn traits::EntityFactoryExt<crate::Entity3>>>()
             .unwrap()
             .clone();
 
@@ -172,15 +172,15 @@ mod tests {
 
         let trait_map2 = ob::make_factory_map();
         let f1 = trait_map2
-            .get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity>>>()
+            .get::<rc::Rc<dyn traits::EntityFactoryExt<crate::Entity>>>()
             .unwrap()
             .clone();
         let f2 = trait_map2
-            .get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity2>>>()
+            .get::<rc::Rc<dyn traits::EntityFactoryExt<crate::Entity2>>>()
             .unwrap()
             .clone();
         let f3 = trait_map2
-            .get::<rc::Rc<dyn traits::FactoryHelper<crate::Entity3>>>()
+            .get::<rc::Rc<dyn traits::EntityFactoryExt<crate::Entity3>>>()
             .unwrap()
             .clone();
 

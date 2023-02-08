@@ -17,7 +17,6 @@ pub struct Box<'a, T: OBBlanket> {
     pub(crate) error: Option<Error>,
     pub(crate) obx_box: *mut OBX_box,
     builder: FlatBufferBuilder<'a>,
-    // obx_store: *mut OBX_store,
     // pub(crate) async_: std::boxed::Box<Async>, // TODO
 }
 

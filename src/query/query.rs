@@ -1,6 +1,3 @@
-// TODO implement Drop on QueryProperty etc.
-// TODO whichever holds a C ptr, that has a free/close C fn
-//
 // Reminder:
 // Expression in dart: box.query(i.greaterThan(0)).build().property(pq);
 // box.query -> QueryBuilder
@@ -30,10 +27,6 @@ enum _ConditionOp {
   notOneOf,
   between,
 }
-
-// TODO even better, check predicates: https://docs.rs/predicates/2.1.5/predicates/index.html
-// e.g. box.query(qp)
-
 // For lack of variadic args on .query(), use query(vec!(condition...));
 */
 
@@ -42,16 +35,18 @@ enum _ConditionOp {
 // TODO depending on property type, allow only certain calls at compile time?
 // TODO compile time determined extension blanket traits?
 
-use std::ffi::CStr;
-use std::ptr;
-
+use crate::c;
 use crate::c::*;
 use crate::error;
-use crate::util::ConstVoidPtr;
-use crate::util::MutConstVoidPtr;
-use crate::util::PtrConstChar;
+use crate::traits::EntityFactoryExt;
+use crate::traits::OBBlanket;
+use crate::util::test_fn_ptr_on_char_ptr;
+use std::marker::PhantomData;
+use std::ptr;
+use std::rc::Rc;
 
-impl Drop for Query {
+// TODO pass generic type from box, via fn
+impl<T: OBBlanket> Drop for Query<T> {
     fn drop(&mut self) {
         if !self.obx_query.is_null() {
             // always close regardless, no flags to set, no potential double frees
@@ -65,18 +60,32 @@ impl Drop for Query {
     }
 }
 
-pub struct Query {
+pub struct Query<T: OBBlanket> {
     error: Option<error::Error>,
-    pub(crate) obx_query: *mut OBX_query,
+    obx_query: *mut OBX_query,
+    obx_store: *mut OBX_store,
+    pub(crate) helper: Rc<dyn EntityFactoryExt<T>>,
+    phantom_data: PhantomData<T>,
 }
 
-impl Query {
-    pub(crate) fn from_query_builder(builder: *mut OBX_query_builder) -> Self {
+impl<T: OBBlanket> Query<T> {
+    pub(crate) fn new(
+        obx_store: *mut OBX_store,
+        helper: Rc<dyn EntityFactoryExt<T>>,
+        builder: *mut OBX_query_builder,
+    ) -> error::Result<Self> {
         unsafe {
-            Self {
-                obx_query: obx_query(builder),
-                error: None,
+            let obx_query = obx_query(builder);
+            if let Err(err) = c::new_mut(obx_query, "Query::new".to_string()) {
+                err.clone().as_result()?;
             }
+            Ok(Query {
+                error: None,
+                obx_query,
+                obx_store,
+                helper: helper.clone(),
+                phantom_data: PhantomData,
+            })
         }
     }
 
@@ -84,102 +93,124 @@ impl Query {
         unsafe { obx_query_close(self.obx_query) }
     }
 
-    // TODO potential double frees here?
     // No Clone trait here, because that implies Copy,
     // which prevents using Drop
-    fn clone(&self) -> Query {
+    pub fn clone(&self) -> error::Result<Self> {
         unsafe {
-            Query {
-                obx_query: obx_query_clone(self.obx_query),
-                error: None,
+            let clone = obx_query_clone(self.obx_query);
+            if let Err(err) = c::new_mut(clone, "Query::clone".to_string()) {
+                err.clone().as_result()?;
             }
+
+            // if they are the same, a double free will occur
+            // otherwise, the same drop semantics will apply
+            assert_ne!(self.obx_query, clone);
+            
+            Ok(Query {
+                error: None,
+                obx_query: clone,
+                obx_store: self.obx_store,
+                helper: self.helper.clone(),
+                phantom_data: PhantomData,
+            })
         }
     }
 
     /// Paging related
-    pub(crate) unsafe fn offset(&mut self, offset: usize) -> obx_err {
-        obx_query_offset(self.obx_query, offset)
+    pub fn offset(&mut self, offset: usize) -> &Self {
+        unsafe {
+            let result = obx_query_offset(self.obx_query, offset);
+            self.error = c::call(result, "Query::offset".to_string()).err();
+        }
+        self
     }
 
     /// Paging related
-    pub(crate) unsafe fn offset_limit(&mut self, offset: usize, limit: usize) -> obx_err {
-        obx_query_offset_limit(self.obx_query, offset, limit)
+    pub fn offset_limit(&mut self, offset: usize, limit: usize) -> &Self {
+        unsafe {
+            let result = obx_query_offset_limit(self.obx_query, offset, limit);
+            self.error = c::call(result, "Query::offset_limit".to_string()).err();
+        }
+        self
     }
 
     /// Paging related
-    pub(crate) unsafe fn limit(&mut self, limit: usize) -> obx_err {
-        obx_query_limit(self.obx_query, limit)
+    pub fn limit(&mut self, limit: usize) -> &Self {
+        unsafe {
+            let result = obx_query_limit(self.obx_query, limit);
+            self.error = c::call(result, "Query::limit".to_string()).err();
+        }
+        self
     }
 
-    pub(crate) unsafe fn find(&mut self) -> *mut OBX_bytes_array {
-        obx_query_find(self.obx_query)
-    }
+    // elect the cursor version
+    // pub(crate) unsafe fn find(&mut self) -> *mut OBX_bytes_array {
+    //     obx_query_find(self.obx_query)
+    // }
 
-    pub(crate) unsafe fn find_first(
-        &mut self,
-        data: MutConstVoidPtr,
-        size: *mut usize,
-    ) -> obx_err {
-        obx_query_find_first(self.obx_query, data, size)
-    }
+    // WONTFIX: don't implement unless anyone asks for it
+    // pub(crate) unsafe fn find_first(
+    //     &mut self,
+    //     data: MutConstVoidPtr,
+    //     size: *mut usize,
+    // ) -> obx_err {
+    //     obx_query_find_first(self.obx_query, data, size)
+    // }
 
-    pub(crate) unsafe fn find_unique(
-        &mut self,
-        data: MutConstVoidPtr,
-        size: *mut usize,
-    ) -> obx_err {
-        obx_query_find_unique(self.obx_query, data, size)
-    }
+    // WONTFIX: don't implement unless anyone asks for it
+    // pub(crate) unsafe fn find_unique(
+    //     &mut self,
+    //     data: MutConstVoidPtr,
+    //     size: *mut usize,
+    // ) -> obx_err {
+    //     obx_query_find_unique(self.obx_query, data, size)
+    // }
 
-    // TODO pass a closure to this in the pub fn impl
-    pub(crate) unsafe fn visit(
-        &mut self,
-        visitor: obx_data_visitor,
-        user_data: *mut ::std::os::raw::c_void,
-    ) -> obx_err {
-        obx_query_visit(self.obx_query, visitor, user_data)
-    }
+    // elect the cursor version
+    // pub(crate) unsafe fn visit(
+    //     &mut self,
+    //     visitor: obx_data_visitor,
+    //     user_data: *mut ::std::os::raw::c_void,
+    // ) -> obx_err {
+    //     obx_query_visit(self.obx_query, visitor, user_data)
+    // }
 
-    pub(crate) unsafe fn find_ids(&mut self) -> *mut OBX_id_array {
-        obx_query_find_ids(self.obx_query)
-    }
+    // elect the cursor version
+    // pub(crate) unsafe fn find_ids(&mut self) -> *mut OBX_id_array {
+    //     obx_query_find_ids(self.obx_query)
+    // }
 
-    pub(crate) unsafe fn count(&mut self, out_count: *mut u64) -> obx_err {
-        obx_query_count(self.obx_query, out_count)
-    }
+    // elect the cursor version
+    // pub(crate) unsafe fn count(&mut self, out_count: *mut u64) -> obx_err {
+    //     obx_query_count(self.obx_query, out_count)
+    // }
 
-    pub(crate) unsafe fn remove(&mut self, out_count: *mut u64) -> obx_err {
-        obx_query_remove(self.obx_query, out_count)
-    }
+    // elect the cursor version
+    // pub(crate) unsafe fn remove(&mut self, out_count: *mut u64) -> obx_err {
+    //     obx_query_remove(self.obx_query, out_count)
+    // }
 
     /// For testing and debugging
-    pub fn describe(&mut self) -> Result<&str, std::str::Utf8Error> {
+    /// A function pointer is passed here, to prevent dealing with lifetime issues.
+    pub fn describe(&mut self, fn_ptr: fn(String) -> bool) -> bool {
         unsafe {
             let out_ptr = obx_query_describe(self.obx_query);
-            if out_ptr.is_null() {
-              // TODO map error to error::Result?
-            }
-            let c_str = CStr::from_ptr(out_ptr);
-            c_str.to_str() // map error?
-          }
-      }
-  
-
-    /// For testing and debugging
-    pub fn describe_params(&mut self) -> Result<&str, std::str::Utf8Error> {
-        unsafe {
-          let out_ptr = obx_query_describe_params(self.obx_query);
-          if out_ptr.is_null() {
-            // TODO fetch error
-            // either: Err(Error()) or roundabout way by giving an error to ob first
-          }
-          let c_str = CStr::from_ptr(out_ptr);
-          c_str.to_str()
+            test_fn_ptr_on_char_ptr(out_ptr, fn_ptr)
         }
     }
 
-    // TODO create tx and cursor boilerplate macro
-    pub(crate) unsafe fn cursor_visit(
+    /// For testing and debugging
+    /// A function pointer is passed here, to prevent dealing with lifetime issues.
+    pub fn describe_params(&mut self, fn_ptr: fn(String) -> bool) -> bool {
+        unsafe {
+            let out_ptr = obx_query_describe_params(self.obx_query);
+            test_fn_ptr_on_char_ptr(out_ptr, fn_ptr)
+        }
+    }
+
+    // TODO create tx and cursor boilerplate macro, which requires a ptr to store -> tx -> cursor -> close on read, success on write
+    // TODO pass a closure fn to this in the pub fn impl
+    unsafe fn cursor_visit(
         &mut self,
         cursor: &mut OBX_cursor,
         visitor: obx_data_visitor,
@@ -188,31 +219,26 @@ impl Query {
         obx_query_cursor_visit(self.obx_query, cursor, visitor, user_data)
     }
 
-    pub(crate) unsafe fn cursor_find(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_bytes_array {
+    unsafe fn cursor_find(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_bytes_array {
         obx_query_cursor_find(self.obx_query, cursor)
     }
 
-    pub(crate) unsafe fn cursor_find_ids(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_id_array {
+    unsafe fn cursor_find_ids(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_id_array {
         obx_query_cursor_find_ids(self.obx_query, cursor)
     }
 
-    pub(crate) unsafe fn cursor_count(
-        &mut self,
-        cursor: &mut OBX_cursor,
-        out_count: *mut u64,
-    ) -> obx_err {
+    unsafe fn cursor_count(&mut self, cursor: &mut OBX_cursor, out_count: *mut u64) -> obx_err {
         obx_query_cursor_count(self.obx_query, cursor, out_count)
     }
 
-    pub(crate) unsafe fn cursor_remove(
-        &mut self,
-        cursor: &mut OBX_cursor,
-        out_count: *mut u64,
-    ) -> obx_err {
+    unsafe fn cursor_remove(&mut self, cursor: &mut OBX_cursor, out_count: *mut u64) -> obx_err {
         obx_query_cursor_remove(self.obx_query, cursor, out_count)
     }
     // end cursor
 
+    // TODO implement later
+    // start aliasing
+    /*
     pub(crate) unsafe fn param_string(
         &mut self,
         entity_id: obx_schema_id,
@@ -419,4 +445,5 @@ impl Query {
     ) -> usize {
         obx_query_param_alias_get_type_size(self.obx_query, alias)
     }
+    */
 }

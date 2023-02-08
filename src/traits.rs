@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use crate::c;
 use flatbuffers::FlatBufferBuilder;
 
@@ -36,7 +38,7 @@ pub trait EntityFactoryExt<T: ?Sized> {
     fn new_entity(&self) -> T;
 }
 pub struct Factory<T> {
-    pub _required_for_generic_trait: Option<T>,
+    pub phantom_data: PhantomData<T>,
     pub schema_id: c::obx_schema_id,
 }
 
@@ -161,15 +163,15 @@ fn entity_factories() {
 
         // this should be const boxed where it is generated
         let f0 = Factory::<Entity0> {
-            _required_for_generic_trait: None,
+            phantom_data: PhantomData,
             schema_id: 1,
         };
         let f1 = Factory::<Entity1> {
-            _required_for_generic_trait: None,
+            phantom_data: PhantomData,
             schema_id: 2,
         };
         let f2 = Factory::<Entity2> {
-            _required_for_generic_trait: None,
+            phantom_data: PhantomData,
             schema_id: 3,
         };
 
@@ -206,7 +208,7 @@ fn entity_factories() {
         {
             let mut map = anymap::AnyMap::new();
             let f0 = Factory::<Entity0> {
-                _required_for_generic_trait: None,
+                phantom_data: PhantomData,
                 schema_id: 0,
             };
 
@@ -230,7 +232,7 @@ fn entity_factories() {
 
             let mut map = anymap::AnyMap::new();
             let f0: &'static Factory<Entity0> = &Factory::<Entity0> {
-                _required_for_generic_trait: None,
+                phantom_data: PhantomData,
                 schema_id: 0,
             };
             map.insert(f0);
