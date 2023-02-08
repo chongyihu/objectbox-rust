@@ -116,6 +116,13 @@ pub fn get_result<T>(result: obx_err, returnValue: T) -> Result<T, Error> {
     call(result, "c::get_result".to_string()).map(|_| returnValue)
 }
 
+/// Validates the obx_err returned from a native call, and return a Result with some Ok(value).
+/// This should be used with the '?' operator
+pub fn get_result_from_closure<T>(result: obx_err, ok_closure: fn() -> T) -> Result<T, Error> {
+    let returnValue = ok_closure();
+    call(result, "c::get_result_from_closure".to_string()).map(|_| returnValue)
+}
+
 /// Validates the *mut ptr returned from a native call, and return a Result with some Ok(value).
 /// This should be used with the '?' operator
 pub fn get_result_from_ptr<S, T>(ptr: *mut S, returnValue: T) -> Result<T, Error> {

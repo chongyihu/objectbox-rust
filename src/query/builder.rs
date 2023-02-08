@@ -55,8 +55,9 @@ impl<T: OBBlanket> Builder<T> {
         } else {
             let r = Query::new(self.obx_store, self.helper.clone(), self.obx_query_builder)?;
             // iff a query is built properly, then do not drop, else drop
+            let query = get_result(self.error_code(), r)?;
             self.has_built_query = true;
-            Ok(r)
+            Ok(query)
         }
     }
 
@@ -69,10 +70,12 @@ impl<T: OBBlanket> Builder<T> {
         unsafe { obx_qb_type_id(self.obx_query_builder) }
     }
 
+    // TODO call this before finalizing build
     fn error_code(&self) -> obx_err {
         unsafe { obx_qb_error_code(self.obx_query_builder) }
     }
 
+    // TODO call this before finalizing build
     fn error_message(&self) -> PtrConstChar {
         unsafe { obx_qb_error_message(self.obx_query_builder) }
     }
