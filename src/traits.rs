@@ -30,7 +30,7 @@ impl<T> OBBlanket for T where T: IdExt + FBOBBridge {}
 
 use flatbuffers::Table;
 
-pub trait FactoryHelper<T: ?Sized> {
+pub trait EntityFactoryExt<T: ?Sized> {
     fn make(&self, table: &mut Table) -> T;
     fn get_entity_id(&self) -> c::obx_schema_id;
     fn new_entity(&self) -> T;
@@ -48,7 +48,7 @@ pub fn make_from_trait<T>(map: anymap::AnyMap, table: &mut Table) -> Option<T>
 where
     T: 'static,
 {
-    if let Some(f) = map.get::<Box<dyn FactoryHelper<T>>>() {
+    if let Some(f) = map.get::<Box<dyn EntityFactoryExt<T>>>() {
         return Some(f.make(table));
     }
     None
@@ -125,7 +125,7 @@ fn entity_factories() {
             id: c::obx_schema_id,
         }
 
-        impl FactoryHelper<Entity0> for Factory<Entity0> {
+        impl EntityFactoryExt<Entity0> for Factory<Entity0> {
             fn make(&self, table: &mut Table) -> Entity0 {
                 Entity0 { id: 0 }
             }
@@ -137,7 +137,7 @@ fn entity_factories() {
             }
         }
 
-        impl FactoryHelper<Entity1> for Factory<Entity1> {
+        impl EntityFactoryExt<Entity1> for Factory<Entity1> {
             fn make(&self, table: &mut Table) -> Entity1 {
                 Entity1 { id: 1 }
             }
@@ -149,7 +149,7 @@ fn entity_factories() {
             }
         }
 
-        impl FactoryHelper<Entity2> for Factory<Entity2> {
+        impl EntityFactoryExt<Entity2> for Factory<Entity2> {
             fn make(&self, table: &mut Table) -> Entity2 {
                 Entity2 { id: 2 }
             }
@@ -214,7 +214,7 @@ fn entity_factories() {
                 schema_id: 0,
             };
 
-            map.insert(Box::new(f0) as Box<dyn FactoryHelper<Entity0>>);
+            map.insert(Box::new(f0) as Box<dyn EntityFactoryExt<Entity0>>);
 
             let e0 = make_from_trait::<Entity0>(map, table);
             assert_eq!(e0.is_some(), true); // \o/

@@ -8,7 +8,7 @@ use crate::{
     c::*,
     error,
     store::Store,
-    traits::FactoryHelper, util::PtrConstChar,
+    traits::EntityFactoryExt, util::PtrConstChar,
 };
 
 use std::rc::Rc;
@@ -37,7 +37,8 @@ pub struct Builder {
 }
 
 impl Builder {
-    pub fn from_store_and_entity_id<T>(store: &Store, factory: Rc<dyn FactoryHelper<T>>) -> Self {
+
+    pub fn from_store_and_entity_id<T>(store: &Store, factory: Rc<dyn EntityFactoryExt<T>>) -> Self {
         let entity_id = factory.get_entity_id(); // call factory
         let obx_query_builder = unsafe { obx_query_builder(store.obx_store, entity_id) };
         Builder {

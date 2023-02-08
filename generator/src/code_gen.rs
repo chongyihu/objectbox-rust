@@ -226,7 +226,7 @@ impl CodeGenEntityExt for ModelEntity {
     fn generate_ob_trait(&self) -> Tokens<Rust> {
         let fb_table = &rust::import("objectbox::flatbuffers", "Table");
         let factory = &rust::import("objectbox::traits", "Factory");
-        let factory_helper = &rust::import("objectbox::traits", "FactoryHelper");
+        let factory_helper = &rust::import("objectbox::traits", "EntityFactoryExt");
         let entity = &rust::import("crate", &self.name);
 
         let schema_id = &rust::import("objectbox::c", "obx_schema_id");
@@ -342,7 +342,7 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
 fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
     let any_map = &rust::import("objectbox::map", "AnyMap");
     let factory = &rust::import("objectbox::traits", "Factory");
-    let factory_helper = &rust::import("objectbox::traits", "FactoryHelper");
+    let factory_helper = &rust::import("objectbox::traits", "EntityFactoryExt");
     let rc = &rust::import("std::rc", "Rc");
 
     let tokens = &mut Tokens::<Rust>::new();

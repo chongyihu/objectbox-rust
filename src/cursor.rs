@@ -3,14 +3,14 @@ use std::rc::Rc;
 use crate::{
     c::{self, *},
     error::Error,
-    traits::FactoryHelper,
+    traits::EntityFactoryExt,
     util::{MutConstVoidPtr, ToCVoid},
 };
 
 // The best article ever on ffi
 // https://blog.guillaume-gomez.fr/articles/2021-07-29+Interacting+with+data+from+FFI+in+Rust
 pub(crate) struct Cursor<T> {
-    helper: Rc<dyn FactoryHelper<T>>,
+    helper: Rc<dyn EntityFactoryExt<T>>,
     pub(crate) error: Option<Error>,
     pub(crate) obx_cursor: *mut c::OBX_cursor,
 }
@@ -35,7 +35,7 @@ impl<T> Drop for Cursor<T> {
 }
 
 impl<T> Cursor<T> {
-    pub(crate) fn new(tx: *mut OBX_txn, helper: Rc<dyn FactoryHelper<T>>) -> Self {
+    pub(crate) fn new(tx: *mut OBX_txn, helper: Rc<dyn EntityFactoryExt<T>>) -> Self {
         let entity_id = helper.get_entity_id();
         match c::new_mut(
             unsafe { c::obx_cursor(tx, entity_id) },

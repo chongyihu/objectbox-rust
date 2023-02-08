@@ -10,7 +10,7 @@ use crate::c::{self, *};
 use crate::error::Error;
 
 use crate::opt::Opt;
-use crate::traits::{FactoryHelper, OBBlanket};
+use crate::traits::{EntityFactoryExt, OBBlanket};
 use crate::util::{ToCChar, ToCVoid};
 
 // Caveat: copy and drop are mutually exclusive
@@ -75,7 +75,7 @@ impl Store {
         } else {
             panic!("Error: unable to get box");
         };
-        let helper = if let Some(h) = map.get::<Rc<dyn FactoryHelper<T>>>() {
+        let helper = if let Some(h) = map.get::<Rc<dyn EntityFactoryExt<T>>>() {
             h
         } else {
             panic!("Error: unable to get entity helper");
