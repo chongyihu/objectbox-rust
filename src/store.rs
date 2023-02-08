@@ -7,11 +7,11 @@ use std::rc::Rc;
 use anymap::AnyMap;
 
 use crate::c::{self, *};
-use crate::error::Error;
+use crate::error::{Error, self};
 
 use crate::opt::Opt;
 use crate::traits::{EntityFactoryExt, OBBlanket};
-use crate::util::{ToCChar, ToCVoid};
+use crate::util::ToCChar;
 
 // Caveat: copy and drop are mutually exclusive
 
@@ -42,6 +42,7 @@ impl Drop for Store {
 impl Store {
     // TODO pub fn from_model_callback() ... generated from open_store()
 
+    // TODO return Result<Self>, change the unit tests
     pub fn from_options(opt: &mut Opt) -> Self {
         if let Some(err) = &opt.error {
             panic!("Error: store: {err}");
@@ -66,6 +67,7 @@ impl Store {
         }
     }
 
+    // TODO return Result, lose the panics, change the unit tests
     pub fn get_box<T: 'static + OBBlanket>(&self) -> crate::r#box::Box<T> {
         if let Some(err) = &self.error {
             panic!("Error: store: {err}");
@@ -87,6 +89,8 @@ impl Store {
         unsafe { obx_store_is_open(path.to_c_char()) }
     }
 
+    // TODO support later
+    /*
     pub fn from_path_attach(path: &Path) -> Self {
         Store {
             obx_store: unsafe { obx_store_attach(path.to_c_char()) },
@@ -116,7 +120,9 @@ impl Store {
             trait_map: None,
         }
     }
+    */
 
+    // TODO Determine if this is safe
     pub fn id(&self) -> u64 {
         unsafe { obx_store_id(self.obx_store) }
     }
@@ -138,7 +144,9 @@ impl Store {
       }
     */
 
-    pub fn entity_id(&self, entity_name: &str) -> obx_schema_id {
+    // TODO improve possible error handling, replace panic!
+    /*
+    fn set_entity_id(&self, entity_name: &str) -> obx_schema_id {
         unsafe {
             let c_str = if let Ok(r) = CString::new(entity_name) {
                 r.as_ptr()
@@ -149,7 +157,8 @@ impl Store {
         }
     }
 
-    pub fn entity_property_id(
+    // TODO improve possible error handling, replace panic!
+    fn entity_property_id(
         &self,
         entity_id: obx_schema_id,
         property_name: &str,
@@ -163,7 +172,9 @@ impl Store {
             obx_store_entity_property_id(self.obx_store, entity_id, c_str)
         }
     }
+    */
 
+    /*
     pub fn await_async_completion(&self) -> bool {
         unsafe { obx_store_await_async_completion(self.obx_store) }
     }
@@ -171,25 +182,32 @@ impl Store {
     pub fn await_async_submitted(&self) -> bool {
         unsafe { obx_store_await_async_submitted(self.obx_store) }
     }
+    */
 
-    pub fn debug_flags(&mut self, flags: OBXDebugFlags) {
+    pub fn debug_flags(&mut self, flags: OBXDebugFlags) -> &Self {
         self.error = c::call(
             unsafe { obx_store_debug_flags(self.obx_store, flags) },
             "store::debug_flags".to_string(),
         )
         .err();
+        self
     }
 
-    pub fn opened_with_previous_commit(&self) -> bool {
-        unsafe { obx_store_opened_with_previous_commit(self.obx_store) }
+    pub fn opened_with_previous_commit(&self) -> error::Result<bool> {
+        let r = unsafe { obx_store_opened_with_previous_commit(self.obx_store) };
+        if let Some(err) = &self.error {
+            err.as_result()?;
+        }
+        Ok(r)
     }
 
-    pub(crate) fn prepare_to_close(&mut self) {
+    pub(crate) fn prepare_to_close(&mut self) -> &Self {
         self.error = c::call(
             unsafe { obx_store_prepare_to_close(self.obx_store) },
             "store::prepare_to_close".to_string(),
         )
-        .err()
+        .err();
+        self
     }
 
     pub(crate) fn close(&mut self) {

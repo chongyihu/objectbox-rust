@@ -53,7 +53,7 @@ impl<T: OBBlanket> Box<'_, T> {
         for id in ids {
             match self.contains(*id) {
                 Ok(v) => r.push(v),
-                Err(err) => err.clone().as_result()?,
+                Err(err) => err.as_result()?,
             }
         }
         Ok(r)
@@ -184,7 +184,7 @@ impl<T: OBBlanket> Box<'_, T> {
         for id in ids {
             match self.remove_with_id(*id) {
                 Ok(v) => r.push(v),
-                Err(err) => err.clone().as_result()?,
+                Err(err) => err.as_result()?,
             }
         }
         Ok(r)
@@ -354,9 +354,9 @@ impl<T: OBBlanket> Box<'_, T> {
         let (tx, mut cursor) = self.get_tx_cursor();
 
         if let Some(err) = &tx.error {
-            err.clone().as_result()?;
+            err.as_result()?;
         } else if let Some(err) = &cursor.error {
-            err.clone().as_result()?;
+            err.as_result()?;
         }
 
         Ok(cursor.count())

@@ -77,7 +77,7 @@ impl<T: OBBlanket> Query<T> {
         unsafe {
             let obx_query = obx_query(builder);
             if let Err(err) = c::new_mut(obx_query, "Query::new".to_string()) {
-                err.clone().as_result()?;
+                err.as_result()?;
             }
             Ok(Query {
                 error: None,
@@ -99,7 +99,7 @@ impl<T: OBBlanket> Query<T> {
         unsafe {
             let clone = obx_query_clone(self.obx_query);
             if let Err(err) = c::new_mut(clone, "Query::clone".to_string()) {
-                err.clone().as_result()?;
+                err.as_result()?;
             }
 
             // if they are the same, a double free will occur
