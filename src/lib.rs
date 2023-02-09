@@ -20,3 +20,6 @@ pub mod traits;
 mod r#async;
 mod cursor;
 mod txn;
+
+// TODO do the prelude thing, in the generated objectbox_gen.rs
+// use objectbox::prelude::*;
