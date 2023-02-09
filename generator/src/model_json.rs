@@ -312,14 +312,13 @@ impl ModelProperty {
 #[cfg(test)]
 #[test]
 fn model_property_fluent_builder_test() {
-    let Ok(str) = ModelProperty {
-        id: "1:2".to_owned(),
-        name: "name".to_owned(),
+    let mp = ModelProperty {
+        id: "1:2".to_string(),
+        name: "name".to_string(),
         type_field: 0,
         flags: Some(0),
-        index_id: Some("2:3").to_owned(),
-    }
-    .as_fluent_builder_invocation()
-    .to_string();
-    assert_eq!(str, ".property(name, 0, 0, 1, 2).property_index(2, 3)");
+        index_id: Some("2:3".to_string()),
+    };
+    let str = mp.as_fluent_builder_invocation().to_string().expect("valid");
+    assert_eq!(str, ".property( \"name\", 1, 2, 0, 0 ).property_index(2, 3)");
 }
