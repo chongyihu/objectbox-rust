@@ -5,7 +5,13 @@ use std::{marker::PhantomData, rc::Rc};
 // TODO also error check before chaining the next call (obx_qb_cond)
 // TODO depending on property type, allow only certain calls at compile time?
 // TODO compile time determined extension blanket traits?
-use crate::{c::*, error, r#box::Box, traits::{OBBlanket, EntityFactoryExt}, util::PtrConstChar};
+use crate::{
+    c::*,
+    error,
+    r#box::Box,
+    traits::{EntityFactoryExt, OBBlanket},
+    util::PtrConstChar,
+};
 
 use super::query::Query;
 

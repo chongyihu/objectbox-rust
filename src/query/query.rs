@@ -16,7 +16,6 @@
 // TODO also error check before chaining the next call
 // TODO depending on property type, allow only certain calls at compile time?
 
-
 use crate::c;
 use crate::c::*;
 use crate::error;
@@ -58,7 +57,7 @@ impl<T: OBBlanket> Query<T> {
     ) -> error::Result<Self> {
         unsafe {
             let obx_query = obx_query(builder);
-            if let Err(err) = c::new_mut(obx_query, "Query::new".to_string()) {
+            if let Err(err) = c::new_mut(obx_query, Some("Query::new")) {
                 err.as_result()?;
             }
             Ok(Query {
@@ -80,14 +79,14 @@ impl<T: OBBlanket> Query<T> {
     pub fn clone(&self) -> error::Result<Self> {
         unsafe {
             let clone = obx_query_clone(self.obx_query);
-            if let Err(err) = c::new_mut(clone, "Query::clone".to_string()) {
+            if let Err(err) = c::new_mut(clone, Some("Query::clone")) {
                 err.as_result()?;
             }
 
             // if they are the same, a double free will occur
             // otherwise, the same drop semantics will apply
             assert_ne!(self.obx_query, clone);
-            
+
             Ok(Query {
                 error: None,
                 obx_query: clone,
@@ -102,7 +101,7 @@ impl<T: OBBlanket> Query<T> {
     pub fn offset(&mut self, offset: usize) -> &Self {
         unsafe {
             let result = obx_query_offset(self.obx_query, offset);
-            self.error = c::call(result, "Query::offset".to_string()).err();
+            self.error = c::call(result, Some("Query::offset")).err();
         }
         self
     }
@@ -111,7 +110,7 @@ impl<T: OBBlanket> Query<T> {
     pub fn offset_limit(&mut self, offset: usize, limit: usize) -> &Self {
         unsafe {
             let result = obx_query_offset_limit(self.obx_query, offset, limit);
-            self.error = c::call(result, "Query::offset_limit".to_string()).err();
+            self.error = c::call(result, Some("Query::offset_limit")).err();
         }
         self
     }
@@ -120,7 +119,7 @@ impl<T: OBBlanket> Query<T> {
     pub fn limit(&mut self, limit: usize) -> &Self {
         unsafe {
             let result = obx_query_limit(self.obx_query, limit);
-            self.error = c::call(result, "Query::limit".to_string()).err();
+            self.error = c::call(result, Some("Query::limit")).err();
         }
         self
     }

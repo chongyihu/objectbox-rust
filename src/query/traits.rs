@@ -1,46 +1,107 @@
-use core::marker::PhantomData;
 use crate::{c::*, traits::OBBlanket};
+use core::marker::PhantomData;
+use std::rc::Rc;
 
 // TODO write compile time determined extension blanket traits
 // Idea: lock down what which ops are available given the property type
 // Do dynamic dispatch down the line, with match.
 // Pass enums / tuples down to the builder.
 
-// Don't do any unnecessary up/down casting, this is a pita.
-// Get ready to kill your darlings.
+type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 
-/*
-// Note: custom null trait (NullExt)
-or
-and
-*/
+#[derive(PartialEq)]
+pub(crate) enum ConditionOp /*<T>*/ {
+    All,
+    Any,
 
-/// All condition are collected then passed on to a QueryBuilder
-pub struct Condition<Entity: OBBlanket> {
-  phantom_data: PhantomData<Entity>
+    // IsNull,
+    // NotNull,
+    Contains(Vec<String>),
+    ContainsElement(String),
+    StartsWith(String),
+    EndsWith(String),
+
+    // TODO Actually type out all the concrete enum parameter types
+    // TODO or use a macro
+    // Gt(T),
+    // GreaterOrEq(T),
+    // Lt(T),
+    // LessOrEq(T),
+    // OneOf(T),
+    // NotOneOf(T),
+
+    // TODO remove after writing the macro to generate
+    // Eq,
+    // NotEq,
+
+    // Between(T, T),
+
+    // Test enums
+    TestU8(u8),
 }
 
-// impl Condition {
-//   pub fn or(&self, that: &Condition) -> AnyCondition {
+/// All conditions are collected then passed on to a QueryBuilder
+pub struct Condition<Entity: OBBlanket> {
+    phantom_data: PhantomData<Entity>,
+    ids_and_type: Option<IdsAndType>,
+    op: ConditionOp,
+    group: Option<Vec<Condition<Entity>>>,
+}
 
-//   }
+impl<Entity: OBBlanket> Condition<Entity> {
+    fn from_group(
+        new_op: ConditionOp,
+        new_group: Vec<Condition<Entity>>,
+    ) -> Self {
+        let mut new_root = Condition {
+            phantom_data: PhantomData,
+            ids_and_type: None,
+            op: new_op,
+            group: None,
+        };
 
-//   pub fn and(&self, that: &Condition) -> AllCondition {
+        new_root.group = Some(new_group);
+        new_root
+    }
 
-//   }
-//   pub fn or_many(&self, those: &[Condition]) -> AnyCondition {
+    fn from_op(other: ConditionOp,  ids_and_type: IdsAndType) -> Condition<Entity> {
+      Condition {
+          phantom_data: PhantomData,
+          ids_and_type: Some(ids_and_type),
+          op: other,
+          group: None,
+      }
+    }
 
-//   }
+    pub fn or(self, that: Condition<Entity>) -> Condition<Entity> {
+        Self::from_group(ConditionOp::Any, vec![self, that])
+    }
 
-//   pub fn and_many(&self, those: &[Condition]) -> AllCondition {
+    pub fn and(self, that: Condition<Entity>) -> Condition<Entity> {
+        Self::from_group(ConditionOp::All, vec![self, that])
+    }
 
-//   }
-// }
+    pub fn or_any(self, mut those: Vec<Condition<Entity>>) -> Condition<Entity> {
+        those.insert(0, self);
+        Self::from_group(ConditionOp::All, those)
+    }
 
-struct ConditionBuilder<Entity: OBBlanket> {
-  phantom_data: PhantomData<Entity>,
-  entity_id: obx_schema_id,
-  property_id: obx_schema_id,
+    pub fn and_all(self, mut those: Vec<Condition<Entity>>) -> Condition<Entity> {
+        those.insert(0, self);
+        Self::from_group(ConditionOp::All, those)
+    }
+}
+
+pub struct ConditionBuilder<Entity: OBBlanket> {
+    phantom_data: PhantomData<Entity>,
+    // entity_id: obx_schema_id, property_id: obx_schema_id, property_type: u8,
+    ids_and_type: IdsAndType,
+}
+
+impl<Entity: OBBlanket> ConditionBuilder<Entity> {
+    fn get_parameters(&self) -> IdsAndType {
+      self.ids_and_type.clone()
+    }
 }
 
 /*
@@ -48,30 +109,31 @@ struct ConditionBuilder<Entity: OBBlanket> {
 is_null
 not_null
 */
-trait NullExt<Entity: OBBlanket> {
-  fn is_null() -> Condition<Entity>;
-  fn is_not_null() -> Condition<Entity>;
-}
+// TODO put this directly into Condition, when values can be `Optional`
+// pub trait NullExt<Entity: OBBlanket> {
+//     fn is_null() -> Condition<Entity>;
+//     fn is_not_null() -> Condition<Entity>;
+// }
 
 // TODO figure out if std::ops really doesn't contain <, >, <=, >=
 // If op overloading has to be thru, the std::cmp::Partial{Ord,Eq}
 // then no op overloading, Because every op return type is bool.
-pub trait PartialEq<Rhs = Self>
+pub trait PartialEq<Entity: OBBlanket, Rhs>
 where
     Rhs: ?Sized,
 {
-    fn eq(&self, other: &Rhs) -> Rhs;
-    fn ne(&self, other: &Rhs) -> Rhs;
+    fn eq(&self, other: Rhs) -> Condition<Entity>;
+    fn ne(&self, other: Rhs) -> Condition<Entity>;
 }
 
-pub trait PartialOrd<Rhs = Self>
+pub trait PartialOrd<Entity: OBBlanket, Rhs>
 where
     Rhs: ?Sized,
 {
-    fn lt(&self, other: &Rhs) -> Rhs;
-    fn gt(&self, other: &Rhs) -> Rhs;
-    fn le(&self, other: &Rhs) -> Rhs;
-    fn ge(&self, other: &Rhs) -> Rhs;
+    fn lt(&self, other: Rhs) -> Condition<Entity>;
+    fn gt(&self, other: Rhs) -> Condition<Entity>;
+    fn le(&self, other: Rhs) -> Condition<Entity>;
+    fn ge(&self, other: Rhs) -> Condition<Entity>;
 }
 
 /*
@@ -91,26 +153,24 @@ in_strings // custom
 any_equals_string // custom
 */
 pub trait StringExt<Entity: OBBlanket> {
-  fn contains(s: &str) -> Condition<Entity>;
-  fn contains_element(s: &str) -> Condition<Entity>;
-  // contains_key_value_string // huh?
-  fn starts_with(s: &str) -> Condition<Entity>;
-  fn ends_with(s: &str) -> Condition<Entity>;
-  // fn in_strings(&[&str]) -> Condition; // not sure about the name
-  fn any_equals(list: &[&str]) -> Condition<Entity>; // not sure about the input type
+    fn contains(s: &str) -> Condition<Entity>;
+    fn contains_element(s: &str) -> Condition<Entity>;
+    // contains_key_value_string // huh?
+    fn starts_with(s: &str) -> Condition<Entity>;
+    fn ends_with(s: &str) -> Condition<Entity>;
+    // fn in_strings(&[&str]) -> Condition; // not sure about the name
+    fn any_equals(list: &[&str]) -> Condition<Entity>; // not sure about the input type
 }
-pub trait StringBlanket<T: OBBlanket>: StringExt<T> + PartialOrd + PartialEq {}
-impl<T: OBBlanket> StringBlanket<T> for T where T: StringExt<T> + PartialOrd + PartialEq {
-  // TODO
-}
-pub struct StringCondition<Entity: OBBlanket>{
-  phantom_data: PhantomData<Entity>,
-}
-// TODO
-// impl<Entity: OBBlanket> StringBlanket<Entity> for StringCondition<Entity> {
 
-// }
+// TODO blanket later
+// pub trait StringBlanket<T: OBBlanket>: StringExt<T> + PartialOrd + PartialEq {}
+// impl<T: OBBlanket> StringBlanket<T> for T
+// where
+//     T: StringExt<T> + PartialOrd + PartialEq,
+// {}
 
+// TODO blanket later
+// impl<T: OBBlanket> StringBlanket<T> for Condition<T>{}
 
 /*
 // Note: PartialOrd and PartialEq apply
@@ -122,8 +182,11 @@ less_than_int
 less_or_equal_int
 between_2ints // custom between trait
 */
-trait BetweenExt<Entity: OBBlanket, U> {
-  fn between(this: U, that: Entity) -> Condition<Entity>;
+trait BetweenExt<Entity: OBBlanket, SurroundType>
+where
+    SurroundType: ?Sized,
+{
+    fn between(&self, this: SurroundType, that: SurroundType) -> Condition<Entity>;
 }
 
 /*
@@ -132,9 +195,12 @@ in_int64s
 not_in_int64s
 */
 // in:reserved keyword
-trait InOutExt<Entity: OBBlanket, U> {
-  fn member_of(element: &[U]) -> Condition<Entity>;
-  fn not_member_of(element: &[U]) -> Condition<Entity>;
+trait InOutExt<Entity: OBBlanket, U>
+where
+    U: Sized,
+{
+    fn member_of(&self, element: &Vec<U>) -> Condition<Entity>;
+    fn not_member_of(&self, element: &Vec<U>) -> Condition<Entity>;
 }
 
 /*
@@ -169,3 +235,22 @@ any
 // }
 
 // TODO order
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::query::traits::ConditionOp::TestU8;
+
+    impl<Entity: OBBlanket> PartialEq<Entity, u8> for ConditionBuilder<Entity> {
+        fn eq(&self, other: u8) -> Condition<Entity> {
+            Condition::from_op(TestU8(other), self.get_parameters())
+        }
+
+        fn ne(&self, other: u8) -> Condition<Entity> {
+            Condition::from_op(TestU8(other), self.get_parameters())
+        }
+    }
+
+    #[test]
+    fn trait_impl_test() {}
+}
