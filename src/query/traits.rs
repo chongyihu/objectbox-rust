@@ -2,17 +2,16 @@ use crate::{c::*, traits::OBBlanket};
 use core::marker::PhantomData;
 use std::rc::Rc;
 
-// TODO write compile time determined extension blanket traits
-// Idea: lock down what which ops are available given the property type
-// Do dynamic dispatch down the line, with match.
+// Idea: lock down what which ops are available given the generic param
+// and the generated blanket.
+// Collect the enums via the traits / blankets.
 // Pass enums / tuples down to the builder.
 
-type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
+pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 
-#[derive(PartialEq)]
-pub(crate) enum ConditionOp /*<T>*/ {
-    All,
-    Any,
+pub(crate) enum ConditionOp<Entity: OBBlanket> {
+    All(Vec<Condition<Entity>>),
+    Any(Vec<Condition<Entity>>),
 
     // IsNull,
     // NotNull,
@@ -31,8 +30,8 @@ pub(crate) enum ConditionOp /*<T>*/ {
     // NotOneOf(T),
 
     // TODO remove after writing the macro to generate
-    // Eq,
-    // NotEq,
+    // Eq(T),
+    // NotEq(T),
 
     // Between(T, T),
 
@@ -44,51 +43,48 @@ pub(crate) enum ConditionOp /*<T>*/ {
 pub struct Condition<Entity: OBBlanket> {
     phantom_data: PhantomData<Entity>,
     ids_and_type: Option<IdsAndType>,
-    op: ConditionOp,
-    group: Option<Vec<Condition<Entity>>>,
+    op: ConditionOp<Entity>,
 }
 
 impl<Entity: OBBlanket> Condition<Entity> {
-    fn from_group(new_op: ConditionOp, new_group: Vec<Condition<Entity>>) -> Self {
-        let mut new_root = Condition {
+    fn new_group(op: ConditionOp<Entity>) -> Condition<Entity> {
+        Condition {
             phantom_data: PhantomData,
             ids_and_type: None,
-            op: new_op,
-            group: None,
-        };
-
-        new_root.group = Some(new_group);
-        new_root
+            op,
+        }
     }
 
-    fn from_op(other: ConditionOp, ids_and_type: IdsAndType) -> Condition<Entity> {
+    fn new(ids_and_type: IdsAndType,
+        op: ConditionOp<Entity>) -> Condition<Entity> {
         Condition {
             phantom_data: PhantomData,
             ids_and_type: Some(ids_and_type),
-            op: other,
-            group: None,
+            op,
         }
     }
 
     pub fn or(self, that: Condition<Entity>) -> Condition<Entity> {
-        Self::from_group(ConditionOp::Any, vec![self, that])
+        Self::new_group(ConditionOp::Any(vec![self, that]))
     }
 
     pub fn and(self, that: Condition<Entity>) -> Condition<Entity> {
-        Self::from_group(ConditionOp::All, vec![self, that])
+        Self::new_group(ConditionOp::All( vec![self, that]))
     }
 
     pub fn or_any(self, mut those: Vec<Condition<Entity>>) -> Condition<Entity> {
         those.insert(0, self);
-        Self::from_group(ConditionOp::All, those)
+        Self::new_group(ConditionOp::Any(those))
     }
 
     pub fn and_all(self, mut those: Vec<Condition<Entity>>) -> Condition<Entity> {
         those.insert(0, self);
-        Self::from_group(ConditionOp::All, those)
+        Self::new_group(ConditionOp::All(those))
     }
 }
 
+// Don't overcomplicate the generic params, because blankets
+// depend on these, and it causes too much syntactical noise
 pub struct ConditionBuilder<Entity: OBBlanket> {
     phantom_data: PhantomData<Entity>,
     // entity_id: obx_schema_id, property_id: obx_schema_id, property_type: u8,
@@ -240,11 +236,11 @@ mod tests {
 
     impl<Entity: OBBlanket> PartialEq<Entity, u8> for ConditionBuilder<Entity> {
         fn eq(&self, other: u8) -> Condition<Entity> {
-            Condition::from_op(TestU8(other), self.get_parameters())
+            Condition::new_group(TestU8(other))
         }
 
         fn ne(&self, other: u8) -> Condition<Entity> {
-            Condition::from_op(TestU8(other), self.get_parameters())
+            Condition::new_group(TestU8(other))
         }
     }
 
