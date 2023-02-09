@@ -15,7 +15,7 @@ impl Drop for Model {
         if !self.ptr_consumed {
             self.error = c::call(
                 unsafe { c::obx_model_free(self.obx_model) },
-                "model::drop".to_string(),
+                Some("model::drop"),
             )
             .err();
             self.obx_model = std::ptr::null_mut();
@@ -29,7 +29,7 @@ impl Drop for Model {
 
 impl Model {
     pub fn new(builder: Box<EntityBuilder>) -> Self {
-        match c::new_mut(unsafe { c::obx_model() }, "model::new".to_string()) {
+        match c::new_mut(unsafe { c::obx_model() }, Some("model::new")) {
             Ok(c_ptr) => Model {
                 obx_model: c_ptr,
                 error: None,
@@ -51,7 +51,7 @@ impl Model {
             let c_name = ffi::CString::new(name).unwrap();
             self.error = c::call(
                 unsafe { c::obx_model_entity(self.obx_model, c_name.as_ptr(), id, uid) },
-                "model::entity".to_string(),
+                Some("model::entity"),
             )
             .err();
         }
@@ -89,7 +89,7 @@ impl Model {
         if self.error.is_none() {
             self.error = c::call(
                 unsafe { c::obx_model_entity_last_property_id(self.obx_model, id, uid) },
-                "model::last_property_id".to_string(),
+                Some("model::last_property_id"),
             )
             .err();
         }
@@ -119,7 +119,7 @@ impl Model {
 
             self.error = c::call(
                 unsafe { c::obx_model_property(self.obx_model, c_name.as_ptr(), typ, id, uid) },
-                "model::property1".to_string(),
+                Some("model::property1"),
             )
             .err();
 
@@ -129,7 +129,7 @@ impl Model {
 
             self.error = c::call(
                 unsafe { c::obx_model_property_flags(self.obx_model, flags) },
-                "model::property2".to_string(),
+                Some("model::property2"),
             )
             .err();
 
@@ -150,7 +150,7 @@ impl Model {
         if self.error.is_none() {
             self.error = c::call(
                 unsafe { c::obx_model_property_index_id(self.obx_model, id, uid) },
-                "model::property_index".to_string(),
+                Some("model::property_index"),
             )
             .err();
         }
@@ -176,7 +176,7 @@ impl Model {
                         index_uid,
                     )
                 },
-                "model::property_relation".to_string(),
+                Some("model::property_relation"),
             )
             .err();
         }
@@ -202,7 +202,7 @@ impl Model {
                         target_entity_uid,
                     )
                 },
-                "model::relation".to_string(),
+                Some("model::relation"),
             )
             .err();
         }

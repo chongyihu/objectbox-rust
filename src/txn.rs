@@ -15,7 +15,7 @@ impl Drop for Tx {
     fn drop(&mut self) {
         unsafe {
             if !self.ptr_closed && !self.obx_txn.is_null() {
-                self.error = c::call(c::obx_txn_close(self.obx_txn), "Tx::drop".to_string()).err();
+                self.error = c::call(c::obx_txn_close(self.obx_txn), Some("Tx::drop")).err();
                 self.obx_txn = std::ptr::null_mut();
             }
 
@@ -45,7 +45,7 @@ impl Tx {
     // TODO check memory leak
     // new will clean itself up with drop
     pub(crate) fn new(store: *mut c::OBX_store) -> Self {
-        match c::new_mut(unsafe { obx_txn_read(store) }, "Tx::new".to_string()) {
+        match c::new_mut(unsafe { obx_txn_read(store) }, Some("Tx::new")) {
             Ok(obx_txn) => Tx {
                 obx_txn,
                 error: None,
@@ -57,7 +57,7 @@ impl Tx {
 
     // new_mut requires calling `obx_txn_success`
     pub(crate) fn new_mut(store: *mut c::OBX_store) -> Self {
-        match c::new_mut(unsafe { obx_txn_write(store) }, "Tx::new_mut".to_string()) {
+        match c::new_mut(unsafe { obx_txn_write(store) }, Some("Tx::new_mut")) {
             Ok(obx_txn) => Tx {
                 obx_txn,
                 error: None,
@@ -71,7 +71,7 @@ impl Tx {
     pub(crate) fn success(&mut self) {
         self.error = c::call(
             unsafe { obx_txn_success(self.obx_txn) },
-            "Tx::success".to_string(),
+            Some("Tx::success"),
         )
         .err();
         if let Some(err) = &self.error {
@@ -82,11 +82,7 @@ impl Tx {
     }
 
     fn abort(&mut self) {
-        self.error = c::call(
-            unsafe { obx_txn_abort(self.obx_txn) },
-            "Tx::abort".to_string(),
-        )
-        .err();
+        self.error = c::call(unsafe { obx_txn_abort(self.obx_txn) }, Some("Tx::abort")).err();
     }
 
     // TODO open up for debugging
@@ -95,7 +91,7 @@ impl Tx {
         let mut size_change = 0;
         self.error = c::call(
             unsafe { obx_txn_data_size(self.obx_txn, &mut committed_size, &mut size_change) },
-            "Tx::data_size".to_string(),
+            Some("Tx::data_size"),
         )
         .err();
         (committed_size, size_change)

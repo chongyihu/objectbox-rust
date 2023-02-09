@@ -165,7 +165,7 @@ impl<T: OBBlanket> Box<'_, T> {
         let out_count: u64 = 0;
         self.error = c::call(
             unsafe { obx_box_remove_many(self.obx_box, ids, out_count as *mut u64) },
-            "box::remove_many_id_array".to_string(),
+            Some("box::remove_many_id_array"),
         )
         .err();
         out_count
@@ -459,7 +459,7 @@ impl<T: OBBlanket> Box<'_, T> {
             if code != SUCCESS_0 /* c::OBX_SUCCESS */ && code != NOT_FOUND_404
             /* c::OBX_NOT_FOUND */
             {
-                let err = c::call(code, "box::get_all".to_string()).err();
+                let err = c::call(code, Some("box::get_all")).err();
                 if let Some(err) = &err {
                     cursor.error = Some(err.to_owned());
                 }

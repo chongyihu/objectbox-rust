@@ -1,13 +1,10 @@
-#[allow(dead_code)]
-use std::ffi::CString;
 use std::path::Path;
-use std::ptr;
 use std::rc::Rc;
 
 use anymap::AnyMap;
 
 use crate::c::{self, *};
-use crate::error::{Error, self};
+use crate::error::{self, Error};
 
 use crate::opt::Opt;
 use crate::traits::{EntityFactoryExt, OBBlanket};
@@ -16,9 +13,9 @@ use crate::util::ToCChar;
 // Caveat: copy and drop are mutually exclusive
 
 pub struct Store {
-    pub trait_map: Option<AnyMap>, // passed as a ref to a Box
+    pub trait_map: AnyMap, // passed as a ref to a Box
     // TODO confirm: model and opt are cleaned up already and zero'ed, or else we'll have a double-free
-    // Leaky? repeatedly allocate model and opts, and intentionally fail each time
+    // TODO get rid of all panics
     pub(crate) error: Option<Error>,
     pub(crate) obx_store: *mut OBX_store, // TODO confirm: model and opt are cleaned up already
 }
@@ -40,49 +37,28 @@ impl Drop for Store {
 // TODO Bonus: start admin http in debug from store?
 
 impl Store {
-    // TODO pub fn from_model_callback() ... generated from open_store()
-
-    // TODO return Result<Self>, change the unit tests
-    pub fn from_options(opt: &mut Opt) -> Self {
-        if let Some(err) = &opt.error {
-            panic!("Error: store: {err}");
-        }
-        match c::new_mut(
-            unsafe { obx_store_open(opt.obx_opt) },
-            "store::from_options".to_string(),
-        ) {
-            Ok(obx_store) => {
-                opt.ptr_consumed = !obx_store.is_null();
-                Store {
-                    trait_map: None,
-                    error: None,
-                    obx_store,
-                }
-            }
-            Err(e) => Store {
-                trait_map: None,
-                error: Some(e),
-                obx_store: ptr::null_mut(),
-            },
+    /// Assumes ownership of map, and Opt,
+    pub fn new(mut opt: Opt, map: AnyMap) -> error::Result<Self> {
+        unsafe {
+            let obx_store = obx_store_open(opt.obx_opt);
+            // This prevents a double free
+            opt.ptr_consumed = !obx_store.is_null();
+            let r = Store {
+                trait_map: map,
+                error: None,
+                obx_store,
+            };
+            c::get_result_from_ptr(obx_store, r)
         }
     }
 
-    // TODO return Result, lose the panics, change the unit tests
-    pub fn get_box<T: 'static + OBBlanket>(&self) -> crate::r#box::Box<T> {
-        if let Some(err) = &self.error {
-            panic!("Error: store: {err}");
-        }
-        let map = if let Some(m) = &self.trait_map {
-            m
-        } else {
-            panic!("Error: unable to get box");
-        };
-        let helper = if let Some(h) = map.get::<Rc<dyn EntityFactoryExt<T>>>() {
+    pub fn get_box<T: 'static + OBBlanket>(&self) -> error::Result<crate::r#box::Box<T>> {
+        let helper = if let Some(h) = self.trait_map.get::<Rc<dyn EntityFactoryExt<T>>>() {
             h
         } else {
-            panic!("Error: unable to get entity helper");
+            Error::new_local("Error: unable to get entity helper").as_result()?
         };
-        crate::r#box::Box::<T>::new(self.obx_store, helper.clone())
+        Ok(crate::r#box::Box::<T>::new(self.obx_store, helper.clone()))
     }
 
     pub fn is_open(path: &Path) -> bool {
@@ -187,7 +163,7 @@ impl Store {
     pub fn debug_flags(&mut self, flags: OBXDebugFlags) -> &Self {
         self.error = c::call(
             unsafe { obx_store_debug_flags(self.obx_store, flags) },
-            "store::debug_flags".to_string(),
+            Some("store::debug_flags"),
         )
         .err();
         self
@@ -201,19 +177,19 @@ impl Store {
         Ok(r)
     }
 
-    pub(crate) fn prepare_to_close(&mut self) -> &Self {
+    fn prepare_to_close(&mut self) -> &Self {
         self.error = c::call(
             unsafe { obx_store_prepare_to_close(self.obx_store) },
-            "store::prepare_to_close".to_string(),
+            Some("store::prepare_to_close"),
         )
         .err();
         self
     }
 
-    pub(crate) fn close(&mut self) {
+    fn close(&mut self) {
         self.error = c::call(
             unsafe { obx_store_close(self.obx_store) },
-            "store::close".to_string(),
+            Some("store::close"),
         )
         .err();
     }

@@ -56,14 +56,12 @@ pub struct Entity {
 
 fn main() {
     let mut model = ob::make_model();
-    let mut opt = Opt::from_model(&mut model);
-    let mut store = Store::from_options(&mut opt);
-
+    let opt = Opt::from_model(&mut model);
     let trait_map = ob::make_factory_map();
-    store.trait_map = Some(trait_map);
+    let store = Store::new(opt, trait_map).expect("crash");
 
     // box is a reserved keyword use r#box or simply something else
-    let mut box1 = store.get_box::<Entity3>();
+    let mut box1 = store.get_box::<Entity3>().expect("crash");
 
     let mut e_before = Entity3 {
         id: 0,
@@ -157,18 +155,16 @@ mod tests {
     #[test]
     fn test_box_put_and_count_and_remove_all() {
         let mut model = ob::make_model();
-        let mut opt = Opt::from_model(&mut model);
-        let mut store = Store::from_options(&mut opt);
-
+        let opt = Opt::from_model(&mut model);
         let trait_map = ob::make_factory_map();
-        store.trait_map = Some(trait_map);
+        let store = Store::new(opt, trait_map).expect("crash");
 
-        let mut box3 = store.get_box::<Entity3>();
-        box3.remove_all();
-        let mut box2 = store.get_box::<Entity2>();
-        box2.remove_all();
-        let mut box1 = store.get_box::<Entity>();
-        box1.remove_all();
+        let mut box3 = store.get_box::<Entity3>().expect("crash");
+        box3.remove_all().expect("crash");
+        let mut box2 = store.get_box::<Entity2>().expect("crash");
+        box2.remove_all().expect("crash");
+        let mut box1 = store.get_box::<Entity>().expect("crash");
+        box1.remove_all().expect("crash");
 
         let trait_map2 = ob::make_factory_map();
         let f1 = trait_map2
@@ -202,31 +198,31 @@ mod tests {
         assert_eq!(false, e2.get_id() == 0);
         assert_eq!(false, e3.get_id() == 0);
 
-        assert_eq!(false, box1.is_empty().expect("no crash"));
-        assert_eq!(false, box2.is_empty().expect("no crash"));
-        assert_eq!(false, box3.is_empty().expect("no crash"));
+        assert_eq!(false, box1.is_empty().expect("crash"));
+        assert_eq!(false, box2.is_empty().expect("crash"));
+        assert_eq!(false, box3.is_empty().expect("crash"));
 
-        assert_eq!(1, box1.count().expect("no crash"));
-        assert_eq!(1, box2.count().expect("no crash"));
-        assert_eq!(1, box3.count().expect("no crash"));
-        assert_eq!(1, box1.count_with_limit(1).expect("no crash"));
-        assert_eq!(1, box2.count_with_limit(1).expect("no crash"));
-        assert_eq!(1, box3.count_with_limit(1).expect("no crash"));
-        assert_eq!(1, box1.count_with_cursor().expect("no crash"));
-        assert_eq!(1, box2.count_with_cursor().expect("no crash"));
-        assert_eq!(1, box3.count_with_cursor().expect("no crash"));
+        assert_eq!(1, box1.count().expect("crash"));
+        assert_eq!(1, box2.count().expect("crash"));
+        assert_eq!(1, box3.count().expect("crash"));
+        assert_eq!(1, box1.count_with_limit(1).expect("crash"));
+        assert_eq!(1, box2.count_with_limit(1).expect("crash"));
+        assert_eq!(1, box3.count_with_limit(1).expect("crash"));
+        assert_eq!(1, box1.count_with_cursor().expect("crash"));
+        assert_eq!(1, box2.count_with_cursor().expect("crash"));
+        assert_eq!(1, box3.count_with_cursor().expect("crash"));
 
-        box1.remove_all();
-        assert!(box1.is_empty().expect("no crash"));
-        assert_eq!(0, box1.count_with_cursor().expect("no crash"));
+        box1.remove_all().expect("crash");
+        assert!(box1.is_empty().expect("crash"));
+        assert_eq!(0, box1.count_with_cursor().expect("crash"));
 
-        box2.remove_all();
-        assert!(box2.is_empty().expect("no crash"));
-        assert_eq!(0, box2.count_with_cursor().expect("no crash"));
+        box2.remove_all().expect("crash");
+        assert!(box2.is_empty().expect("crash"));
+        assert_eq!(0, box2.count_with_cursor().expect("crash"));
 
-        box3.remove_all();
-        assert!(box3.is_empty().expect("no crash"));
-        assert_eq!(0, box3.count_with_cursor().expect("no crash"));
+        box3.remove_all().expect("crash");
+        assert!(box3.is_empty().expect("crash"));
+        assert_eq!(0, box3.count_with_cursor().expect("crash"));
 
         // put then get, then clear
         {
@@ -244,7 +240,7 @@ mod tests {
                     assert_eq!(0xFFF, opt.unwrap().t_u16);
                 }
             }
-            box1.remove_all();
+            box1.remove_all().expect("crash");
         }
 
         // put_many, get_many, get_all
@@ -275,7 +271,7 @@ mod tests {
 
         // contains*, remove_*
         {
-            box1.remove_all();
+            box1.remove_all().expect("crash");
 
             let mut ids = match box1.put_many(
                 vec![&mut f1.new_entity(), &mut f1.new_entity(),
@@ -297,7 +293,7 @@ mod tests {
                 Err(e) => panic!("{e}"),
             }
 
-            assert_ne!(true, box1.contains(404).expect("no crash"));
+            assert_ne!(true, box1.contains(404).expect("crash"));
 
             if let Ok(r) = box1.remove_with_id(404) {
                 assert_ne!(true, r);
@@ -309,7 +305,7 @@ mod tests {
                 Err(e) => panic!("{e}"),
             }
 
-            assert!(box1.is_empty().expect("no crash"));
+            assert!(box1.is_empty().expect("crash"));
         }
     }
 }

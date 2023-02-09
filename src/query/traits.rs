@@ -49,10 +49,7 @@ pub struct Condition<Entity: OBBlanket> {
 }
 
 impl<Entity: OBBlanket> Condition<Entity> {
-    fn from_group(
-        new_op: ConditionOp,
-        new_group: Vec<Condition<Entity>>,
-    ) -> Self {
+    fn from_group(new_op: ConditionOp, new_group: Vec<Condition<Entity>>) -> Self {
         let mut new_root = Condition {
             phantom_data: PhantomData,
             ids_and_type: None,
@@ -64,13 +61,13 @@ impl<Entity: OBBlanket> Condition<Entity> {
         new_root
     }
 
-    fn from_op(other: ConditionOp,  ids_and_type: IdsAndType) -> Condition<Entity> {
-      Condition {
-          phantom_data: PhantomData,
-          ids_and_type: Some(ids_and_type),
-          op: other,
-          group: None,
-      }
+    fn from_op(other: ConditionOp, ids_and_type: IdsAndType) -> Condition<Entity> {
+        Condition {
+            phantom_data: PhantomData,
+            ids_and_type: Some(ids_and_type),
+            op: other,
+            group: None,
+        }
     }
 
     pub fn or(self, that: Condition<Entity>) -> Condition<Entity> {
@@ -100,7 +97,7 @@ pub struct ConditionBuilder<Entity: OBBlanket> {
 
 impl<Entity: OBBlanket> ConditionBuilder<Entity> {
     fn get_parameters(&self) -> IdsAndType {
-      self.ids_and_type.clone()
+        self.ids_and_type.clone()
     }
 }
 
