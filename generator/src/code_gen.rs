@@ -378,6 +378,42 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
     }
 }
 
+
+// TODO Use later to generate more blankets
+/*
+fn generate_enum_values() -> Tokens<Rust> {
+    let mut buffer = String::new();
+    let pattern = "
+        Gt(T),
+        GreaterOrEq(T),
+        Lt(T),
+        LessOrEq(T),
+        OneOf(T),
+        NotOneOf(T),
+
+        Eq(T),
+        NotEq(T),
+
+        Between(T, T),
+    ";
+    for t in vec!["u8", "i8",
+    "u16", "i16", 
+    "u32", "i32", 
+    "u64", "i64", 
+    "String", "String",
+    "char", "VecU8", "VecString", ] {
+        let replace1 = pattern.replace("T", t);
+        let replaced2 = replace1.replace("(", format!("_{}(", t.to_uppercase()).as_str());
+        buffer.push_str(replaced2.as_str());
+    }
+    quote! {
+        enum ThrowAway {
+            $buffer
+        }
+    }
+}
+*/
+
 impl CodeGenExt for ModelInfo {
     fn generate_code(&self, dest_path: &PathBuf) {
         let tokens = &mut rust::Tokens::new();
@@ -390,6 +426,8 @@ impl CodeGenExt for ModelInfo {
 
         tokens.append(generate_model_fn(self));
         tokens.append(generate_factory_map_fn(self));
+        // TODO remove
+        // tokens.append(generate_enum_values());
 
         let vector = tokens_to_string(tokens);
 

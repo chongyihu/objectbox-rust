@@ -1,3 +1,5 @@
+#![allow(non_camel_case_types)]
+
 use crate::{c::*, traits::OBBlanket};
 use core::marker::PhantomData;
 use std::rc::Rc;
@@ -9,35 +11,7 @@ use std::rc::Rc;
 
 pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 
-pub(crate) enum ConditionOp<Entity: OBBlanket> {
-    All(Vec<Condition<Entity>>),
-    Any(Vec<Condition<Entity>>),
-
-    // IsNull,
-    // NotNull,
-    Contains(Vec<String>),
-    ContainsElement(String),
-    StartsWith(String),
-    EndsWith(String),
-
-    // TODO Actually type out all the concrete enum parameter types
-    // TODO or use a macro
-    // Gt(T),
-    // GreaterOrEq(T),
-    // Lt(T),
-    // LessOrEq(T),
-    // OneOf(T),
-    // NotOneOf(T),
-
-    // TODO remove after writing the macro to generate
-    // Eq(T),
-    // NotEq(T),
-
-    // Between(T, T),
-
-    // Test enums
-    TestU8(u8),
-}
+include!("./huge_enum.rs");
 
 /// All conditions are collected then passed on to a QueryBuilder
 pub struct Condition<Entity: OBBlanket> {
