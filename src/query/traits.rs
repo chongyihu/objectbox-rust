@@ -11,51 +11,8 @@ use std::rc::Rc;
 
 pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 
-include!("./huge_enum.rs");
-
-/// All conditions are collected then passed on to a QueryBuilder
-pub struct Condition<Entity: OBBlanket> {
-    phantom_data: PhantomData<Entity>,
-    ids_and_type: Option<IdsAndType>,
-    op: ConditionOp<Entity>,
-}
-
-impl<Entity: OBBlanket> Condition<Entity> {
-    fn new_group(op: ConditionOp<Entity>) -> Condition<Entity> {
-        Condition {
-            phantom_data: PhantomData,
-            ids_and_type: None,
-            op,
-        }
-    }
-
-    fn new(ids_and_type: IdsAndType,
-        op: ConditionOp<Entity>) -> Condition<Entity> {
-        Condition {
-            phantom_data: PhantomData,
-            ids_and_type: Some(ids_and_type),
-            op,
-        }
-    }
-
-    pub fn or(self, that: Condition<Entity>) -> Condition<Entity> {
-        Self::new_group(ConditionOp::Any(vec![self, that]))
-    }
-
-    pub fn and(self, that: Condition<Entity>) -> Condition<Entity> {
-        Self::new_group(ConditionOp::All( vec![self, that]))
-    }
-
-    pub fn or_any(self, mut those: Vec<Condition<Entity>>) -> Condition<Entity> {
-        those.insert(0, self);
-        Self::new_group(ConditionOp::Any(those))
-    }
-
-    pub fn and_all(self, mut those: Vec<Condition<Entity>>) -> Condition<Entity> {
-        those.insert(0, self);
-        Self::new_group(ConditionOp::All(those))
-    }
-}
+include!("./enums.rs");
+include!("./condition.rs");
 
 // Don't overcomplicate the generic params, because blankets
 // depend on these, and it causes too much syntactical noise
@@ -66,26 +23,25 @@ pub struct ConditionBuilder<Entity: OBBlanket> {
 }
 
 impl<Entity: OBBlanket> ConditionBuilder<Entity> {
-    fn get_parameters(&self) -> IdsAndType {
+    fn get_property_attrs(&self) -> IdsAndType {
         self.ids_and_type.clone()
     }
-}
 
-/*
-// Note: custom null trait (NullExt)
-is_null
-not_null
-*/
-// TODO put this directly into Condition, when values can be `Optional`
-// pub trait NullExt<Entity: OBBlanket> {
-//     fn is_null() -> Condition<Entity>;
-//     fn is_not_null() -> Condition<Entity>;
-// }
+    // TODO turn on when there is support for Option<*> properties
+    /*
+    pub fn is_null(&self) -> Condition<Entity> {
+        Condition::new(self.ids_and_type.clone(), IsNull)
+    }
+    pub fn is_not_null(&self) -> Condition<Entity> {
+        Condition::new(self.ids_and_type.clone(), NotNull)
+    }
+    */
+}
 
 // TODO figure out if std::ops really doesn't contain <, >, <=, >=
 // If op overloading has to be thru, the std::cmp::Partial{Ord,Eq}
 // then no op overloading, Because every op return type is bool.
-pub trait PartialEq<Entity: OBBlanket, Rhs>
+pub trait Eq<Entity: OBBlanket, Rhs>
 where
     Rhs: ?Sized,
 {
@@ -93,7 +49,7 @@ where
     fn ne(&self, other: Rhs) -> Condition<Entity>;
 }
 
-pub trait PartialOrd<Entity: OBBlanket, Rhs>
+pub trait Ord<Entity: OBBlanket, Rhs>
 where
     Rhs: ?Sized,
 {
@@ -103,22 +59,8 @@ where
     fn ge(&self, other: Rhs) -> Condition<Entity>;
 }
 
-/*
-// Note: PartialOrd, PartialEq, custom StringExt trait apply
-equals_string
-not_equals_string
-contains_string // custom
-contains_element_string // custom
-contains_key_value_string // wtf?
-starts_with_string // custom
-ends_with_string // custom
-greater_than_string
-greater_or_equal_string
-less_than_string
-less_or_equal_string
-in_strings // custom
-any_equals_string // custom
-*/
+
+
 pub trait StringExt<Entity: OBBlanket> {
     fn contains(s: &str) -> Condition<Entity>;
     fn contains_element(s: &str) -> Condition<Entity>;
@@ -127,97 +69,266 @@ pub trait StringExt<Entity: OBBlanket> {
     fn ends_with(s: &str) -> Condition<Entity>;
     // fn in_strings(&[&str]) -> Condition; // not sure about the name
     fn any_equals(list: &[&str]) -> Condition<Entity>; // not sure about the input type
+    fn case_sensitive(b: bool) -> Self;
 }
 
 // TODO blanket later
-// pub trait StringBlanket<T: OBBlanket>: StringExt<T> + PartialOrd + PartialEq {}
-// impl<T: OBBlanket> StringBlanket<T> for T
-// where
-//     T: StringExt<T> + PartialOrd + PartialEq,
-// {}
 
-// TODO blanket later
-// impl<T: OBBlanket> StringBlanket<T> for Condition<T>{}
-
-/*
-// Note: PartialOrd and PartialEq apply
-equals_int
-not_equals_int
-greater_than_int
-greater_or_equal_int
-less_than_int
-less_or_equal_int
-between_2ints // custom between trait
-*/
 trait BetweenExt<Entity: OBBlanket, SurroundType>
 where
     SurroundType: ?Sized,
 {
-    fn between(&self, this: SurroundType, that: SurroundType) -> Condition<Entity>;
+    fn between(&self, this: SurroundType, that: SurroundType) -> Condition<Entity>; 
 }
 
-/*
-// Note: custom in / not_in trait
-in_int64s
-not_in_int64s
-*/
-// in:reserved keyword
 trait InOutExt<Entity: OBBlanket, U>
 where
     U: Sized,
 {
-    fn member_of(&self, element: &Vec<U>) -> Condition<Entity>;
-    fn not_member_of(&self, element: &Vec<U>) -> Condition<Entity>;
+    fn member_of(&self, vec: Vec<U>) -> Condition<Entity>;
+    fn not_member_of(&self, vec: Vec<U>) -> Condition<Entity>;
 }
 
-/*
-// Note: custom in / not_in trait
-in_int32s
-not_in_int32s
+impl<Entity: OBBlanket> Eq<Entity, i64> for ConditionBuilder<Entity> {
+    fn eq(&self, other: i64) -> Condition<Entity> {
+        Condition::new_group(Eq_i64(other))
+    }
+    fn ne(&self, other: i64) -> Condition<Entity> {
+        Condition::new_group(Ne_i64(other))
+    }
+}
 
-// Note: Only PartialOrd applies here
-greater_than_double
-greater_or_equal_double
-less_than_double
-less_or_equal_double
-between_2doubles // custom between trait, don't implement like dart?
+impl<Entity: OBBlanket> Ord<Entity, i64> for ConditionBuilder<Entity> {
+    fn lt(&self, other: i64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Lt_i64(other))
+    }
+    fn gt(&self, other: i64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Gt_i64(other))
+    }
+    fn le(&self, other: i64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Le_i64(other))
+    }
+    fn ge(&self, other: i64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Ge_i64(other))
+    }
+}
 
-// Both PartialEq and PartialOrd apply
-equals_bytes
-greater_than_bytes
-greater_or_equal_bytes
-less_than_bytes
-less_or_equal_bytes
-*/
+impl<Entity: OBBlanket> Eq<Entity, f64> for ConditionBuilder<Entity> {
+    fn eq(&self, other: f64) -> Condition<Entity> {
+        Condition::new_group(Eq_f64(other))
+    }
+    fn ne(&self, other: f64) -> Condition<Entity> {
+        Condition::new_group(Ne_f64(other))
+    }
+}
 
-/*
-all
-any
-*/
+impl<Entity: OBBlanket> Ord<Entity, f64> for ConditionBuilder<Entity> {
+    fn lt(&self, other: f64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Lt_f64(other))
+    }
+    fn gt(&self, other: f64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Gt_f64(other))
+    }
+    fn le(&self, other: f64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Le_f64(other))
+    }
+    fn ge(&self, other: f64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Ge_f64(other))
+    }
+}
 
-// TODO
-// trait SetExt<Entity: OBBlanket> {
-//   or()
-//   and()
-// }
+impl<Entity: OBBlanket> Eq<Entity, String> for ConditionBuilder<Entity> {
+    fn eq(&self, other: String) -> Condition<Entity> {
+        Condition::new_group(Eq_string(other))
+    }
+    fn ne(&self, other: String) -> Condition<Entity> {
+        Condition::new_group(Ne_string(other))
+    }
+}
 
-// TODO order
+impl<Entity: OBBlanket> Ord<Entity, String> for ConditionBuilder<Entity> {
+    fn lt(&self, other: String) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Lt_string(other))
+    }
+    fn gt(&self, other: String) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Gt_string(other))
+    }
+    fn le(&self, other: String) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Le_string(other))
+    }
+    fn ge(&self, other: String) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Ge_string(other))
+    }
+}
+
+impl<Entity: OBBlanket> Eq<Entity, Vec<u8>> for ConditionBuilder<Entity> {
+    fn eq(&self, other: Vec<u8>) -> Condition<Entity> {
+        Condition::new_group(Eq_vecu8(other))
+    }
+    fn ne(&self, other: Vec<u8>) -> Condition<Entity> {
+        Condition::new_group(Ne_vecu8(other))
+    }
+}
+
+fn Eq_i64(_: i64) {}
+fn Ne_i64(_: i64) {}
+fn Lt_i64(_: i64) {}
+fn Gt_i64(_: i64) {}
+fn Le_i64(_: i64) {}
+fn Ge_i64(_: i64) {}
+fn Eq_f64(_: f64) {}
+fn Ne_f64(_: f64) {}
+fn Lt_f64(_: f64) {}
+fn Gt_f64(_: f64) {}
+fn Le_f64(_: f64) {}
+fn Ge_f64(_: f64) {}
+fn Eq_string(_: String) {}
+fn Ne_string(_: String) {}
+fn Lt_string(_: String) {}
+fn Gt_string(_: String) {}
+fn Le_string(_: String) {}
+fn Ge_string(_: String) {}
+fn Eq_vecu8(_: Vec<u8>) {}
+fn Ne_vecu8(_: Vec<u8>) {}
+fn Lt_vecu8(_: Vec<u8>) {}
+fn Gt_vecu8(_: Vec<u8>) {}
+fn Le_vecu8(_: Vec<u8>) {}
+fn Ge_vecu8(_: Vec<u8>) {}
+impl<Entity: OBBlanket> Ord<Entity, Vec<u8>> for ConditionBuilder<Entity> {
+    fn lt(&self, other: Vec<u8>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Lt_vecu8(other))
+    }
+    fn gt(&self, other: Vec<u8>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Gt_vecu8(other))
+    }
+    fn le(&self, other: Vec<u8>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Le_vecu8(other))
+    }
+    fn ge(&self, other: Vec<u8>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Ge_vecu8(other))
+    }
+}
+fn Eq_vecstring(_: Vec<String>) {}
+fn Ne_vecstring(_: Vec<String>) {}
+impl<Entity: OBBlanket> Eq<Entity, Vec<String>> for ConditionBuilder<Entity> {
+    fn eq(&self, other: Vec<String>) -> Condition<Entity> {
+        Condition::new_group(Eq_vecstring(other))
+    }
+    fn ne(&self, other: Vec<String>) -> Condition<Entity> {
+        Condition::new_group(Ne_vecstring(other))
+    }
+}
+fn Lt_vecstring(_: Vec<String>) {}
+fn Gt_vecstring(_: Vec<String>) {}
+fn Le_vecstring(_: Vec<String>) {}
+fn Ge_vecstring(_: Vec<String>) {}
+impl<Entity: OBBlanket> Ord<Entity, Vec<String>> for ConditionBuilder<Entity> {
+    fn lt(&self, other: Vec<String>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Lt_vecstring(other))
+    }
+    fn gt(&self, other: Vec<String>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Gt_vecstring(other))
+    }
+    fn le(&self, other: Vec<String>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Le_vecstring(other))
+    }
+    fn ge(&self, other: Vec<String>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Ge_vecstring(other))
+    }
+}
+fn Between_i64(_: i64, _: i64) {}
+impl<Entity: OBBlanket> BetweenExt<Entity, i64> for ConditionBuilder<Entity> {
+    fn between(&self, this: i64, that: i64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Between_i64(this, that))
+    }
+}
+fn Between_f64(_: f64, _: f64) {}
+impl<Entity: OBBlanket> BetweenExt<Entity, f64> for ConditionBuilder<Entity> {
+    fn between(&self, this: f64, that: f64) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), Between_f64(this, that))
+    }
+}
+fn In_i32(_: i32) {}
+fn NotIn_i32(_: i32) {}
+impl<Entity: OBBlanket> InOutExt<Entity, i32> for ConditionBuilder<Entity> {
+    fn member_of(&self, vec: Vec<i32>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), In_i32(vec))
+    }
+    fn not_member_of(&self, vec: Vec<i32>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), NotIn_i32(vec))
+    }
+}
+fn In_i64(_: i64) {}
+fn NotIn_i64(_: i64) {}
+impl<Entity: OBBlanket> InOutExt<Entity, i64> for ConditionBuilder<Entity> {
+    fn member_of(&self, vec: Vec<i64>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), In_i64(vec))
+    }
+    fn not_member_of(&self, vec: Vec<i64>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), NotIn_i64(vec))
+    }
+}
+fn In_String(_: String) {}
+fn NotIn_String(_: String) {}
+impl<Entity: OBBlanket> InOutExt<Entity, String> for ConditionBuilder<Entity> {
+    fn member_of(&self, vec: Vec<String>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), In_String(vec))
+    }
+    fn not_member_of(&self, vec: Vec<String>) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), NotIn_String(vec))
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::query::traits::ConditionOp::TestU8;
-
-    impl<Entity: OBBlanket> PartialEq<Entity, u8> for ConditionBuilder<Entity> {
+    use crate::query::traits::ConditionOp::*;
+/*
+    impl<Entity: OBBlanket> Eq<Entity, u8> for ConditionBuilder<Entity> {
         fn eq(&self, other: u8) -> Condition<Entity> {
-            Condition::new_group(TestU8(other))
+            Condition::new_group(eq_u8(other))
         }
 
         fn ne(&self, other: u8) -> Condition<Entity> {
-            Condition::new_group(TestU8(other))
+            Condition::new_group(eq_u8(other))
         }
     }
 
+    impl<Entity: OBBlanket> Ord<Entity, u8> for ConditionBuilder<Entity> {
+        fn lt(&self, other: u8) -> Condition<Entity> {
+            Condition::new(self.get_property_attrs(), lt_u8(other))
+        }
+
+        fn gt(&self, other: u8) -> Condition<Entity> {
+            Condition::new(self.get_property_attrs(), gt_u8(other))
+        }
+
+        fn le(&self, other: u8) -> Condition<Entity> {
+            Condition::new(self.get_property_attrs(), le_u8(other))
+        }
+
+        fn ge(&self, other: u8) -> Condition<Entity> {
+            Condition::new(self.get_property_attrs(), ge_u8(other))
+        }
+    }
+
+    impl<Entity: OBBlanket> BetweenExt<Entity, u8> for ConditionBuilder<Entity> {
+        fn between(&self, this: u8, that: u8) -> Condition<Entity> {
+            Condition::new(self.get_property_attrs(), between_u8(this, that))
+        }
+    }
+
+    impl<Entity: OBBlanket> InOutExt<Entity, u8> for ConditionBuilder<Entity> {
+        fn member_of(&self, vec: Vec<u8>) -> Condition<Entity> {
+            Condition::new(self.get_property_attrs(), OneOf_Vec_u8(vec))
+        }
+
+        fn not_member_of(&self, vec: Vec<u8>) -> Condition<Entity> {
+            Condition::new(self.get_property_attrs(), NotOneOf_u8(vec))
+        }
+    }
+*/
     #[test]
     fn trait_impl_test() {}
 }

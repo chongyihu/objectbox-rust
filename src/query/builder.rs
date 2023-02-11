@@ -98,8 +98,7 @@ impl<T: OBBlanket> Builder<T> {
     }
     */
 
-    // TODO create macro for property_id boilerplate
-    // TODO this belongs to trait PartialEq
+    // eq_String
     pub(crate) unsafe fn equals_string(
         &mut self,
         value: PtrConstChar,
@@ -113,6 +112,7 @@ impl<T: OBBlanket> Builder<T> {
         )
     }
 
+    // ne_String
     pub(crate) unsafe fn not_equals_string(
         &mut self,
         value: PtrConstChar,
@@ -128,6 +128,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
+    // contains_String
     pub(crate) unsafe fn contains_string(
         &mut self,
         value: PtrConstChar,
@@ -143,6 +144,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
+    // contains_element_String
     pub(crate) unsafe fn contains_element_string(
         &mut self,
         value: PtrConstChar,
@@ -158,6 +160,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
+    // contains_key_value_String
     pub(crate) unsafe fn contains_key_value_string(
         &mut self,
         key: PtrConstChar,
@@ -175,6 +178,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
+    // starts_with_String
     pub(crate) unsafe fn starts_with_string(
         &mut self,
         property_id: obx_schema_id,
@@ -191,6 +195,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
+    // ends_with_String
     pub(crate) unsafe fn ends_with_string(
         &mut self,
         value: PtrConstChar,
@@ -206,7 +211,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
-    // TODO this belongs to PartialOrd trait, gt >
+    // gt_String
     pub(crate) unsafe fn greater_than_string(
         &mut self,
         value: PtrConstChar,
@@ -222,7 +227,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
-    // TODO this belongs to trait PartialEq, ge >=
+    // ge_String
     pub(crate) unsafe fn greater_or_equal_string(
         &mut self,
         value: PtrConstChar,
@@ -238,7 +243,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
-    // TODO this belongs to trait PartialEq, < lt
+    // lt String
     pub(crate) unsafe fn less_than_string(
         &mut self,
         value: PtrConstChar,
@@ -254,7 +259,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
-    // TODO this belongs to trait PartialEq, <= le
+    // le_String
     pub(crate) unsafe fn less_or_equal_string(
         &mut self,
         value: PtrConstChar,
@@ -270,6 +275,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
+    // member_of_Strings / in_Strings
     pub(crate) unsafe fn in_strings(
         &mut self,
         values: *const PtrConstChar,
@@ -287,6 +293,7 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
+    // any_equals_String
     pub(crate) unsafe fn any_equals_string(
         &mut self,
         value: PtrConstChar,
@@ -302,75 +309,87 @@ impl<T: OBBlanket> Builder<T> {
         }
     }
 
-    // TODO PartialEq
+    // Eq (u8, i8, u16, i16, u32, i32, u64, i64)
     pub(crate) unsafe fn equals_int(&mut self, value: i64) -> obx_qb_cond {
         obx_qb_equals_int(self.obx_query_builder, self.property_id, value)
     }
 
-    // TODO PartialEq
+    // Ne (u8, i8, u16, i16, u32, i32, u64, i64)
     pub(crate) unsafe fn not_equals_int(&mut self, value: i64) -> obx_qb_cond {
         obx_qb_not_equals_int(self.obx_query_builder, self.property_id, value)
     }
 
-    // TODO PartialOrd
+    // Gt (u8, i8, u16, i16, u32, i32, u64, i64)
     pub(crate) unsafe fn greater_than_int(&mut self, value: i64) -> obx_qb_cond {
         obx_qb_greater_than_int(self.obx_query_builder, self.property_id, value)
     }
 
+    // Ge (u8, i8, u16, i16, u32, i32, u64, i64)
     pub(crate) unsafe fn greater_or_equal_int(&mut self, value: i64) -> obx_qb_cond {
         obx_qb_greater_or_equal_int(self.obx_query_builder, self.property_id, value)
     }
 
+    // Lt (u8, i8, u16, i16, u32, i32, u64, i64)
     pub(crate) unsafe fn less_than_int(&mut self, value: i64) -> obx_qb_cond {
         obx_qb_less_than_int(self.obx_query_builder, self.property_id, value)
     }
 
+    // Le (u8, i8, u16, i16, u32, i32, u64, i64)
     pub(crate) unsafe fn less_or_equal_int(&mut self, value: i64) -> obx_qb_cond {
         obx_qb_less_or_equal_int(self.obx_query_builder, self.property_id, value)
     }
 
+    // between (u8, i8, u16, i16, u32, i32, u64, i64)
     pub(crate) unsafe fn between_2ints(&mut self, value_a: i64, value_b: i64) -> obx_qb_cond {
         obx_qb_between_2ints(self.obx_query_builder, self.property_id, value_a, value_b)
     }
 
+    // in / member of (i64, u64?)
     pub(crate) unsafe fn in_int64s(&mut self, values: *const i64, count: usize) -> obx_qb_cond {
         obx_qb_in_int64s(self.obx_query_builder, self.property_id, values, count)
     }
 
+    // not in / not member of (i64, u64?)
     pub(crate) unsafe fn not_in_int64s(&mut self, values: *const i64, count: usize) -> obx_qb_cond {
         obx_qb_not_in_int64s(self.obx_query_builder, self.property_id, values, count)
     }
 
+    // in / member of (i32, u32?)
     pub(crate) unsafe fn in_int32s(&mut self, values: *const i32, count: usize) -> obx_qb_cond {
         obx_qb_in_int32s(self.obx_query_builder, self.property_id, values, count)
     }
 
+    // not in / not member of (i32, u32?)
     pub(crate) unsafe fn not_in_int32s(&self, values: *const i32, count: usize) -> obx_qb_cond {
         obx_qb_not_in_int32s(self.obx_query_builder, self.property_id, values, count)
     }
 
-    // TODO this belongs to trait PartialEq, gt >
+    // gt f64
     pub(crate) unsafe fn greater_than_double(&self, value: f64) -> obx_qb_cond {
         obx_qb_greater_than_double(self.obx_query_builder, self.property_id, value)
     }
 
-    // TODO this belongs to trait PartialEq, gt > etc.
+    // ge f64
     pub(crate) unsafe fn greater_or_equal_double(&self, value: f64) -> obx_qb_cond {
         obx_qb_greater_or_equal_double(self.obx_query_builder, self.property_id, value)
     }
 
+    // lt f64
     pub(crate) unsafe fn less_than_double(&self, value: f64) -> obx_qb_cond {
         obx_qb_less_than_double(self.obx_query_builder, self.property_id, value)
     }
 
+    // le f64
     pub(crate) unsafe fn less_or_equal_double(&self, value: f64) -> obx_qb_cond {
         obx_qb_less_or_equal_double(self.obx_query_builder, self.property_id, value)
     }
 
+    // between f64
     pub(crate) unsafe fn between_2doubles(&self, value_a: f64, value_b: f64) -> obx_qb_cond {
         obx_qb_between_2doubles(self.obx_query_builder, self.property_id, value_a, value_b)
     }
 
+    // eq Vec<u8>
     pub(crate) unsafe fn equals_bytes(
         &self,
         value: *const ::std::os::raw::c_void,
@@ -379,6 +398,7 @@ impl<T: OBBlanket> Builder<T> {
         obx_qb_equals_bytes(self.obx_query_builder, self.property_id, value, size)
     }
 
+    // gt Vec<u8>
     pub(crate) unsafe fn greater_than_bytes(
         &self,
         value: *const ::std::os::raw::c_void,
@@ -387,6 +407,7 @@ impl<T: OBBlanket> Builder<T> {
         obx_qb_greater_than_bytes(self.obx_query_builder, self.property_id, value, size)
     }
 
+    // ge Vec<u8>
     pub(crate) unsafe fn greater_or_equal_bytes(
         &self,
         value: *const ::std::os::raw::c_void,
@@ -395,6 +416,7 @@ impl<T: OBBlanket> Builder<T> {
         obx_qb_greater_or_equal_bytes(self.obx_query_builder, self.property_id, value, size)
     }
 
+    // lt Vec<u8>
     pub(crate) unsafe fn less_than_bytes(
         &self,
         value: *const ::std::os::raw::c_void,
@@ -403,6 +425,7 @@ impl<T: OBBlanket> Builder<T> {
         obx_qb_less_than_bytes(self.obx_query_builder, self.property_id, value, size)
     }
 
+    // le Vec<u8>
     pub(crate) unsafe fn less_or_equal_bytes(
         &self,
         value: *const ::std::os::raw::c_void,
