@@ -19,11 +19,17 @@ pub struct ConditionBuilder<Entity: OBBlanket> {
     phantom_data: PhantomData<Entity>,
     // entity_id: obx_schema_id, property_id: obx_schema_id, property_type: u8,
     ids_and_type: IdsAndType,
+    order_flags: u32,
 }
 
 impl<Entity: OBBlanket> ConditionBuilder<Entity> {
     fn get_property_attrs(&self) -> IdsAndType {
         self.ids_and_type.clone()
+    }
+
+    fn order_flags(&mut self, of: u32) -> &Self {
+        self.order_flags = of;
+        self
     }
 
     // TODO turn on when there is support for Option<*> properties
@@ -40,7 +46,7 @@ impl<Entity: OBBlanket> ConditionBuilder<Entity> {
 // TODO figure out if std::ops really doesn't contain <, >, <=, >=
 // If op overloading has to be thru, the std::cmp::Partial{Ord,Eq}
 // then no op overloading, Because every op return type is bool.
-pub trait Eq<Entity: OBBlanket, Rhs>
+pub trait EqExt<Entity: OBBlanket, Rhs>
 where
     Rhs: ?Sized,
 {
@@ -48,7 +54,7 @@ where
     fn ne(&self, other: Rhs) -> Condition<Entity>;
 }
 
-pub trait Ord<Entity: OBBlanket, Rhs>
+pub trait OrdExt<Entity: OBBlanket, Rhs>
 where
     Rhs: ?Sized,
 {
@@ -86,7 +92,7 @@ where
     fn not_member_of(&self, vec: Vec<U>) -> Condition<Entity>;
 }
 
-impl<Entity: OBBlanket> Eq<Entity, i64> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> EqExt<Entity, i64> for ConditionBuilder<Entity> {
     fn eq(&self, other: i64) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Eq_i64(other))
     }
@@ -95,7 +101,7 @@ impl<Entity: OBBlanket> Eq<Entity, i64> for ConditionBuilder<Entity> {
     }
 }
 
-impl<Entity: OBBlanket> Ord<Entity, i64> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> OrdExt<Entity, i64> for ConditionBuilder<Entity> {
     fn lt(&self, other: i64) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Lt_i64(other))
     }
@@ -110,7 +116,7 @@ impl<Entity: OBBlanket> Ord<Entity, i64> for ConditionBuilder<Entity> {
     }
 }
 
-impl<Entity: OBBlanket> Eq<Entity, f64> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> EqExt<Entity, f64> for ConditionBuilder<Entity> {
     fn eq(&self, other: f64) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Eq_f64(other))
     }
@@ -119,7 +125,7 @@ impl<Entity: OBBlanket> Eq<Entity, f64> for ConditionBuilder<Entity> {
     }
 }
 
-impl<Entity: OBBlanket> Ord<Entity, f64> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> OrdExt<Entity, f64> for ConditionBuilder<Entity> {
     fn lt(&self, other: f64) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Lt_f64(other))
     }
@@ -134,7 +140,7 @@ impl<Entity: OBBlanket> Ord<Entity, f64> for ConditionBuilder<Entity> {
     }
 }
 
-impl<Entity: OBBlanket> Eq<Entity, String> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> EqExt<Entity, String> for ConditionBuilder<Entity> {
     fn eq(&self, other: String) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Eq_string(other))
     }
@@ -143,7 +149,7 @@ impl<Entity: OBBlanket> Eq<Entity, String> for ConditionBuilder<Entity> {
     }
 }
 
-impl<Entity: OBBlanket> Ord<Entity, String> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> OrdExt<Entity, String> for ConditionBuilder<Entity> {
     fn lt(&self, other: String) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Lt_string(other))
     }
@@ -158,7 +164,7 @@ impl<Entity: OBBlanket> Ord<Entity, String> for ConditionBuilder<Entity> {
     }
 }
 
-impl<Entity: OBBlanket> Eq<Entity, Vec<u8>> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> EqExt<Entity, Vec<u8>> for ConditionBuilder<Entity> {
     fn eq(&self, other: Vec<u8>) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Eq_vecu8(other))
     }
@@ -167,7 +173,7 @@ impl<Entity: OBBlanket> Eq<Entity, Vec<u8>> for ConditionBuilder<Entity> {
     }
 }
 
-impl<Entity: OBBlanket> Ord<Entity, Vec<u8>> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> OrdExt<Entity, Vec<u8>> for ConditionBuilder<Entity> {
     fn lt(&self, other: Vec<u8>) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Lt_vecu8(other))
     }
@@ -181,7 +187,7 @@ impl<Entity: OBBlanket> Ord<Entity, Vec<u8>> for ConditionBuilder<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Ge_vecu8(other))
     }
 }
-impl<Entity: OBBlanket> Eq<Entity, Vec<String>> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> EqExt<Entity, Vec<String>> for ConditionBuilder<Entity> {
     fn eq(&self, other: Vec<String>) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Eq_vecstring(other))
     }
@@ -189,7 +195,7 @@ impl<Entity: OBBlanket> Eq<Entity, Vec<String>> for ConditionBuilder<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Ne_vecstring(other))
     }
 }
-impl<Entity: OBBlanket> Ord<Entity, Vec<String>> for ConditionBuilder<Entity> {
+impl<Entity: OBBlanket> OrdExt<Entity, Vec<String>> for ConditionBuilder<Entity> {
     fn lt(&self, other: Vec<String>) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Lt_vecstring(other))
     }
@@ -247,7 +253,6 @@ impl<Entity: OBBlanket> InOutExt<Entity, String> for ConditionBuilder<Entity> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::query::traits::ConditionOp::*;
 
     #[test]
     fn trait_impl_test() {}
