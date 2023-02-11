@@ -1,10 +1,10 @@
-#![allow(non_camel_case_types)]
-
-use crate::{c::*, traits::OBBlanket};
+use crate::traits::OBBlanket;
 use core::marker::PhantomData;
-use std::rc::Rc;
 
-use super::{condition::{Condition, IdsAndType}, enums::ConditionOp};
+use super::{
+    condition::{Condition, IdsAndType},
+    enums::ConditionOp,
+};
 
 // Idea: lock down what which ops are available given the generic param
 // and the generated blanket.
@@ -17,28 +17,35 @@ pub struct ConditionBuilder<Entity: OBBlanket> {
     phantom_data: PhantomData<Entity>,
     // entity_id: obx_schema_id, property_id: obx_schema_id, property_type: u8,
     ids_and_type: IdsAndType,
-    order_flags: Option<u32>,
 }
 
 impl<Entity: OBBlanket> ConditionBuilder<Entity> {
     fn get_property_attrs(&self) -> IdsAndType {
         self.ids_and_type.clone()
     }
+}
 
-    fn order_flags(&mut self, of: u32) -> &Self {
-        self.order_flags = Some(of);
-        self
+pub trait BasicExt<Entity: OBBlanket> {
+    fn order_flags(&mut self, of: u32) -> Condition<Entity>;
+
+    // TODO turn on when there is support for Option<*> properties
+
+    fn is_null(&self) -> Condition<Entity>;
+    fn is_not_null(&self) -> Condition<Entity>;
+}
+
+impl<Entity: OBBlanket> BasicExt<Entity> for ConditionBuilder<Entity> {
+    fn order_flags(&mut self, of: u32) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), ConditionOp::OrderFlags(of))
     }
 
     // TODO turn on when there is support for Option<*> properties
-    /*
-    pub fn is_null(&self) -> Condition<Entity> {
-        Condition::new(self.ids_and_type.clone(), IsNull)
+    fn is_null(&self) -> Condition<Entity> {
+        Condition::new(self.ids_and_type.clone(), ConditionOp::IsNull)
     }
-    pub fn is_not_null(&self) -> Condition<Entity> {
-        Condition::new(self.ids_and_type.clone(), NotNull)
+    fn is_not_null(&self) -> Condition<Entity> {
+        Condition::new(self.ids_and_type.clone(), ConditionOp::NotNull)
     }
-    */
 }
 
 // TODO figure out if std::ops really doesn't contain <, >, <=, >=
@@ -63,14 +70,56 @@ where
 }
 
 pub trait StringExt<Entity: OBBlanket> {
-    fn contains(s: &str) -> Condition<Entity>;
-    fn contains_element(s: &str) -> Condition<Entity>;
+    fn contains(&self, s: &str) -> Condition<Entity>;
+    fn contains_element(&self, s: &str) -> Condition<Entity>;
     // contains_key_value_string // huh?
-    fn starts_with(s: &str) -> Condition<Entity>;
-    fn ends_with(s: &str) -> Condition<Entity>;
+    fn starts_with(&self, s: &str) -> Condition<Entity>;
+    fn ends_with(&self, s: &str) -> Condition<Entity>;
     // fn in_strings(&[&str]) -> Condition; // not sure about the name
-    fn any_equals(list: &[&str]) -> Condition<Entity>; // not sure about the input type
-    fn case_sensitive(b: bool) -> Self;
+    fn any_equals(&self, list: &str) -> Condition<Entity>; // not sure about the input type
+    fn case_sensitive(&self, b: bool) -> Condition<Entity>;
+}
+
+impl<Entity: OBBlanket> StringExt<Entity> for ConditionBuilder<Entity> {
+    fn contains(&self, s: &str) -> Condition<Entity> {
+        Condition::new(
+            self.get_property_attrs(),
+            ConditionOp::Contains(s.to_string()),
+        )
+    }
+
+    fn contains_element(&self, s: &str) -> Condition<Entity> {
+        Condition::new(
+            self.get_property_attrs(),
+            ConditionOp::ContainsElement(s.to_string()),
+        )
+    }
+
+    fn starts_with(&self, s: &str) -> Condition<Entity> {
+        Condition::new(
+            self.get_property_attrs(),
+            ConditionOp::StartsWith(s.to_string()),
+        )
+    }
+
+    fn ends_with(&self, s: &str) -> Condition<Entity> {
+        Condition::new(
+            self.get_property_attrs(),
+            ConditionOp::EndsWith(s.to_string()),
+        )
+    }
+
+    fn any_equals(&self, s: &str) -> Condition<Entity> {
+        Condition::new(
+            self.get_property_attrs(),
+            ConditionOp::AnyEquals(s.to_string()),
+        )
+    }
+
+    /// The entire query will become case sensitive
+    fn case_sensitive(&self, b: bool) -> Condition<Entity> {
+        Condition::new(self.get_property_attrs(), ConditionOp::CaseSensitive(b))
+    }
 }
 
 // TODO blanket later in code_gen
@@ -250,65 +299,112 @@ impl<Entity: OBBlanket> InOutExt<Entity, String> for ConditionBuilder<Entity> {
 
 /// Blankets
 pub trait BoolBlanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i32>
 {
 }
 
 pub trait CharBlanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i32>
 {
 }
 
 pub trait I8Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i32>
 {
 }
 
 pub trait U8Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i32>
 {
 }
 
-pub trait F32Blanket<Entity: OBBlanket>: OrdExt<Entity, f64> + BetweenExt<Entity, f64> {}
-pub trait F64Blanket<Entity: OBBlanket>: OrdExt<Entity, f64> + BetweenExt<Entity, f64> {}
+pub trait F32Blanket<Entity: OBBlanket>:
+    BasicExt<Entity> + OrdExt<Entity, f64> + BetweenExt<Entity, f64>
+{
+}
+pub trait F64Blanket<Entity: OBBlanket>:
+    BasicExt<Entity> + OrdExt<Entity, f64> + BetweenExt<Entity, f64>
+{
+}
 
 pub trait I16Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i32>
 {
 }
 pub trait U16Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i32>
 {
 }
 
 pub trait I32Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i32>
 {
 }
 pub trait U32Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i32>
 {
 }
 
 pub trait I64Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i64>
 {
 }
 pub trait U64Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64>
+    BasicExt<Entity>
+    + EqExt<Entity, i64>
+    + OrdExt<Entity, i64>
+    + BetweenExt<Entity, i64>
+    + InOutExt<Entity, i64>
 {
 }
 
 pub trait VecU8Blanket<Entity: OBBlanket>:
-    EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>>
+    BasicExt<Entity> + EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>>
 {
 }
 pub trait VecStringBlanket<Entity: OBBlanket>:
-    EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>>
+    BasicExt<Entity> + EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>>
 {
 }
 pub trait StringBlanket<Entity: OBBlanket>:
-    EqExt<Entity, String>
+    BasicExt<Entity>
+    + EqExt<Entity, String>
     + OrdExt<Entity, String>
     + BetweenExt<Entity, String>
     + InOutExt<Entity, String>
@@ -316,73 +412,104 @@ pub trait StringBlanket<Entity: OBBlanket>:
 }
 
 impl<Entity: OBBlanket> F32Blanket<Entity> for Entity where
-    Entity: OrdExt<Entity, f64> + BetweenExt<Entity, f64>
+    Entity: BasicExt<Entity> + OrdExt<Entity, f64> + BetweenExt<Entity, f64>
 {
 }
 impl<Entity: OBBlanket> F64Blanket<Entity> for Entity where
-    Entity: OrdExt<Entity, f64> + BetweenExt<Entity, f64>
+    Entity: BasicExt<Entity> + OrdExt<Entity, f64> + BetweenExt<Entity, f64>
 {
 }
 impl<Entity: OBBlanket> BoolBlanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> CharBlanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> I8Blanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> U8Blanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> I16Blanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> U16Blanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> I32Blanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> U32Blanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> I64Blanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i64>
 {
 }
 impl<Entity: OBBlanket> U64Blanket<Entity> for Entity where
-    Entity:
-        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, i64>
+        + OrdExt<Entity, i64>
+        + BetweenExt<Entity, i64>
+        + InOutExt<Entity, i64>
 {
 }
 impl<Entity: OBBlanket> VecU8Blanket<Entity> for Entity where
-    Entity: EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>>
+    Entity: BasicExt<Entity> + EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>>
 {
 }
 impl<Entity: OBBlanket> VecStringBlanket<Entity> for Entity where
-    Entity: EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>>
+    Entity: BasicExt<Entity> + EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>>
 {
 }
 impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where
-    Entity: EqExt<Entity, String>
+    Entity: BasicExt<Entity>
+        + EqExt<Entity, String>
         + OrdExt<Entity, String>
         + BetweenExt<Entity, String>
         + InOutExt<Entity, String>
@@ -391,14 +518,14 @@ impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where
 
 #[cfg(test)]
 mod tests {
-    use crate::{traits, c};
+    use crate::{c, traits};
 
     use super::*;
 
     struct TEntity {
         id: u64,
     }
-    
+
     struct TEntity2 {
         id: u64,
     }
@@ -420,7 +547,7 @@ mod tests {
         }
         fn set_id(&mut self, id: c::obx_id) {}
     }
-    
+
     impl traits::FBOBBridge for TEntity2 {
         fn to_fb(&self, builder: &mut flatbuffers::FlatBufferBuilder) {}
     }
@@ -430,25 +557,32 @@ mod tests {
 
     #[test]
     fn trait_impl_test() {
+        use std::rc::Rc;
         let cb1: ConditionBuilder<TEntity> = ConditionBuilder {
             phantom_data: PhantomData,
             ids_and_type: Rc::new((1, 1, 1)),
-            order_flags: None,
         };
 
-        let cb2: ConditionBuilder<TEntity2> = ConditionBuilder {
+        let mut cb2: ConditionBuilder<TEntity2> = ConditionBuilder {
             phantom_data: PhantomData,
             ids_and_type: Rc::new((2, 2, 2)),
-            order_flags: None,
         };
 
         let boxed_cb1 = Box::new(cb1);
         let mock_condition1 = boxed_cb1.ge(0.0); // works, then F32 and F64 make it ambiguous
         let mock_condition2 = boxed_cb1.ge(0); // works, then I* and U* make it ambiguous
 
-
-        impl F64Blanket<TEntity2> for ConditionBuilder<TEntity2> {};
+        impl F64Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
         let retype_cb2: &dyn F64Blanket<TEntity2> = &cb2 as &dyn F64Blanket<TEntity2>;
         let between_cond = retype_cb2.between(0.000000000001, 2.0000000000000000000);
+
+        // Correct: Compile error, between belongs in a different table
+        // mock_condition1.and(between_cond).or(mock_condition2);
+
+        // Yes, same table
+        mock_condition1.and(mock_condition2);
+        let _ = &mut cb2.order_flags(1);
+
+        boxed_cb1.is_not_null(); // basic op, all properties should be capable of doing this check
     }
 }

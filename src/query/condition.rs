@@ -1,9 +1,9 @@
 use std::marker::PhantomData;
 use std::rc::Rc;
 
+use crate::c::obx_schema_id;
 use crate::query::enums::ConditionOp;
 use crate::traits::OBBlanket;
-use crate::c::obx_schema_id;
 
 pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 /// All conditions are collected then passed on to a QueryBuilder

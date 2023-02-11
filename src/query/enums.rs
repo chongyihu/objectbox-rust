@@ -1,5 +1,6 @@
+#![allow(non_camel_case_types)]
 pub(crate) enum ConditionOp {
-    Contains(Vec<String>),
+    Contains(String),
     ContainsElement(String),
     ContainsKeyValue(String, String),
     StartsWith(String),
@@ -14,7 +15,7 @@ pub(crate) enum ConditionOp {
     IsNull,
     NotNull,
 
-    OrderFlags, // u32
+    OrderFlags(u32),
 
     NoOp,
 
@@ -38,7 +39,7 @@ pub(crate) enum ConditionOp {
     Le_string(String),
     Ge_string(String),
     Eq_vecu8(Vec<u8>),
-    Ne_vecu8(Vec<u8>),
+    // Ne_vecu8(Vec<u8>), // No op
     Lt_vecu8(Vec<u8>),
     Gt_vecu8(Vec<u8>),
     Le_vecu8(Vec<u8>),
@@ -56,5 +57,5 @@ pub(crate) enum ConditionOp {
     In_i64(Vec<i64>),
     NotIn_i64(Vec<i64>),
     In_String(Vec<String>),
-    NotIn_String(Vec<String>),
+    // NotIn_String(Vec<String>), // No op
 }
