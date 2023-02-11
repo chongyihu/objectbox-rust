@@ -4,14 +4,12 @@ use crate::{c::*, traits::OBBlanket};
 use core::marker::PhantomData;
 use std::rc::Rc;
 
-use super::{condition::Condition, enums::ConditionOp};
+use super::{condition::{Condition, IdsAndType}, enums::ConditionOp};
 
 // Idea: lock down what which ops are available given the generic param
 // and the generated blanket.
 // Collect the enums via the traits / blankets.
 // Pass enums / tuples down to the builder.
-
-pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 
 // Don't overcomplicate the generic params, because blankets
 // depend on these, and it causes too much syntactical noise
@@ -19,7 +17,7 @@ pub struct ConditionBuilder<Entity: OBBlanket> {
     phantom_data: PhantomData<Entity>,
     // entity_id: obx_schema_id, property_id: obx_schema_id, property_type: u8,
     ids_and_type: IdsAndType,
-    order_flags: u32,
+    order_flags: Option<u32>,
 }
 
 impl<Entity: OBBlanket> ConditionBuilder<Entity> {
@@ -28,7 +26,7 @@ impl<Entity: OBBlanket> ConditionBuilder<Entity> {
     }
 
     fn order_flags(&mut self, of: u32) -> &Self {
-        self.order_flags = of;
+        self.order_flags = Some(of);
         self
     }
 
@@ -252,55 +250,205 @@ impl<Entity: OBBlanket> InOutExt<Entity, String> for ConditionBuilder<Entity> {
 
 /// Blankets
 pub trait BoolBlanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
 
 pub trait CharBlanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
 
 pub trait I8Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
 
 pub trait U8Blanket<Entity: OBBlanket>:
-    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
 
-pub trait F32Blanket<Entity: OBBlanket>: OrdExt<Entity, i64> + BetweenExt<Entity, i64> {}
-pub trait F64Blanket<Entity: OBBlanket>: OrdExt<Entity, i64> + BetweenExt<Entity, i64> {}
+pub trait F32Blanket<Entity: OBBlanket>: OrdExt<Entity, f64> + BetweenExt<Entity, f64> {}
+pub trait F64Blanket<Entity: OBBlanket>: OrdExt<Entity, f64> + BetweenExt<Entity, f64> {}
 
-pub trait I16Blanket<Entity: OBBlanket>: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-pub trait U16Blanket<Entity: OBBlanket>: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
+pub trait I16Blanket<Entity: OBBlanket>:
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+pub trait U16Blanket<Entity: OBBlanket>:
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
 
-pub trait I32Blanket<Entity: OBBlanket>: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-pub trait U32Blanket<Entity: OBBlanket>: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
+pub trait I32Blanket<Entity: OBBlanket>:
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+pub trait U32Blanket<Entity: OBBlanket>:
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
 
-pub trait I64Blanket<Entity: OBBlanket>: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64> {}
-pub trait U64Blanket<Entity: OBBlanket>: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64> {}
+pub trait I64Blanket<Entity: OBBlanket>:
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64>
+{
+}
+pub trait U64Blanket<Entity: OBBlanket>:
+    EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64>
+{
+}
 
-pub trait VecU8Blanket<Entity: OBBlanket>: EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>> {}
-pub trait VecStringBlanket<Entity: OBBlanket>: EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>> {}
-pub trait StringBlanket<Entity: OBBlanket>: EqExt<Entity, String> + OrdExt<Entity, String> + BetweenExt<Entity, String> + InOutExt<Entity, String> {}
+pub trait VecU8Blanket<Entity: OBBlanket>:
+    EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>>
+{
+}
+pub trait VecStringBlanket<Entity: OBBlanket>:
+    EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>>
+{
+}
+pub trait StringBlanket<Entity: OBBlanket>:
+    EqExt<Entity, String>
+    + OrdExt<Entity, String>
+    + BetweenExt<Entity, String>
+    + InOutExt<Entity, String>
+{
+}
 
-impl<Entity: OBBlanket> F32Blanket<Entity> for Entity where Entity: OrdExt<Entity, i64> + BetweenExt<Entity, i64> {}
-impl<Entity: OBBlanket> F64Blanket<Entity> for Entity where Entity: OrdExt<Entity, i64> + BetweenExt<Entity, i64> {}
-impl<Entity: OBBlanket> BoolBlanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-impl<Entity: OBBlanket> CharBlanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}        
-impl<Entity: OBBlanket> I8Blanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-impl<Entity: OBBlanket> U8Blanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-impl<Entity: OBBlanket> I16Blanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-impl<Entity: OBBlanket> U16Blanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-impl<Entity: OBBlanket> I32Blanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-impl<Entity: OBBlanket> U32Blanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32> {}
-impl<Entity: OBBlanket> I64Blanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64> {}
-impl<Entity: OBBlanket> U64Blanket<Entity> for Entity where Entity: EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64> {}
-impl<Entity: OBBlanket> VecU8Blanket<Entity> for Entity where Entity: EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>> {}
-impl<Entity: OBBlanket> VecStringBlanket<Entity> for Entity where Entity: EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>> {}
-impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where Entity: EqExt<Entity, String> + OrdExt<Entity, String> + BetweenExt<Entity, String> + InOutExt<Entity, String> {}
+impl<Entity: OBBlanket> F32Blanket<Entity> for Entity where
+    Entity: OrdExt<Entity, f64> + BetweenExt<Entity, f64>
+{
+}
+impl<Entity: OBBlanket> F64Blanket<Entity> for Entity where
+    Entity: OrdExt<Entity, f64> + BetweenExt<Entity, f64>
+{
+}
+impl<Entity: OBBlanket> BoolBlanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+impl<Entity: OBBlanket> CharBlanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+impl<Entity: OBBlanket> I8Blanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+impl<Entity: OBBlanket> U8Blanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+impl<Entity: OBBlanket> I16Blanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+impl<Entity: OBBlanket> U16Blanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+impl<Entity: OBBlanket> I32Blanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+impl<Entity: OBBlanket> U32Blanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i32>
+{
+}
+impl<Entity: OBBlanket> I64Blanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64>
+{
+}
+impl<Entity: OBBlanket> U64Blanket<Entity> for Entity where
+    Entity:
+        EqExt<Entity, i64> + OrdExt<Entity, i64> + BetweenExt<Entity, i64> + InOutExt<Entity, i64>
+{
+}
+impl<Entity: OBBlanket> VecU8Blanket<Entity> for Entity where
+    Entity: EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>>
+{
+}
+impl<Entity: OBBlanket> VecStringBlanket<Entity> for Entity where
+    Entity: EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>>
+{
+}
+impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where
+    Entity: EqExt<Entity, String>
+        + OrdExt<Entity, String>
+        + BetweenExt<Entity, String>
+        + InOutExt<Entity, String>
+{
+}
 
 #[cfg(test)]
 mod tests {
+    use crate::{traits, c};
+
     use super::*;
 
+    struct TEntity {
+        id: u64,
+    }
+    
+    struct TEntity2 {
+        id: u64,
+    }
+
+    impl traits::IdExt for TEntity {
+        fn get_id(&self) -> c::obx_id {
+            0
+        }
+        fn set_id(&mut self, id: c::obx_id) {}
+    }
+
+    impl traits::FBOBBridge for TEntity {
+        fn to_fb(&self, builder: &mut flatbuffers::FlatBufferBuilder) {}
+    }
+
+    impl traits::IdExt for TEntity2 {
+        fn get_id(&self) -> c::obx_id {
+            2
+        }
+        fn set_id(&mut self, id: c::obx_id) {}
+    }
+    
+    impl traits::FBOBBridge for TEntity2 {
+        fn to_fb(&self, builder: &mut flatbuffers::FlatBufferBuilder) {}
+    }
+
+    // conflicts with original generic one
+    // impl traits::OBBlanket for TEntity2 {}
+
     #[test]
-    fn trait_impl_test() {}
+    fn trait_impl_test() {
+        let cb1: ConditionBuilder<TEntity> = ConditionBuilder {
+            phantom_data: PhantomData,
+            ids_and_type: Rc::new((1, 1, 1)),
+            order_flags: None,
+        };
+
+        let cb2: ConditionBuilder<TEntity2> = ConditionBuilder {
+            phantom_data: PhantomData,
+            ids_and_type: Rc::new((2, 2, 2)),
+            order_flags: None,
+        };
+
+        let boxed_cb1 = Box::new(cb1);
+        let mock_condition1 = boxed_cb1.ge(0.0); // works, then F32 and F64 make it ambiguous
+        let mock_condition2 = boxed_cb1.ge(0); // works, then I* and U* make it ambiguous
+
+
+        impl F64Blanket<TEntity2> for ConditionBuilder<TEntity2> {};
+        let retype_cb2: &dyn F64Blanket<TEntity2> = &cb2 as &dyn F64Blanket<TEntity2>;
+        let between_cond = retype_cb2.between(0.000000000001, 2.0000000000000000000);
+    }
 }

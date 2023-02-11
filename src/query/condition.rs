@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
+use std::rc::Rc;
 
 use crate::query::enums::ConditionOp;
 use crate::traits::OBBlanket;
+use crate::c::obx_schema_id;
 
-use super::traits::IdsAndType;
-
+pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 /// All conditions are collected then passed on to a QueryBuilder
 pub struct Condition<Entity: OBBlanket> {
     phantom_data: PhantomData<Entity>,
@@ -18,11 +19,11 @@ pub struct Condition<Entity: OBBlanket> {
 
 impl<Entity: OBBlanket> Condition<Entity> {
     pub(crate) fn new_group(op: ConditionOp, group: Vec<Self>) -> Self {
-        Condition {
+        Self {
             phantom_data: PhantomData,
-            ids_and_type: None,
             op,
             group: Some(group),
+            ids_and_type: None::<IdsAndType>,
         }
     }
 
