@@ -41,6 +41,7 @@ trait CodeGenEntityExt {
     fn generate_id_trait(&self) -> Tokens<Rust>;
     fn generate_fb_trait(&self) -> Tokens<Rust>;
     fn generate_ob_trait(&self) -> Tokens<Rust>;
+    fn generate_trait_impls(&self) -> Tokens<Rust>;
 }
 
 fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
@@ -277,6 +278,10 @@ impl CodeGenEntityExt for ModelEntity {
           }
         }
     }
+
+    fn generate_trait_impls(&self) -> Tokens<Rust> {
+        quote!()
+    }
 }
 
 // TODO Fix visibility on all the trait extensions
@@ -378,7 +383,6 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
     }
 }
 
-// include!("./single_use_factory.rs");
 impl CodeGenExt for ModelInfo {
     fn generate_code(&self, dest_path: &PathBuf) {
         let tokens = &mut rust::Tokens::new();
@@ -387,13 +391,11 @@ impl CodeGenExt for ModelInfo {
             tokens.append(e.generate_id_trait());
             tokens.append(e.generate_fb_trait());
             tokens.append(e.generate_ob_trait());
+            tokens.append(e.generate_trait_impls());
         }
 
         tokens.append(generate_model_fn(self));
         tokens.append(generate_factory_map_fn(self));
-
-        // TODO remove after use
-        // tokens.append(generate_trait_impls());
 
         let vector = tokens_to_string(tokens);
 
