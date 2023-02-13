@@ -13,6 +13,7 @@ use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
 use crate::{cursor::Cursor, txn::Tx};
 use flatbuffers::FlatBufferBuilder;
 use crate::query::builder::Builder;
+use crate::query::Query;
 
 // This Box type will confuse a lot of rust users of std::boxed::Box
 pub struct Box<'a, T: OBBlanket> {
@@ -487,10 +488,17 @@ impl<T: OBBlanket> Box<'_, T> {
     // TODO
     // pub fn query_any(conditions: &Vec<Condition<T>>) -> Builder<T> {}
 
-    pub fn query(&self, root: &mut Condition<T>) -> error::Result<Builder<T>> {
+    /// Fetch the intermediate query builder, then if necessary call Builder::build()
+    pub fn query_builder(&self, root: &mut Condition<T>) -> error::Result<Builder<T>> {
         if let Some(err) = &self.error {
             Err(err.clone())?;
         }
         Builder::<T>::new(&self, root)
+    }
+
+    /// Immediately build the query
+    pub fn query(&self, root: &mut Condition<T>) -> error::Result<Query<T>> {
+        let mut builder = self.query_builder(root)?;
+        builder.build()
     }
 }
