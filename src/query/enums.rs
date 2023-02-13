@@ -1,4 +1,5 @@
 #![allow(non_camel_case_types)]
+
 pub(crate) enum ConditionOp {
     Contains(String),
     ContainsElement(String),

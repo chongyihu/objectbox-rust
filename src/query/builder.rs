@@ -6,14 +6,15 @@ use std::{marker::PhantomData, rc::Rc};
 // TODO depending on property type, allow only certain calls at compile time?
 // TODO compile time determined extension blanket traits?
 use crate::{
-    c::*,
+    c::{*, self},
     error,
     r#box::Box,
     traits::{EntityFactoryExt, OBBlanket},
     util::PtrConstChar,
 };
 
-use super::query::Query;
+use super::condition::Condition;
+use crate::query::Query;
 
 impl<T: OBBlanket> Drop for Builder<T> {
     fn drop(&mut self) {
@@ -32,39 +33,58 @@ pub struct Builder<T: OBBlanket> {
     error: Option<error::Error>,
     obx_store: *mut OBX_store,
     helper: Rc<dyn EntityFactoryExt<T>>,
-    property_id: obx_schema_id,
+    pub(crate) property_id: obx_schema_id,
     obx_query_builder: *mut OBX_query_builder,
     has_built_query: bool,
     phantom_data: PhantomData<T>,
 }
 
 impl<T: OBBlanket> Builder<T> {
-    pub fn new(box_store: &Box<T>, property_id: obx_schema_id) -> Self {
+    pub(crate) fn new(box_store: &Box<T>, condition: &mut Condition<T>) -> error::Result<Self> {
         let entity_id = box_store.helper.get_entity_id(); // call factory
         let obx_store = box_store.get_store();
-        assert!(!obx_store.is_null());
+        new_mut(obx_store, Some("Builder::new"))?;
         let obx_query_builder = unsafe { obx_query_builder(obx_store, entity_id) };
-        Builder {
+        new_mut(obx_query_builder, Some("Builder::new"))?;
+
+        // TODO check if the incoming condition matches the Box's entity ID
+
+        let mut builder = Builder {
             error: None,
             obx_store,
             helper: box_store.helper.clone(),
-            property_id,
+            property_id: 0,
             obx_query_builder,
             has_built_query: false,
             phantom_data: PhantomData,
+        };
+
+        condition.visit_dfs(&mut |c|builder.get_cond(c));
+        
+        if let Some(err) = &builder.error {
+            Err(err.clone())?;
         }
+
+        Ok(builder)
+    }
+
+    fn get_cond(&mut self, c: &mut Condition<T>) -> c::obx_qb_cond {
+        // TODO
+        // map enum to function, call function
+        // call obx_qb_error_code, handle with c::call
+        // assign to self.error, self.error gets handled by Self::build
+        0
     }
 
     pub fn build(&mut self) -> error::Result<Query<T>> {
         if let Some(err) = &self.error {
-            Err(err.clone())
-        } else {
-            let r = Query::new(self.obx_store, self.helper.clone(), self.obx_query_builder)?;
-            // iff a query is built properly, then do not drop, else drop
-            let query = get_result(self.error_code(), r)?;
-            self.has_built_query = true;
-            Ok(query)
+            Err(err.clone())?;
         }
+        let r = Query::new(self.obx_store, self.helper.clone(), self.obx_query_builder)?;
+        // iff a query is built properly, then do not drop, else drop
+        let query = get_result(self.error_code(), r)?;
+        self.has_built_query = true;
+        Ok(query)        
     }
 
     /// private, in case of double frees
@@ -86,17 +106,15 @@ impl<T: OBBlanket> Builder<T> {
         unsafe { obx_qb_error_message(self.obx_query_builder) }
     }
 
-    // TODO this should be implemented when Option<OB/FB Primitive> properties are supported
-    /*
+    // TODO implement Option<*> properties, or this will always return false
     pub(crate) unsafe fn is_null(&mut self) -> obx_qb_cond {
         obx_qb_null(self.obx_query_builder, self.property_id)
     }
 
-    // TODO this should be implemented when Option<OB/FB Primitive> properties are supported
+    // TODO implement Option<*> properties, or this will always return true
     pub(crate) unsafe fn not_null(&mut self) -> obx_qb_cond {
         obx_qb_not_null(self.obx_query_builder, self.property_id)
     }
-    */
 
     // eq_String
     pub(crate) unsafe fn equals_string(

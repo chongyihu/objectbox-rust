@@ -1,56 +1,80 @@
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use crate::c::obx_schema_id;
+use crate::c::{obx_schema_id, self};
 use crate::query::enums::ConditionOp;
 use crate::traits::OBBlanket;
 
+/// entity id, property id, property type
 pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 /// All conditions are collected then passed on to a QueryBuilder
+
 pub struct Condition<Entity: OBBlanket> {
     phantom_data: PhantomData<Entity>,
-    ids_and_type: Option<IdsAndType>,
+    ids_and_type: IdsAndType,
     op: ConditionOp,
     // This could have been a parameter the All/Any enum type
     // but it introduced syntactical noise due to generics
     // to the other enum values. Now we have a (directional) tree.
     group: Option<Vec<Self>>,
+    result: Option<c::obx_qb_cond>
 }
 
 impl<Entity: OBBlanket> Condition<Entity> {
-    pub(crate) fn new_group(op: ConditionOp, group: Vec<Self>) -> Self {
+    pub(crate) fn get_property_id(&self) -> c::obx_schema_id {
+        self.ids_and_type.1
+    }
+
+    pub(crate) fn get_entity_id(&self) -> c::obx_schema_id {
+        self.ids_and_type.0
+    }
+
+    pub(crate) fn new_group(ids_and_type: IdsAndType, op: ConditionOp, group: Vec<Self>) -> Self {
         Self {
             phantom_data: PhantomData,
+            ids_and_type: ids_and_type.clone(),
             op,
             group: Some(group),
-            ids_and_type: None::<IdsAndType>,
+            result: None,
         }
     }
 
     pub(crate) fn new(ids_and_type: IdsAndType, op: ConditionOp) -> Self {
         Self {
             phantom_data: PhantomData,
-            ids_and_type: Some(ids_and_type),
+            ids_and_type,
             op,
             group: None,
+            result: None,
         }
     }
 
     pub fn or(self, that: Condition<Entity>) -> Self {
-        Self::new_group(ConditionOp::Any, vec![self, that])
+        Self::new_group(self.ids_and_type.clone(), ConditionOp::Any, vec![self, that])
     }
 
     pub fn and(self, that: Condition<Entity>) -> Self {
-        Self::new_group(ConditionOp::All, vec![self, that])
+        Self::new_group(self.ids_and_type.clone(), ConditionOp::All, vec![self, that])
     }
 
     pub fn or_any(self, mut those: Vec<Condition<Entity>>) -> Self {
+        let id_t = self.ids_and_type.clone();
         those.insert(0, self);
-        Self::new_group(ConditionOp::Any, those)
+        Self::new_group(id_t, ConditionOp::Any, those)
     }
 
     pub fn and_all(self, mut those: Vec<Condition<Entity>>) -> Self {
+        let id_t = self.ids_and_type.clone();
         those.insert(0, self);
-        Self::new_group(ConditionOp::All, those)
+        Self::new_group(id_t, ConditionOp::All, those)
+    }
+
+    pub(crate) fn visit_dfs(&mut self, f: &mut impl FnMut (&mut Self) -> c::obx_qb_cond) {
+        if let Some(cs) = &mut self.group {
+            for c in cs {
+                c.visit_dfs(f)
+            }
+        }
+        self.result = Some(f(self));
     }
 }

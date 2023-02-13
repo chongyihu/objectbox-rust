@@ -6,10 +6,13 @@ use std::slice::from_raw_parts;
 use crate::c::{self, *};
 use crate::error::{self, Error};
 
+use crate::query;
+use crate::query::condition::Condition;
 use crate::traits::{EntityFactoryExt, OBBlanket};
 use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
 use crate::{cursor::Cursor, txn::Tx};
 use flatbuffers::FlatBufferBuilder;
+use crate::query::builder::Builder;
 
 // This Box type will confuse a lot of rust users of std::boxed::Box
 pub struct Box<'a, T: OBBlanket> {
@@ -476,5 +479,18 @@ impl<T: OBBlanket> Box<'_, T> {
         } else {
             Ok(r)
         }
+    }
+
+    // TODO
+    // pub fn query_all(conditions: &Vec<Condition<T>>) -> Builder<T> {}
+
+    // TODO
+    // pub fn query_any(conditions: &Vec<Condition<T>>) -> Builder<T> {}
+
+    pub fn query(&self, root: &mut Condition<T>) -> error::Result<Builder<T>> {
+        if let Some(err) = &self.error {
+            Err(err.clone())?;
+        }
+        Builder::<T>::new(&self, root)
     }
 }
