@@ -1,5 +1,5 @@
 use std::{
-    ffi::{CStr, CString, NulError},
+    ffi::{CStr, CString},
     marker::PhantomData,
     rc::Rc,
 };
@@ -44,6 +44,8 @@ pub struct Builder<T: OBBlanket> {
     phantom_data: PhantomData<T>,
 }
 
+/// The generic type should cause compile time errors
+/// if a condition from another table is passed
 impl<T: OBBlanket> Builder<T> {
     pub(crate) fn new(box_store: &Box<T>, condition: &mut Condition<T>) -> error::Result<Self> {
         let entity_id = box_store.helper.get_entity_id(); // call factory
@@ -51,8 +53,6 @@ impl<T: OBBlanket> Builder<T> {
         new_mut(obx_store, Some("Builder::new"))?;
         let obx_query_builder = unsafe { obx_query_builder(obx_store, entity_id) };
         new_mut(obx_query_builder, Some("Builder::new"))?;
-
-        // TODO check if the incoming condition matches the Box's entity ID
 
         let mut builder = Builder {
             error: None,

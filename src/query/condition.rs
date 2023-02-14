@@ -6,7 +6,7 @@ use crate::query::enums::ConditionOp;
 use crate::traits::OBBlanket;
 
 /// entity id, property id, property type
-pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
+pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, c::OBXPropertyType)>;
 /// All conditions are collected then passed on to a QueryBuilder
 
 pub struct Condition<Entity: OBBlanket> {

@@ -1,4 +1,5 @@
 use core::panic;
+use std::collections::HashSet;
 use std::fs;
 use std::path::PathBuf;
 
@@ -8,16 +9,29 @@ use genco::prelude::*;
 use crate::model_json::ModelEntity;
 use crate::model_json::ModelInfo;
 use crate::model_json::ModelProperty;
+use crate::model_json::prop_type_to_impl_blanket;
 use crate::ob_consts;
 
 trait StringHelper {
     fn as_comma_separated_str(&self) -> Tokens<Rust>;
+    fn get_entity_id(&self) -> Tokens<Rust>;
+    fn get_entity_uid(&self) -> Tokens<Rust>;
 }
 
 impl StringHelper for String {
     fn as_comma_separated_str(&self) -> Tokens<Rust> {
         let v: Vec<&str> = self.split(":").collect();
         quote!($(v[0]), $(v[1]))
+    }
+
+    fn get_entity_id(&self) -> Tokens<Rust> {
+        let v: Vec<&str> = self.split(":").collect();
+        quote!($(v[0]))
+    }
+
+    fn get_entity_uid(&self) -> Tokens<Rust> {
+        let v: Vec<&str> = self.split(":").collect();
+        quote!($(v[1]))
     }
 }
 
@@ -41,7 +55,7 @@ trait CodeGenEntityExt {
     fn generate_id_trait(&self) -> Tokens<Rust>;
     fn generate_fb_trait(&self) -> Tokens<Rust>;
     fn generate_ob_trait(&self) -> Tokens<Rust>;
-    fn generate_trait_impls(&self) -> Tokens<Rust>;
+    fn generate_query_trait_impls(&self) -> Tokens<Rust>;
 }
 
 fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
@@ -279,8 +293,40 @@ impl CodeGenEntityExt for ModelEntity {
         }
     }
 
-    fn generate_trait_impls(&self) -> Tokens<Rust> {
-        quote!()
+    fn generate_query_trait_impls(&self) -> Tokens<Rust> {
+        let ccb_fn = &rust::import("objectbox::query::traits", "create_condition_builder");
+        let cb = &rust::import("objectbox::query::traits", "ConditionBuilder");
+        let entity = &rust::import("crate", &self.name);
+
+        let cf_props = self
+        .properties
+        .iter()
+        .map(|p| p.to_condition_factory_struct_key_value(entity));
+
+        let cf_init_props = self
+        .properties
+        .iter()
+        .map(|p| p.to_condition_factory_init_dyn_cast(entity, self.id.get_entity_id()));
+
+        let entity_cf_fn_signature = quote! {
+            fn new_${self.name.to_lowercase()}_condition_factory() -> ${self.name}ConditionFactory
+        };
+
+        let vec_type_field: Vec<ob_consts::OBXPropertyType> = self.properties.iter().map(|p|p.type_field).collect();
+        let hash_set = HashSet::<ob_consts::OBXPropertyType>::from_iter(vec_type_field.iter().cloned());
+        let impls = hash_set.iter().map(|t|prop_type_to_impl_blanket(*t, entity));
+
+        quote! {
+            $(for p in impls join (, ) => $(p))
+            struct ${capitalized_name}ConditionFactory {
+                $(for p in cf_props join (, ) => $(p))
+            }
+            $entity_cf_fn_signature {
+                ${capitalized_name}ConditionFactory {
+                  $(for p in cf_init_props join (, ) => $(p))
+                }
+            }
+        }
     }
 }
 
@@ -391,7 +437,7 @@ impl CodeGenExt for ModelInfo {
             tokens.append(e.generate_id_trait());
             tokens.append(e.generate_fb_trait());
             tokens.append(e.generate_ob_trait());
-            tokens.append(e.generate_trait_impls());
+            tokens.append(e.generate_query_trait_impls());
         }
 
         tokens.append(generate_model_fn(self));

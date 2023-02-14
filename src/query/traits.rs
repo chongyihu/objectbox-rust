@@ -1,5 +1,6 @@
-use crate::traits::OBBlanket;
+use crate::{traits::OBBlanket, c};
 use core::marker::PhantomData;
+use std::rc::Rc;
 
 use super::{
     condition::{Condition, IdsAndType},
@@ -10,6 +11,13 @@ use super::{
 // and the generated blanket.
 // Collect the enums via the traits / blankets.
 // Pass enums / tuples down to the builder.
+
+pub fn create_condition_builder<T: OBBlanket, const ENTITY_ID: c::obx_schema_id, const PROPERTY_ID: c::obx_schema_id, const PROPERTY_TYPE: c::OBXPropertyType>() -> ConditionBuilder<T> {
+    ConditionBuilder {
+        phantom_data: PhantomData,
+        ids_and_type: Rc::new((ENTITY_ID, PROPERTY_ID, PROPERTY_TYPE)),
+    }
+}
 
 // Don't overcomplicate the generic params, because blankets
 // depend on these, and it causes too much syntactical noise
@@ -28,7 +36,7 @@ impl<Entity: OBBlanket> ConditionBuilder<Entity> {
 pub trait BasicExt<Entity: OBBlanket> {
     fn order_flags(&mut self, of: u32) -> Condition<Entity>;
 
-    // TODO turn on when there is support for Option<*> properties
+    // TODO test when there is support for Option<*> properties
 
     fn is_null(&self) -> Condition<Entity>;
     fn is_not_null(&self) -> Condition<Entity>;
@@ -39,7 +47,7 @@ impl<Entity: OBBlanket> BasicExt<Entity> for ConditionBuilder<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::OrderFlags(of))
     }
 
-    // TODO turn on when there is support for Option<*> properties
+    // TODO test when there is support for Option<*> properties
     fn is_null(&self) -> Condition<Entity> {
         Condition::new(self.ids_and_type.clone(), ConditionOp::IsNull)
     }
@@ -495,7 +503,9 @@ impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where
 
 #[cfg(test)]
 mod tests {
-    use crate::{c, traits};
+    use std::collections::HashMap;
+
+    use crate::traits;
 
     use super::*;
 
@@ -532,6 +542,11 @@ mod tests {
     // conflicts with original generic one
     // impl traits::OBBlanket for TEntity2 {}
 
+    struct EntityConditionFactories<'a> {
+        uniform: &'a dyn F64Blanket<TEntity2>,
+        charlie: &'a dyn F64Blanket<TEntity2>,
+    }
+
     #[test]
     fn trait_impl_test() {
         use std::rc::Rc;
@@ -549,9 +564,24 @@ mod tests {
         let mock_condition1 = boxed_cb1.ge(0.0); // works, then F32 and F64 make it ambiguous
         let mock_condition2 = boxed_cb1.ge(0); // works, then I* and U* make it ambiguous
 
+        // The  following lines need to be generated:
+        let _ = HashMap::<String, Box<dyn std::any::Any>>::new();
         impl F64Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
-        let retype_cb2: &dyn F64Blanket<TEntity2> = &cb2 as &dyn F64Blanket<TEntity2>;
-        let between_cond = retype_cb2.between(0.000000000001, 2.0000000000000000000);
+
+        // map.insert("name_of_field".to_string(), Box::<dyn F64Blanket<TEntity2>>::new(create_condition_builder::<TEntity2, 3, 3, 3>() as dyn F64Blanket<TEntity2>));
+
+        // works
+        let cb3 = &create_condition_builder::<TEntity2, 3, 3, 3>() as &dyn F64Blanket<TEntity2>;
+
+        // let retype_cb2: &dyn F64Blanket<TEntity2> = &cb2 as &dyn F64Blanket<TEntity2>;
+        let retype_cb2 = &cb2 as &dyn F64Blanket<TEntity2>;
+        let _ = retype_cb2.between(0.000000000001, 2.0000000000000000000);
+
+        let _ = EntityConditionFactories {
+            uniform: &create_condition_builder::<TEntity2, 1, 1, 1>() as &dyn F64Blanket<TEntity2>,
+            charlie: &cb2 as &dyn F64Blanket<TEntity2>
+        };
+        let _ = EntityConditionFactories { uniform: retype_cb2, charlie: retype_cb2 };
 
         // Correct: Compile error, between belongs in a different table
         // mock_condition1.and(between_cond).or(mock_condition2);
