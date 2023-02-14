@@ -400,7 +400,6 @@ pub trait StringBlanket<Entity: OBBlanket>:
     BasicExt<Entity>
     + EqExt<Entity, String>
     + OrdExt<Entity, String>
-    + BetweenExt<Entity, String>
     + InOutExt<Entity, String>
 {
 }
@@ -501,7 +500,6 @@ impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where
     Entity: BasicExt<Entity>
         + EqExt<Entity, String>
         + OrdExt<Entity, String>
-        + BetweenExt<Entity, String>
         + InOutExt<Entity, String>
 {
 }

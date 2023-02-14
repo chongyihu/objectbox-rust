@@ -11,6 +11,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::ob_consts;
+use crate::util::StringHelper;
 
 // TODO divide file into mod json::{info, entity, property}
 
@@ -312,46 +313,57 @@ impl ModelProperty {
         &self,
         entity_name: &genco::lang::rust::Import,
     ) -> Tokens<Rust> {
-        let type_double = &rust::import("objectbox::query::traits", "F64Blanket");
-        let type_float = &rust::import("objectbox::query::traits", "F32Blanket");
-        let type_long = &rust::import("objectbox::query::traits", "I64Blanket");
-        let type_int = &rust::import("objectbox::query::traits", "I32Blanket");
-        let type_char = &rust::import("objectbox::query::traits", "CharBlanket");
-        let type_short = &rust::import("objectbox::query::traits", "I16Blanket");
-        let type_bool = &rust::import("objectbox::query::traits", "BoolBlanket");
-        let type_byte = &rust::import("objectbox::query::traits", "I8Blanket");
-        let type_byte_vec = &rust::import("objectbox::query::traits", "VecU8Blanket");
-        let type_string = &rust::import("objectbox::query::traits", "StringBlanket");
+        let type_double =
+            &rust::import("objectbox::query::traits", "F64Blanket").with_module_alias("qtraits");
+        let type_float =
+            &rust::import("objectbox::query::traits", "F32Blanket").with_module_alias("qtraits");
+        let type_long =
+            &rust::import("objectbox::query::traits", "I64Blanket").with_module_alias("qtraits");
+        let type_int =
+            &rust::import("objectbox::query::traits", "I32Blanket").with_module_alias("qtraits");
+        let type_char =
+            &rust::import("objectbox::query::traits", "CharBlanket").with_module_alias("qtraits");
+        let type_short =
+            &rust::import("objectbox::query::traits", "I16Blanket").with_module_alias("qtraits");
+        let type_bool =
+            &rust::import("objectbox::query::traits", "BoolBlanket").with_module_alias("qtraits");
+        let type_byte =
+            &rust::import("objectbox::query::traits", "I8Blanket").with_module_alias("qtraits");
+        let type_byte_vec =
+            &rust::import("objectbox::query::traits", "VecU8Blanket").with_module_alias("qtraits");
+        let type_string =
+            &rust::import("objectbox::query::traits", "StringBlanket").with_module_alias("qtraits");
+        let name = &self.name;
         match self.type_field {
             ob_consts::OBXPropertyType_Double => quote! {
-                ${self.name}: &'a dyn $type_double<$entity_name>,
+                $name: &'a dyn $type_double<$entity_name>,
             },
             ob_consts::OBXPropertyType_Long => quote! {
-                ${self.name}: &'a dyn $type_long<$entity_name>,
+                $name: &'a dyn $type_long<$entity_name>,
             },
             ob_consts::OBXPropertyType_ByteVector => quote! {
-                ${self.name}: &'a dyn $type_byte_vec<$entity_name>,
+                $name: &'a dyn $type_byte_vec<$entity_name>,
             },
             ob_consts::OBXPropertyType_String => quote! {
-                ${self.name}: &'a dyn $type_string<$entity_name>,
+                $name: &'a dyn $type_string<$entity_name>,
             },
             ob_consts::OBXPropertyType_Float => quote! {
-                ${self.name}: &'a dyn $type_float<$entity_name>,
+                $name: &'a dyn $type_float<$entity_name>,
             },
             ob_consts::OBXPropertyType_Int => quote! {
-                ${self.name}: &'a dyn $type_int<$entity_name>,
+                $name: &'a dyn $type_int<$entity_name>,
             },
             ob_consts::OBXPropertyType_Char => quote! {
-                ${self.name}: &'a dyn $type_char<$entity_name>,
+                $name: &'a dyn $type_char<$entity_name>,
             },
             ob_consts::OBXPropertyType_Short => quote! {
-                ${self.name}: &'a dyn $type_short<$entity_name>,
+                $name: &'a dyn $type_short<$entity_name>,
             },
             ob_consts::OBXPropertyType_Bool => quote! {
-                ${self.name}: &'a dyn $type_bool<$entity_name>,
+                $name: &'a dyn $type_bool<$entity_name>,
             },
             ob_consts::OBXPropertyType_Byte => quote! {
-                ${self.name}: &'a dyn $type_byte<$entity_name>,
+                $name: &'a dyn $type_byte<$entity_name>,
             },
             _ => quote!(), // TODO refine this for the remaining types, no support for now
         }
@@ -362,50 +374,64 @@ impl ModelProperty {
         entity_name: &genco::lang::rust::Import,
         entity_id: Tokens<Rust>,
     ) -> Tokens<Rust> {
-        let type_double = &rust::import("objectbox::query::traits", "F64Blanket");
-        let type_float = &rust::import("objectbox::query::traits", "F32Blanket");
-        let type_long = &rust::import("objectbox::query::traits", "I64Blanket");
-        let type_int = &rust::import("objectbox::query::traits", "I32Blanket");
-        let type_char = &rust::import("objectbox::query::traits", "CharBlanket");
-        let type_short = &rust::import("objectbox::query::traits", "I16Blanket");
-        let type_bool = &rust::import("objectbox::query::traits", "BoolBlanket");
-        let type_byte = &rust::import("objectbox::query::traits", "I8Blanket");
-        let type_byte_vec = &rust::import("objectbox::query::traits", "VecU8Blanket");
-        let type_string = &rust::import("objectbox::query::traits", "StringBlanket");
-        let ccb_fn = &rust::import("objectbox::query::traits", "create_condition_builder");
+        let type_double =
+            &rust::import("objectbox::query::traits", "F64Blanket").with_module_alias("qtraits");
+        let type_float =
+            &rust::import("objectbox::query::traits", "F32Blanket").with_module_alias("qtraits");
+        let type_long =
+            &rust::import("objectbox::query::traits", "I64Blanket").with_module_alias("qtraits");
+        let type_int =
+            &rust::import("objectbox::query::traits", "I32Blanket").with_module_alias("qtraits");
+        let type_char =
+            &rust::import("objectbox::query::traits", "CharBlanket").with_module_alias("qtraits");
+        let type_short =
+            &rust::import("objectbox::query::traits", "I16Blanket").with_module_alias("qtraits");
+        let type_bool =
+            &rust::import("objectbox::query::traits", "BoolBlanket").with_module_alias("qtraits");
+        let type_byte =
+            &rust::import("objectbox::query::traits", "I8Blanket").with_module_alias("qtraits");
+        let type_byte_vec =
+            &rust::import("objectbox::query::traits", "VecU8Blanket").with_module_alias("qtraits");
+        let type_string =
+            &rust::import("objectbox::query::traits", "StringBlanket").with_module_alias("qtraits");
+        let ccb_fn = &rust::import("objectbox::query::traits", "create_condition_builder")
+            .with_module_alias("qtraits");
+
+        let name = &self.name;
+        let property_id = &self.id.get_id();
 
         // TODO refactor all of these copy paste monstrosities,
         // TODO starting from `self.type_field` -> `dyn $dyn_type<$entity_name>`, in the three related functions
         match self.type_field {
             ob_consts::OBXPropertyType_Double => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_double<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_double<$entity_name>,
             },
             ob_consts::OBXPropertyType_Long => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_long<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_long<$entity_name>,
             },
             ob_consts::OBXPropertyType_ByteVector => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_byte_vec<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_byte_vec<$entity_name>,
             },
             ob_consts::OBXPropertyType_String => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_string<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_string<$entity_name>,
             },
             ob_consts::OBXPropertyType_Float => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_float<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_float<$entity_name>,
             },
             ob_consts::OBXPropertyType_Int => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_int<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_int<$entity_name>,
             },
             ob_consts::OBXPropertyType_Char => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_char<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_char<$entity_name>,
             },
             ob_consts::OBXPropertyType_Short => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_short<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_short<$entity_name>,
             },
             ob_consts::OBXPropertyType_Bool => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_bool<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_bool<$entity_name>,
             },
             ob_consts::OBXPropertyType_Byte => quote! {
-                ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_byte<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_byte<$entity_name>,
             },
             _ => quote!(), // TODO refine this for the remaining types, no support for now
         }
@@ -417,18 +443,29 @@ pub(crate) fn prop_type_to_impl_blanket(
     type_field: ob_consts::OBXPropertyType,
     entity_name: &genco::lang::rust::Import,
 ) -> Tokens<Rust> {
-    let impl_double = &rust::import("objectbox::query::traits", "F64Blanket");
-    let impl_float = &rust::import("objectbox::query::traits", "F32Blanket");
-    let impl_long = &rust::import("objectbox::query::traits", "I64Blanket");
-    let impl_int = &rust::import("objectbox::query::traits", "I32Blanket");
-    let impl_char = &rust::import("objectbox::query::traits", "CharBlanket");
-    let impl_short = &rust::import("objectbox::query::traits", "I16Blanket");
-    let impl_bool = &rust::import("objectbox::query::traits", "BoolBlanket");
-    let impl_byte = &rust::import("objectbox::query::traits", "I8Blanket");
-    let impl_byte_vec = &rust::import("objectbox::query::traits", "VecU8Blanket");
-    let impl_string = &rust::import("objectbox::query::traits", "StringBlanket");
+    let impl_double =
+        &rust::import("objectbox::query::traits", "F64Blanket").with_module_alias("qtraits");
+    let impl_float =
+        &rust::import("objectbox::query::traits", "F32Blanket").with_module_alias("qtraits");
+    let impl_long =
+        &rust::import("objectbox::query::traits", "I64Blanket").with_module_alias("qtraits");
+    let impl_int =
+        &rust::import("objectbox::query::traits", "I32Blanket").with_module_alias("qtraits");
+    let impl_char =
+        &rust::import("objectbox::query::traits", "CharBlanket").with_module_alias("qtraits");
+    let impl_short =
+        &rust::import("objectbox::query::traits", "I16Blanket").with_module_alias("qtraits");
+    let impl_bool =
+        &rust::import("objectbox::query::traits", "BoolBlanket").with_module_alias("qtraits");
+    let impl_byte =
+        &rust::import("objectbox::query::traits", "I8Blanket").with_module_alias("qtraits");
+    let impl_byte_vec =
+        &rust::import("objectbox::query::traits", "VecU8Blanket").with_module_alias("qtraits");
+    let impl_string =
+        &rust::import("objectbox::query::traits", "StringBlanket").with_module_alias("qtraits");
 
-    let cb = &rust::import("objectbox::query::traits", "ConditionBuilder");
+    let cb =
+        &rust::import("objectbox::query::traits", "ConditionBuilder").with_module_alias("qtraits");
     match type_field {
         ob_consts::OBXPropertyType_Double => {
             quote! {
@@ -486,21 +523,60 @@ pub(crate) fn prop_type_to_impl_blanket(
 }
 
 #[cfg(test)]
-#[test]
-fn model_property_fluent_builder_test() {
-    let mp = ModelProperty {
-        id: "1:2".to_string(),
-        name: "name".to_string(),
-        type_field: 0,
-        flags: Some(0),
-        index_id: Some("2:3".to_string()),
-    };
-    let str = mp
-        .as_fluent_builder_invocation()
-        .to_string()
-        .expect("valid");
-    assert_eq!(
-        str,
-        ".property( \"name\", 1, 2, 0, 0 ).property_index(2, 3)"
-    );
+mod tests {
+    use super::*;
+
+    fn new_mp() -> ModelProperty {
+        ModelProperty {
+            id: "1:2".to_string(),
+            name: "name".to_string(),
+            type_field: 3,
+            flags: Some(0),
+            index_id: Some("2:3".to_string()),
+        }
+    }
+
+    #[test]
+    fn model_property_fluent_builder_test() {
+        let mp = new_mp();
+        let str = mp
+            .as_fluent_builder_invocation()
+            .to_string()
+            .expect("valid");
+        assert_eq!(
+            str,
+            ".property( \"name\", 1, 2, 3, 0 ).property_index(2, 3)"
+        );
+    }
+
+    #[test]
+    fn condition_builder_struct_test() {
+        let mp = new_mp();
+        let entity_name = &rust::import("crate", "some_entity");
+        let struct_a = quote! {
+            struct A<'a> {
+                $(mp.to_condition_factory_struct_key_value(entity_name))
+            }
+        };
+        assert_eq!(
+            "struct A<'a> { name: &'a dyn I16Blanket<some_entity> }",
+            struct_a.to_string().expect("meh")
+        );
+
+        // let code = structA.to_string().expect("explode");
+        // let code_parsed = syn::parse_str::<DeriveInput>(code.as_str()).expect("crash");
+    }
+
+    #[test]
+    fn condition_builder_init_struct_test() {
+        let mp = new_mp();
+        let entity_name = &rust::import("crate", "some_entity");
+        let id = mp.id.get_id();
+        let struct_a = quote! {
+            A {
+                $(mp.to_condition_factory_init_dyn_cast(entity_name, id))
+            }
+        };
+        assert_eq!("A { name: &create_condition_builder::<some_entity, 1, 1, 3> as &dyn I16Blanket<some_entity> }", struct_a.to_string().expect("meh"));
+    }
 }

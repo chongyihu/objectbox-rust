@@ -11,29 +11,7 @@ use crate::model_json::ModelEntity;
 use crate::model_json::ModelInfo;
 use crate::model_json::ModelProperty;
 use crate::ob_consts;
-
-trait StringHelper {
-    fn as_comma_separated_str(&self) -> Tokens<Rust>;
-    fn get_entity_id(&self) -> Tokens<Rust>;
-    fn get_entity_uid(&self) -> Tokens<Rust>;
-}
-
-impl StringHelper for String {
-    fn as_comma_separated_str(&self) -> Tokens<Rust> {
-        let v: Vec<&str> = self.split(":").collect();
-        quote!($(v[0]), $(v[1]))
-    }
-
-    fn get_entity_id(&self) -> Tokens<Rust> {
-        let v: Vec<&str> = self.split(":").collect();
-        quote!($(v[0]))
-    }
-
-    fn get_entity_uid(&self) -> Tokens<Rust> {
-        let v: Vec<&str> = self.split(":").collect();
-        quote!($(v[1]))
-    }
-}
+use crate::util::StringHelper;
 
 fn tokens_to_string(tokens: &Tokens<Rust>) -> Vec<u8> {
     let mut w = fmt::IoWriter::new(Vec::<u8>::new());
@@ -294,8 +272,6 @@ impl CodeGenEntityExt for ModelEntity {
     }
 
     fn generate_query_trait_impls(&self) -> Tokens<Rust> {
-        let ccb_fn = &rust::import("objectbox::query::traits", "create_condition_builder");
-        let cb = &rust::import("objectbox::query::traits", "ConditionBuilder");
         let entity = &rust::import("crate", &self.name);
 
         let cf_props = self
@@ -306,11 +282,10 @@ impl CodeGenEntityExt for ModelEntity {
         let cf_init_props = self
             .properties
             .iter()
-            .map(|p| p.to_condition_factory_init_dyn_cast(entity, self.id.get_entity_id()));
+            .map(|p| p.to_condition_factory_init_dyn_cast(entity, self.id.get_id()));
 
-        let entity_cf_fn_signature = quote! {
-            fn new_${self.name.to_lowercase()}_condition_factory() -> ${self.name}ConditionFactory
-        };
+        let name = self.name.as_str();
+        let name_lower_case = self.name.to_ascii_lowercase();
 
         let vec_type_field: Vec<ob_consts::OBXPropertyType> =
             self.properties.iter().map(|p| p.type_field).collect();
@@ -321,13 +296,13 @@ impl CodeGenEntityExt for ModelEntity {
             .map(|t| prop_type_to_impl_blanket(*t, entity));
 
         quote! {
-            $(for p in impls join (, ) => $(p))
-            struct ${capitalized_name}ConditionFactory {
-                $(for p in cf_props join (, ) => $(p))
+            $(for p in impls join () => $(p))
+            struct $(name)ConditionFactory<'a> {
+                $(for p in cf_props join () => $(p))
             }
-            $entity_cf_fn_signature {
-                ${capitalized_name}ConditionFactory {
-                  $(for p in cf_init_props join (, ) => $(p))
+            fn new_$(name_lower_case)_condition_factory() -> $(name)ConditionFactory<'static> {
+                $(name)ConditionFactory {
+                  $(for p in cf_init_props join () => $(p))
                 }
             }
         }

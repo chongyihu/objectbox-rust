@@ -2,8 +2,7 @@ extern crate objectbox;
 
 use objectbox::{macros::entity, opt::Opt, store::Store};
 
-// uncomment the next two lines
-// when the mod hasn't been generated yet
+/// Run `cargo build` twice, ignore the errors
 mod objectbox_gen;
 use objectbox_gen as ob;
 

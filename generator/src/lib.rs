@@ -1,6 +1,7 @@
 pub mod id;
 pub mod model_json;
 pub mod ob_consts;
+pub mod util;
 
 use glob::glob;
 use model_json::{ModelEntity, ModelInfo};
