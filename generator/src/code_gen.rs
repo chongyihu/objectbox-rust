@@ -6,10 +6,10 @@ use std::path::PathBuf;
 use genco::fmt;
 use genco::prelude::*;
 
+use crate::model_json::prop_type_to_impl_blanket;
 use crate::model_json::ModelEntity;
 use crate::model_json::ModelInfo;
 use crate::model_json::ModelProperty;
-use crate::model_json::prop_type_to_impl_blanket;
 use crate::ob_consts;
 
 trait StringHelper {
@@ -299,22 +299,26 @@ impl CodeGenEntityExt for ModelEntity {
         let entity = &rust::import("crate", &self.name);
 
         let cf_props = self
-        .properties
-        .iter()
-        .map(|p| p.to_condition_factory_struct_key_value(entity));
+            .properties
+            .iter()
+            .map(|p| p.to_condition_factory_struct_key_value(entity));
 
         let cf_init_props = self
-        .properties
-        .iter()
-        .map(|p| p.to_condition_factory_init_dyn_cast(entity, self.id.get_entity_id()));
+            .properties
+            .iter()
+            .map(|p| p.to_condition_factory_init_dyn_cast(entity, self.id.get_entity_id()));
 
         let entity_cf_fn_signature = quote! {
             fn new_${self.name.to_lowercase()}_condition_factory() -> ${self.name}ConditionFactory
         };
 
-        let vec_type_field: Vec<ob_consts::OBXPropertyType> = self.properties.iter().map(|p|p.type_field).collect();
-        let hash_set = HashSet::<ob_consts::OBXPropertyType>::from_iter(vec_type_field.iter().cloned());
-        let impls = hash_set.iter().map(|t|prop_type_to_impl_blanket(*t, entity));
+        let vec_type_field: Vec<ob_consts::OBXPropertyType> =
+            self.properties.iter().map(|p| p.type_field).collect();
+        let hash_set =
+            HashSet::<ob_consts::OBXPropertyType>::from_iter(vec_type_field.iter().cloned());
+        let impls = hash_set
+            .iter()
+            .map(|t| prop_type_to_impl_blanket(*t, entity));
 
         quote! {
             $(for p in impls join (, ) => $(p))

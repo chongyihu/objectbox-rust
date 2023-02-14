@@ -308,7 +308,10 @@ impl ModelProperty {
         }
     }
 
-    pub(crate) fn to_condition_factory_struct_key_value(&self, entity_name: &genco::lang::rust::Import) -> Tokens<Rust> {
+    pub(crate) fn to_condition_factory_struct_key_value(
+        &self,
+        entity_name: &genco::lang::rust::Import,
+    ) -> Tokens<Rust> {
         let type_double = &rust::import("objectbox::query::traits", "F64Blanket");
         let type_float = &rust::import("objectbox::query::traits", "F32Blanket");
         let type_long = &rust::import("objectbox::query::traits", "I64Blanket");
@@ -320,41 +323,45 @@ impl ModelProperty {
         let type_byte_vec = &rust::import("objectbox::query::traits", "VecU8Blanket");
         let type_string = &rust::import("objectbox::query::traits", "StringBlanket");
         match self.type_field {
-            ob_consts::OBXPropertyType_Double => quote!{
+            ob_consts::OBXPropertyType_Double => quote! {
                 ${self.name}: &'a dyn $type_double<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Long => quote!{
+            ob_consts::OBXPropertyType_Long => quote! {
                 ${self.name}: &'a dyn $type_long<$entity_name>,
             },
-            ob_consts::OBXPropertyType_ByteVector => quote!{
+            ob_consts::OBXPropertyType_ByteVector => quote! {
                 ${self.name}: &'a dyn $type_byte_vec<$entity_name>,
             },
-            ob_consts::OBXPropertyType_String => quote!{
+            ob_consts::OBXPropertyType_String => quote! {
                 ${self.name}: &'a dyn $type_string<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Float => quote!{
+            ob_consts::OBXPropertyType_Float => quote! {
                 ${self.name}: &'a dyn $type_float<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Int => quote!{
+            ob_consts::OBXPropertyType_Int => quote! {
                 ${self.name}: &'a dyn $type_int<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Char => quote!{
+            ob_consts::OBXPropertyType_Char => quote! {
                 ${self.name}: &'a dyn $type_char<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Short => quote!{
+            ob_consts::OBXPropertyType_Short => quote! {
                 ${self.name}: &'a dyn $type_short<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Bool => quote!{
+            ob_consts::OBXPropertyType_Bool => quote! {
                 ${self.name}: &'a dyn $type_bool<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Byte => quote!{
+            ob_consts::OBXPropertyType_Byte => quote! {
                 ${self.name}: &'a dyn $type_byte<$entity_name>,
             },
             _ => quote!(), // TODO refine this for the remaining types, no support for now
         }
     }
 
-    pub(crate) fn to_condition_factory_init_dyn_cast(&self, entity_name: &genco::lang::rust::Import, entity_id: Tokens<Rust>) -> Tokens<Rust> {
+    pub(crate) fn to_condition_factory_init_dyn_cast(
+        &self,
+        entity_name: &genco::lang::rust::Import,
+        entity_id: Tokens<Rust>,
+    ) -> Tokens<Rust> {
         let type_double = &rust::import("objectbox::query::traits", "F64Blanket");
         let type_float = &rust::import("objectbox::query::traits", "F32Blanket");
         let type_long = &rust::import("objectbox::query::traits", "I64Blanket");
@@ -370,34 +377,34 @@ impl ModelProperty {
         // TODO refactor all of these copy paste monstrosities,
         // TODO starting from `self.type_field` -> `dyn $dyn_type<$entity_name>`, in the three related functions
         match self.type_field {
-            ob_consts::OBXPropertyType_Double => quote!{
+            ob_consts::OBXPropertyType_Double => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_double<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Long => quote!{
+            ob_consts::OBXPropertyType_Long => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_long<$entity_name>,
             },
-            ob_consts::OBXPropertyType_ByteVector => quote!{
+            ob_consts::OBXPropertyType_ByteVector => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_byte_vec<$entity_name>,
             },
-            ob_consts::OBXPropertyType_String => quote!{
+            ob_consts::OBXPropertyType_String => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_string<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Float => quote!{
+            ob_consts::OBXPropertyType_Float => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_float<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Int => quote!{
+            ob_consts::OBXPropertyType_Int => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_int<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Char => quote!{
+            ob_consts::OBXPropertyType_Char => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_char<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Short => quote!{
+            ob_consts::OBXPropertyType_Short => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_short<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Bool => quote!{
+            ob_consts::OBXPropertyType_Bool => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_bool<$entity_name>,
             },
-            ob_consts::OBXPropertyType_Byte => quote!{
+            ob_consts::OBXPropertyType_Byte => quote! {
                 ${self.name}: &$ccb_fn::<$entity_name, $entity_id, ${self.property_id}, ${self.type_field}> as &dyn $type_byte<$entity_name>,
             },
             _ => quote!(), // TODO refine this for the remaining types, no support for now
@@ -406,7 +413,10 @@ impl ModelProperty {
 }
 
 /// Use unique set of OBXPropertyType to generate the required blankets
-pub(crate) fn prop_type_to_impl_blanket(type_field: ob_consts::OBXPropertyType, entity_name: &genco::lang::rust::Import) -> Tokens<Rust> {
+pub(crate) fn prop_type_to_impl_blanket(
+    type_field: ob_consts::OBXPropertyType,
+    entity_name: &genco::lang::rust::Import,
+) -> Tokens<Rust> {
     let impl_double = &rust::import("objectbox::query::traits", "F64Blanket");
     let impl_float = &rust::import("objectbox::query::traits", "F32Blanket");
     let impl_long = &rust::import("objectbox::query::traits", "I64Blanket");
@@ -424,57 +434,56 @@ pub(crate) fn prop_type_to_impl_blanket(type_field: ob_consts::OBXPropertyType, 
             quote! {
                 impl $impl_double<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_Long => {
             quote! {
                 impl $impl_long<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_ByteVector => {
             quote! {
                 impl $impl_byte_vec<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_String => {
             quote! {
                 impl $impl_string<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_Float => {
             quote! {
                 impl $impl_float<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_Int => {
             quote! {
                 impl $impl_int<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_Char => {
             quote! {
                 impl $impl_char<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_Short => {
             quote! {
                 impl $impl_short<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_Bool => {
             quote! {
                 impl $impl_bool<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         ob_consts::OBXPropertyType_Byte => {
             quote! {
                 impl $impl_byte<$entity_name> for $cb<$entity_name> {}
             }
-        },
+        }
         // ob_consts::OBXPropertyType_StringVector => 2,
         _ => quote!(), // TODO refine this for the remaining types, no support for now
     }
 }
-
 
 #[cfg(test)]
 #[test]
@@ -486,6 +495,12 @@ fn model_property_fluent_builder_test() {
         flags: Some(0),
         index_id: Some("2:3".to_string()),
     };
-    let str = mp.as_fluent_builder_invocation().to_string().expect("valid");
-    assert_eq!(str, ".property( \"name\", 1, 2, 0, 0 ).property_index(2, 3)");
+    let str = mp
+        .as_fluent_builder_invocation()
+        .to_string()
+        .expect("valid");
+    assert_eq!(
+        str,
+        ".property( \"name\", 1, 2, 0, 0 ).property_index(2, 3)"
+    );
 }

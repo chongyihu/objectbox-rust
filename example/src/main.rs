@@ -273,23 +273,26 @@ mod tests {
         {
             box1.remove_all().expect("crash");
 
-            let mut ids = match box1.put_many(
-                vec![&mut f1.new_entity(), &mut f1.new_entity(),
-                            &mut f1.new_entity(), &mut f1.new_entity(),
-                            &mut f1.new_entity()]) {
+            let mut ids = match box1.put_many(vec![
+                &mut f1.new_entity(),
+                &mut f1.new_entity(),
+                &mut f1.new_entity(),
+                &mut f1.new_entity(),
+                &mut f1.new_entity(),
+            ]) {
                 Err(e) => panic!("{e}"),
                 Ok(ids) => ids,
             };
 
             match box1.contains_many(&ids) {
-                Ok(v) => assert!(v.iter().all(|b|*b)),
+                Ok(v) => assert!(v.iter().all(|b| *b)),
                 Err(e) => panic!("{e}"),
             }
 
             ids.push(404);
 
             match box1.contains_many(&ids) {
-                Ok(v) => assert!(v.iter().any(|b|!*b)),
+                Ok(v) => assert!(v.iter().any(|b| !*b)),
                 Err(e) => panic!("{e}"),
             }
 

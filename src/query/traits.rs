@@ -1,4 +1,4 @@
-use crate::{traits::OBBlanket, c};
+use crate::{c, traits::OBBlanket};
 use core::marker::PhantomData;
 use std::rc::Rc;
 
@@ -12,7 +12,12 @@ use super::{
 // Collect the enums via the traits / blankets.
 // Pass enums / tuples down to the builder.
 
-pub fn create_condition_builder<T: OBBlanket, const ENTITY_ID: c::obx_schema_id, const PROPERTY_ID: c::obx_schema_id, const PROPERTY_TYPE: c::OBXPropertyType>() -> ConditionBuilder<T> {
+pub fn create_condition_builder<
+    T: OBBlanket,
+    const ENTITY_ID: c::obx_schema_id,
+    const PROPERTY_ID: c::obx_schema_id,
+    const PROPERTY_TYPE: c::OBXPropertyType,
+>() -> ConditionBuilder<T> {
     ConditionBuilder {
         phantom_data: PhantomData,
         ids_and_type: Rc::new((ENTITY_ID, PROPERTY_ID, PROPERTY_TYPE)),
@@ -579,9 +584,12 @@ mod tests {
 
         let _ = EntityConditionFactories {
             uniform: &create_condition_builder::<TEntity2, 1, 1, 1>() as &dyn F64Blanket<TEntity2>,
-            charlie: &cb2 as &dyn F64Blanket<TEntity2>
+            charlie: &cb2 as &dyn F64Blanket<TEntity2>,
         };
-        let _ = EntityConditionFactories { uniform: retype_cb2, charlie: retype_cb2 };
+        let _ = EntityConditionFactories {
+            uniform: retype_cb2,
+            charlie: retype_cb2,
+        };
 
         // Correct: Compile error, between belongs in a different table
         // mock_condition1.and(between_cond).or(mock_condition2);
