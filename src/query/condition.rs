@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use crate::c::{obx_schema_id, self};
+use crate::c::{self, obx_schema_id};
 use crate::query::enums::ConditionOp;
 use crate::traits::OBBlanket;
 
@@ -12,12 +12,12 @@ pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, u8)>;
 pub struct Condition<Entity: OBBlanket> {
     phantom_data: PhantomData<Entity>,
     ids_and_type: IdsAndType,
-    op: ConditionOp,
+    pub(crate) op: ConditionOp,
     // This could have been a parameter the All/Any enum type
     // but it introduced syntactical noise due to generics
     // to the other enum values. Now we have a (directional) tree.
-    group: Option<Vec<Self>>,
-    result: Option<c::obx_qb_cond>
+    pub(crate) group: Option<Vec<Self>>,
+    pub(crate) result: Option<c::obx_qb_cond>,
 }
 
 impl<Entity: OBBlanket> Condition<Entity> {
@@ -50,11 +50,19 @@ impl<Entity: OBBlanket> Condition<Entity> {
     }
 
     pub fn or(self, that: Condition<Entity>) -> Self {
-        Self::new_group(self.ids_and_type.clone(), ConditionOp::Any, vec![self, that])
+        Self::new_group(
+            self.ids_and_type.clone(),
+            ConditionOp::Any,
+            vec![self, that],
+        )
     }
 
     pub fn and(self, that: Condition<Entity>) -> Self {
-        Self::new_group(self.ids_and_type.clone(), ConditionOp::All, vec![self, that])
+        Self::new_group(
+            self.ids_and_type.clone(),
+            ConditionOp::All,
+            vec![self, that],
+        )
     }
 
     pub fn or_any(self, mut those: Vec<Condition<Entity>>) -> Self {
@@ -69,12 +77,23 @@ impl<Entity: OBBlanket> Condition<Entity> {
         Self::new_group(id_t, ConditionOp::All, those)
     }
 
-    pub(crate) fn visit_dfs(&mut self, f: &mut impl FnMut (&mut Self) -> c::obx_qb_cond) {
+    pub(crate) fn collect_children_results(&self) -> Vec<c::obx_qb_cond> {
+        let mut vec = Vec::<c::obx_qb_cond>::new();
+        if let Some(children) = &self.group {
+            for c in children {
+                vec.push(c.result.map_or(0, |v| v));
+            }
+        }
+        vec
+    }
+
+    pub(crate) fn visit_dfs(&mut self, f: &mut impl FnMut(&mut Self) -> c::obx_qb_cond) {
         if let Some(cs) = &mut self.group {
             for c in cs {
                 c.visit_dfs(f)
             }
         }
-        self.result = Some(f(self));
+        let i = f(self);
+        self.result = if i == 0 { None } else { Some(i) }
     }
 }

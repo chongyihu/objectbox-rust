@@ -6,7 +6,7 @@ use super::{
     enums::ConditionOp,
 };
 
-// Idea: lock down what which ops are available given the generic param
+// Idea: lock down which ops are available given the generic param
 // and the generated blanket.
 // Collect the enums via the traits / blankets.
 // Pass enums / tuples down to the builder.
@@ -72,10 +72,10 @@ where
 pub trait StringExt<Entity: OBBlanket> {
     fn contains(&self, s: &str) -> Condition<Entity>;
     fn contains_element(&self, s: &str) -> Condition<Entity>;
-    // contains_key_value_string // huh?
+    fn contains_key_value(&self, start: &str, end: &str) -> Condition<Entity>;
     fn starts_with(&self, s: &str) -> Condition<Entity>;
     fn ends_with(&self, s: &str) -> Condition<Entity>;
-    // fn in_strings(&[&str]) -> Condition; // not sure about the name
+    fn in_strings(&self, vec: &Vec<String>) -> Condition<Entity>;
     fn any_equals(&self, list: &str) -> Condition<Entity>; // not sure about the input type
     fn case_sensitive(&self, b: bool) -> Condition<Entity>;
 }
@@ -120,6 +120,20 @@ impl<Entity: OBBlanket> StringExt<Entity> for ConditionBuilder<Entity> {
     fn case_sensitive(&self, b: bool) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::CaseSensitive(b))
     }
+
+    fn contains_key_value(&self, start: &str, end: &str) -> Condition<Entity> {
+        Condition::new(
+            self.get_property_attrs(),
+            ConditionOp::ContainsKeyValue(String::from(start), String::from(end)),
+        )
+    }
+
+    fn in_strings(&self, vec: &Vec<String>) -> Condition<Entity> {
+        Condition::new(
+            self.get_property_attrs(),
+            ConditionOp::In_String(vec.to_vec()),
+        )
+    }
 }
 
 // TODO blanket later in code_gen
@@ -160,15 +174,6 @@ impl<Entity: OBBlanket> OrdExt<Entity, i64> for ConditionBuilder<Entity> {
     }
     fn ge(&self, other: i64) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Ge_i64(other))
-    }
-}
-
-impl<Entity: OBBlanket> EqExt<Entity, f64> for ConditionBuilder<Entity> {
-    fn eq(&self, other: f64) -> Condition<Entity> {
-        Condition::new(self.get_property_attrs(), ConditionOp::Eq_f64(other))
-    }
-    fn ne(&self, other: f64) -> Condition<Entity> {
-        Condition::new(self.get_property_attrs(), ConditionOp::Ne_f64(other))
     }
 }
 
@@ -234,28 +239,7 @@ impl<Entity: OBBlanket> OrdExt<Entity, Vec<u8>> for ConditionBuilder<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::Ge_vecu8(other))
     }
 }
-impl<Entity: OBBlanket> EqExt<Entity, Vec<String>> for ConditionBuilder<Entity> {
-    fn eq(&self, other: Vec<String>) -> Condition<Entity> {
-        Condition::new(self.get_property_attrs(), ConditionOp::Eq_vecstring(other))
-    }
-    fn ne(&self, other: Vec<String>) -> Condition<Entity> {
-        Condition::new(self.get_property_attrs(), ConditionOp::Ne_vecstring(other))
-    }
-}
-impl<Entity: OBBlanket> OrdExt<Entity, Vec<String>> for ConditionBuilder<Entity> {
-    fn lt(&self, other: Vec<String>) -> Condition<Entity> {
-        Condition::new(self.get_property_attrs(), ConditionOp::Lt_vecstring(other))
-    }
-    fn gt(&self, other: Vec<String>) -> Condition<Entity> {
-        Condition::new(self.get_property_attrs(), ConditionOp::Gt_vecstring(other))
-    }
-    fn le(&self, other: Vec<String>) -> Condition<Entity> {
-        Condition::new(self.get_property_attrs(), ConditionOp::Le_vecstring(other))
-    }
-    fn ge(&self, other: Vec<String>) -> Condition<Entity> {
-        Condition::new(self.get_property_attrs(), ConditionOp::Ge_vecstring(other))
-    }
-}
+
 impl<Entity: OBBlanket> BetweenExt<Entity, i64> for ConditionBuilder<Entity> {
     fn between(&self, this: i64, that: i64) -> Condition<Entity> {
         Condition::new(
@@ -398,10 +382,7 @@ pub trait VecU8Blanket<Entity: OBBlanket>:
     BasicExt<Entity> + EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>>
 {
 }
-pub trait VecStringBlanket<Entity: OBBlanket>:
-    BasicExt<Entity> + EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>>
-{
-}
+
 pub trait StringBlanket<Entity: OBBlanket>:
     BasicExt<Entity>
     + EqExt<Entity, String>
@@ -501,10 +482,6 @@ impl<Entity: OBBlanket> U64Blanket<Entity> for Entity where
 }
 impl<Entity: OBBlanket> VecU8Blanket<Entity> for Entity where
     Entity: BasicExt<Entity> + EqExt<Entity, Vec<u8>> + OrdExt<Entity, Vec<u8>>
-{
-}
-impl<Entity: OBBlanket> VecStringBlanket<Entity> for Entity where
-    Entity: BasicExt<Entity> + EqExt<Entity, Vec<String>> + OrdExt<Entity, Vec<String>>
 {
 }
 impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where

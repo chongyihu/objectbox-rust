@@ -51,7 +51,7 @@ impl Opt {
 
     pub fn directory(&mut self, dir: &Path) -> &mut Self {
         self.error = call(
-            unsafe { obx_opt_directory(self.obx_opt, dir.to_c_char()) },
+            unsafe { obx_opt_directory(self.obx_opt, dir.as_c_char_ptr()) },
             Some("opt::directory"),
         )
         .err();

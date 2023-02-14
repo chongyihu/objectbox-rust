@@ -62,7 +62,7 @@ impl Store {
     }
 
     pub fn is_open(path: &Path) -> bool {
-        unsafe { obx_store_is_open(path.to_c_char()) }
+        unsafe { obx_store_is_open(path.as_c_char_ptr()) }
     }
 
     // TODO support later

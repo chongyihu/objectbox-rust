@@ -1,4 +1,8 @@
-use std::{marker::PhantomData, rc::Rc};
+use std::{
+    ffi::{CStr, CString, NulError},
+    marker::PhantomData,
+    rc::Rc,
+};
 
 // TODO write macro for boilerplate: fn obx_query_something(...) -> obx_err, rewrite to get_result,
 // TODO use rusty result operators (or, or_else, ? etc.) to chain results
@@ -6,11 +10,11 @@ use std::{marker::PhantomData, rc::Rc};
 // TODO depending on property type, allow only certain calls at compile time?
 // TODO compile time determined extension blanket traits?
 use crate::{
-    c::{*, self},
+    c::{self, *},
     error,
     r#box::Box,
     traits::{EntityFactoryExt, OBBlanket},
-    util::PtrConstChar,
+    util::*,
 };
 
 use super::condition::Condition;
@@ -33,8 +37,9 @@ pub struct Builder<T: OBBlanket> {
     error: Option<error::Error>,
     obx_store: *mut OBX_store,
     helper: Rc<dyn EntityFactoryExt<T>>,
-    pub(crate) property_id: obx_schema_id,
+    property_id: obx_schema_id,
     obx_query_builder: *mut OBX_query_builder,
+    case_sensitive: bool,
     has_built_query: bool,
     phantom_data: PhantomData<T>,
 }
@@ -56,38 +61,136 @@ impl<T: OBBlanket> Builder<T> {
             property_id: 0,
             obx_query_builder,
             has_built_query: false,
+            case_sensitive: false,
             phantom_data: PhantomData,
         };
 
-        condition.visit_dfs(&mut |c|builder.get_condition_integer(c));
-        
-        if let Some(err) = &builder.error {
-            Err(err.clone())?;
-        }
+        condition.visit_dfs(&mut |c| builder.get_condition_integer(c));
 
-        Ok(builder)
+        c::get_result(builder.error_code(), builder)
     }
 
     fn get_condition_integer(&mut self, c: &mut Condition<T>) -> c::obx_qb_cond {
+        // invariant to 0 parameter condition functions
         self.property_id = c.get_property_id();
 
-        // TODO
-        // map enum to function, call function, with closure that translates
-        // from the rusty N-ary parameters, to C N-ary parameters
-        /*
-            e.g. without generics:
-            fn op1_String(s: &str, f: impl FnMut (PtrConstChar) -> c::obx_qb_cond) -> c::obx_qb_cond {
-                // translate &str -> PtrConstChar
-                f(s)
-            }
-            op1_String("meh", self.contains_String)
-            ...
-            e.g. with generics:
-            fn op1<str, PtrConstChar>(&str, f...)
-        */
-        // call obx_qb_error_code, handle with c::call
-        // assign to self.error, self.error gets handled by Self::build
-        0
+        use super::enums::ConditionOp;
+        unsafe {
+            let result = match &c.op {
+                ConditionOp::IsNull => self.is_null(),
+                ConditionOp::NotNull => self.not_null(),
+                ConditionOp::OrderFlags(flags) => self.order(*flags),
+                ConditionOp::CaseSensitive(b) => {
+                    self.case_sensitive = *b;
+                    0
+                }
+                ConditionOp::Contains(s) => self.contains_string(s.as_c_char_ptr()),
+                ConditionOp::ContainsElement(s) => self.contains_element_string(s.as_c_char_ptr()),
+                ConditionOp::StartsWith(s) => self.starts_with_string(s.as_c_char_ptr()),
+                ConditionOp::EndsWith(s) => self.ends_with_string(s.as_c_char_ptr()),
+                ConditionOp::AnyEquals(s) => self.any_equals_string(s.as_c_char_ptr()),
+                ConditionOp::Eq_i64(i) => self.equals_int(*i),
+                ConditionOp::Ne_i64(i) => self.not_equals_int(*i),
+                ConditionOp::Lt_i64(i) => self.less_than_int(*i),
+                ConditionOp::Gt_i64(i) => self.greater_than_int(*i),
+                ConditionOp::Le_i64(i) => self.less_or_equal_int(*i),
+                ConditionOp::Ge_i64(i) => self.greater_or_equal_int(*i),
+                ConditionOp::Lt_f64(f) => self.less_than_double(*f),
+                ConditionOp::Gt_f64(f) => self.greater_than_double(*f),
+                ConditionOp::Le_f64(f) => self.less_or_equal_double(*f),
+                ConditionOp::Ge_f64(f) => self.greater_or_equal_double(*f),
+                ConditionOp::Eq_string(s) => self.equals_string(s.as_c_char_ptr()),
+                ConditionOp::Ne_string(s) => self.not_equals_string(s.as_c_char_ptr()),
+                ConditionOp::Lt_string(s) => self.less_than_string(s.as_c_char_ptr()),
+                ConditionOp::Gt_string(s) => self.greater_than_string(s.as_c_char_ptr()),
+                ConditionOp::Le_string(s) => self.less_or_equal_string(s.as_c_char_ptr()),
+                ConditionOp::Ge_string(s) => self.greater_or_equal_string(s.as_c_char_ptr()),
+                ConditionOp::All => {
+                    let cs = c.collect_children_results();
+                    let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
+                    if cs.len() > 0 {
+                        self.all(ptr, len)
+                    } else {
+                        0
+                    }
+                }
+                ConditionOp::Any => {
+                    let cs = c.collect_children_results();
+                    let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
+                    if cs.len() > 0 {
+                        self.any(ptr, len)
+                    } else {
+                        0
+                    }
+                }
+                ConditionOp::ContainsKeyValue(k, v) => {
+                    self.contains_key_value_string(k.as_c_char_ptr(), v.as_c_char_ptr())
+                }
+                ConditionOp::Eq_vecu8(vec_u8) => {
+                    let (ptr, len) = vec_u8.as_ptr_and_length_tuple::<u8>();
+                    self.equals_bytes(ptr as ConstVoidPtr, len)
+                }
+                ConditionOp::Lt_vecu8(vec_u8) => {
+                    let (ptr, len) = vec_u8.as_ptr_and_length_tuple::<u8>();
+                    self.less_than_bytes(ptr as ConstVoidPtr, len)
+                }
+                ConditionOp::Gt_vecu8(vec_u8) => {
+                    let (ptr, len) = vec_u8.as_ptr_and_length_tuple::<u8>();
+                    self.greater_than_bytes(ptr as ConstVoidPtr, len)
+                }
+                ConditionOp::Le_vecu8(vec_u8) => {
+                    let (ptr, len) = vec_u8.as_ptr_and_length_tuple::<u8>();
+                    self.less_or_equal_bytes(ptr as ConstVoidPtr, len)
+                }
+                ConditionOp::Ge_vecu8(vec_u8) => {
+                    let (ptr, len) = vec_u8.as_ptr_and_length_tuple::<u8>();
+                    self.greater_or_equal_bytes(ptr as ConstVoidPtr, len)
+                }
+                ConditionOp::Between_i64(start, end) => self.between_2ints(*start, *end),
+                ConditionOp::Between_f64(start, end) => self.between_2doubles(*start, *end),
+                ConditionOp::In_i32(vec_i32) => {
+                    let (ptr, len) = vec_i32.as_ptr_and_length_tuple::<i32>();
+                    self.in_int32s(ptr, len)
+                }
+                ConditionOp::NotIn_i32(vec_i32) => {
+                    let (ptr, len) = vec_i32.as_ptr_and_length_tuple::<i32>();
+                    self.not_in_int32s(ptr, len)
+                }
+                ConditionOp::In_i64(vec_i64) => {
+                    let (ptr, len) = vec_i64.as_ptr_and_length_tuple::<i64>();
+                    self.in_int64s(ptr, len)
+                }
+                ConditionOp::NotIn_i64(vec_i64) => {
+                    let (ptr, len) = vec_i64.as_ptr_and_length_tuple::<i64>();
+                    self.not_in_int64s(ptr, len)
+                }
+                ConditionOp::In_String(strs) => {
+                    let mut new_strings = Vec::<String>::new();
+                    for s in strs {
+                        let mut new_string = String::new();
+                        new_string.push_str(s.as_str());
+                        new_string.push('\0');
+                        new_strings.push(new_string);
+                        if let Err(err) = CString::new(s.as_bytes()) {
+                            self.error = Some(error::Error::new_local(&format!(
+                                "Bad string conversion (in_strings: {})",
+                                err.to_string()
+                            )));
+                            return 0;
+                        }
+                    }
+                    let vec: Vec<_> = new_strings
+                        .iter()
+                        .map(|s| CString::new(s.as_bytes()).unwrap())
+                        .collect();
+                    let cstrs: Vec<&CStr> = vec.iter().map(|c| c.as_c_str()).collect();
+                    let (ptr, len) = cstrs.as_ptr_and_length_tuple();
+                    self.in_strings(ptr, len)
+                }
+                ConditionOp::NoOp => 0,
+            };
+            result
+        }
     }
 
     /// Why does Self::build have to be called separately?
@@ -99,7 +202,7 @@ impl<T: OBBlanket> Builder<T> {
         // iff a query is built properly, then do not drop, else drop
         let query = get_result(self.error_code(), r)?;
         self.has_built_query = true;
-        Ok(query)        
+        Ok(query)
     }
 
     /// private, in case of double frees
@@ -132,63 +235,47 @@ impl<T: OBBlanket> Builder<T> {
     }
 
     // eq_String
-    unsafe fn equals_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn equals_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         obx_qb_equals_string(
             self.obx_query_builder,
             self.property_id,
             value,
-            case_sensitive,
+            self.case_sensitive,
         )
     }
 
     // ne_String
-    unsafe fn not_equals_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn not_equals_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_not_equals_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // contains_String
-    unsafe fn contains_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn contains_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_contains_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // contains_element_String
-    unsafe fn contains_element_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn contains_element_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_contains_element_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
@@ -198,7 +285,6 @@ impl<T: OBBlanket> Builder<T> {
         &mut self,
         key: PtrConstChar,
         value: PtrConstChar,
-        case_sensitive: bool,
     ) -> obx_qb_cond {
         unsafe {
             obx_qb_contains_key_value_string(
@@ -206,138 +292,104 @@ impl<T: OBBlanket> Builder<T> {
                 self.property_id,
                 key,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // starts_with_String
-    unsafe fn starts_with_string(
-        &mut self,
-        property_id: obx_schema_id,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn starts_with_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_starts_with_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // ends_with_String
-    unsafe fn ends_with_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn ends_with_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_ends_with_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // gt_String
-    unsafe fn greater_than_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn greater_than_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_greater_than_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // ge_String
-    unsafe fn greater_or_equal_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn greater_or_equal_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_greater_or_equal_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // lt String
-    unsafe fn less_than_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn less_than_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_less_than_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // le_String
-    unsafe fn less_or_equal_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn less_or_equal_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_less_or_equal_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // member_of_Strings / in_Strings
-    unsafe fn in_strings(
-        &mut self,
-        values: *const PtrConstChar,
-        count: usize,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn in_strings(&mut self, values: *const PtrConstChar, count: usize) -> obx_qb_cond {
         unsafe {
             obx_qb_in_strings(
                 self.obx_query_builder,
                 self.property_id,
                 values,
                 count,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
 
     // any_equals_String
-    unsafe fn any_equals_string(
-        &mut self,
-        value: PtrConstChar,
-        case_sensitive: bool,
-    ) -> obx_qb_cond {
+    unsafe fn any_equals_string(&mut self, value: PtrConstChar) -> obx_qb_cond {
         unsafe {
             obx_qb_any_equals_string(
                 self.obx_query_builder,
                 self.property_id,
                 value,
-                case_sensitive,
+                self.case_sensitive,
             )
         }
     }
@@ -477,16 +529,15 @@ impl<T: OBBlanket> Builder<T> {
         obx_qb_any(self.obx_query_builder, conditions, count)
     }
 
-    unsafe fn param_alias(&self, alias: PtrConstChar) -> obx_err {
-        obx_qb_param_alias(self.obx_query_builder, alias)
-    }
-
     unsafe fn order(&self, flags: OBXOrderFlags) -> obx_err {
         obx_qb_order(self.obx_query_builder, self.property_id, flags)
     }
 
     // TODO support later
     /*
+    unsafe fn param_alias(&self, alias: PtrConstChar) -> obx_err {
+        obx_qb_param_alias(self.obx_query_builder, alias)
+    }
     unsafe fn relation_count_property(
         &self,
         relation_entity_id: obx_schema_id,
