@@ -1,6 +1,7 @@
 use std::ffi::{c_void, CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
+use std::ptr::null;
 
 use crate::c;
 
@@ -14,12 +15,15 @@ pub type PtrConstChar = *const ::std::os::raw::c_char;
 
 // TODO verify correctness on all platforms
 pub(crate) fn as_c_char_ptr(s: &str) -> *const c_char {
+    // println!("as_c_char_ptr: {}", s);
     let mut out_path = String::from(s);
-    if !s.ends_with('\0') {
-        out_path.push('\0');
+    match CString::new(out_path.as_str()) {
+        Ok(c_str) => c_str.as_ptr() as *const c_char,
+        Err(err) => {
+            eprintln!("{err}");
+            null()
+        },
     }
-    let c_str = CString::new(out_path.as_str()).unwrap();
-    c_str.as_ptr() as *const c_char
 }
 
 pub fn test_fn_ptr_on_char_ptr(c_ptr: PtrConstChar, fn_ptr: fn(String) -> bool) -> bool {

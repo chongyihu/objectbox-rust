@@ -314,11 +314,11 @@ mod tests {
 
         // query builder, query condition
         {
-            let _ = box3.put(&mut Entity3 { id: 0, hello: "real world".to_string()});
+            let _ = box3.put(&mut Entity3 { id: 1, hello: "real world".to_string()});
             let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
             let mut c = hello.case_sensitive(true).and(hello.contains("real")).and(hello.contains("world"));
             let q = box3.query(&mut c);
-            assert!(q.is_ok());
+            q.expect("explode");
         }
     }
 }
