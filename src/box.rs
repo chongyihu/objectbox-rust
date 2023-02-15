@@ -10,7 +10,7 @@ use crate::query::builder::Builder;
 use crate::query::condition::Condition;
 use crate::query::Query;
 use crate::traits::{EntityFactoryExt, OBBlanket};
-use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
+use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0, get_tx_cursor_mut, get_tx_cursor};
 use crate::{cursor::Cursor, txn::Tx};
 use flatbuffers::FlatBufferBuilder;
 
@@ -270,32 +270,12 @@ impl<T: OBBlanket> Box<'_, T> {
         }
       }
     */
-    // TODO remove assertions when the code is more stable
     fn get_tx_cursor_mut(&self) -> (Tx, Cursor<T>) {
-        let store = self.get_store();
-        assert!(!store.is_null());
-
-        let tx = Tx::new_mut(store);
-        assert!(!tx.obx_txn.is_null());
-
-        let cursor = Cursor::new(tx.obx_txn, self.helper.clone());
-        assert!(!cursor.obx_cursor.is_null());
-
-        (tx, cursor)
+        get_tx_cursor_mut(self.get_store(), self.helper.clone())
     }
 
-    // TODO remove assertions when the code is more stable
     fn get_tx_cursor(&self) -> (Tx, Cursor<T>) {
-        let store = self.get_store();
-        assert!(!store.is_null());
-
-        let tx = Tx::new(store);
-        assert!(!tx.obx_txn.is_null());
-
-        let cursor = Cursor::new(tx.obx_txn, self.helper.clone());
-        assert!(!cursor.obx_cursor.is_null());
-
-        (tx, cursor)
+        get_tx_cursor(self.get_store(), self.helper.clone())
     }
 
     pub(crate) fn put_entity_in_ob(&mut self, cursor: &mut Cursor<T>, object: &mut T) -> c::obx_id {

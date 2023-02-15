@@ -2,8 +2,12 @@ use std::ffi::{c_void, CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
 use std::ptr::null;
+use std::rc::Rc;
 
 use crate::c;
+use crate::cursor::Cursor;
+use crate::traits::EntityFactoryExt;
+use crate::txn::Tx;
 
 // not using bindgen's derived #define OBX_NOT_FOUND 404, because it's a u32
 pub const NOT_FOUND_404: i32 = 404;
@@ -97,4 +101,28 @@ impl VecToPtrAndLength for Vec<&CStr> {
     fn as_ptr_and_length_tuple<T>(&self) -> (*const T, usize) {
         (self.as_ptr() as *const T, self.len())
     }
+}
+
+pub(crate) fn get_tx_cursor_mut<T>(obx_store: *mut c::OBX_store, helper: Rc<dyn EntityFactoryExt<T>>) -> (Tx, Cursor<T>) {
+    assert!(!obx_store.is_null());
+
+    let tx = Tx::new_mut(obx_store);
+    assert!(!tx.obx_txn.is_null());
+
+    let cursor = Cursor::new(tx.obx_txn, helper.clone());
+    assert!(!cursor.obx_cursor.is_null());
+
+    (tx, cursor)
+}
+
+pub(crate) fn get_tx_cursor<T>(obx_store: *mut c::OBX_store, helper: Rc<dyn EntityFactoryExt<T>>) -> (Tx, Cursor<T>) {
+    assert!(!obx_store.is_null());
+
+    let tx = Tx::new(obx_store);
+    assert!(!tx.obx_txn.is_null());
+
+    let cursor = Cursor::new(tx.obx_txn, helper.clone());
+    assert!(!cursor.obx_cursor.is_null());
+
+    (tx, cursor)
 }

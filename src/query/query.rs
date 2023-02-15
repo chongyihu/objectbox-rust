@@ -10,10 +10,15 @@
 
 use crate::c;
 use crate::c::*;
+use crate::cursor::Cursor;
 use crate::error;
 use crate::traits::EntityFactoryExt;
 use crate::traits::OBBlanket;
+use crate::txn::Tx;
+use crate::util::get_tx_cursor;
+use crate::util::get_tx_cursor_mut;
 use crate::util::test_fn_ptr_on_char_ptr;
+use core::slice;
 use std::marker::PhantomData;
 use std::ptr;
 use std::rc::Rc;
@@ -181,8 +186,17 @@ impl<T: OBBlanket> Query<T> {
         }
     }
 
+    fn get_tx_cursor_mut(&self) -> (Tx, Cursor<T>) {
+        get_tx_cursor_mut(self.obx_store, self.helper.clone())
+    }
+
+    fn get_tx_cursor(&self) -> (Tx, Cursor<T>) {
+        get_tx_cursor(self.obx_store, self.helper.clone())
+    }
+
     // TODO create tx and cursor boilerplate macro, which requires a ptr to store -> tx -> cursor -> close on read, success on write
     // TODO pass a closure fn to this in the pub fn impl
+    // TODO translate to iter()?
     unsafe fn cursor_visit(
         &mut self,
         cursor: &mut OBX_cursor,
@@ -199,13 +213,50 @@ impl<T: OBBlanket> Query<T> {
     unsafe fn cursor_find_ids(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_id_array {
         obx_query_cursor_find_ids(self.obx_query, cursor)
     }
+    pub fn find_ids(&mut self) -> error::Result<Vec<c::obx_id>> {
+        let mut vec = Vec::new();
+        unsafe {
+            let (_, cursor) = self.get_tx_cursor();
+            let c_id_array = self.cursor_find_ids(&mut *cursor.obx_cursor);
+            // TODO error check tx, cursor, with get_result_from_ptr
+            let c = &*c_id_array;
+            let len = c.count;
+            let ptr = c.ids;
+            let sl = slice::from_raw_parts(ptr, len);
+            vec.extend(sl);
+            get_result_from_ptr(ptr, vec)
+        }
+    }
 
     unsafe fn cursor_count(&mut self, cursor: &mut OBX_cursor, out_count: *mut u64) -> obx_err {
         obx_query_cursor_count(self.obx_query, cursor, out_count)
     }
 
+    pub fn count(&mut self) -> error::Result<u64> {
+        unsafe {
+            let (_, cursor) = self.get_tx_cursor();
+            let count: *mut u64 = &mut 0;
+            let err_code = self.cursor_count(&mut *cursor.obx_cursor, count);
+            // TODO error check tx, cursor, with get_result_from_ptr
+            c::get_result(err_code, *count)
+        }
+    }
+
     unsafe fn cursor_remove(&mut self, cursor: &mut OBX_cursor, out_count: *mut u64) -> obx_err {
         obx_query_cursor_remove(self.obx_query, cursor, out_count)
+    }
+
+    pub fn remove(&mut self) -> error::Result<u64> {
+        unsafe {
+            let (mut tx, cursor) = self.get_tx_cursor_mut();
+            let count: *mut u64 = &mut 0;
+            let err_code = self.cursor_remove(&mut *cursor.obx_cursor, count);
+            if err_code == 0 {
+                tx.success();
+            }
+            // TODO error check tx, cursor, with get_result_from_ptr
+            c::get_result(err_code, *count)
+        }
     }
     // end cursor
 
