@@ -282,7 +282,7 @@ impl CodeGenEntityExt for ModelEntity {
         let cf_init_props = self
             .properties
             .iter()
-            .map(|p| p.to_condition_factory_init_dyn_cast(entity, self.id.get_id()));
+            .map(|p| p.to_condition_factory_init_dyn(entity, self.id.get_id()));
 
         let name = self.name.as_str();
         let name_lower_case = self.name.to_ascii_lowercase();
@@ -297,10 +297,10 @@ impl CodeGenEntityExt for ModelEntity {
 
         quote! {
             $(for p in impls join () => $(p))
-            struct $(name)ConditionFactory<'a> {
+            pub struct $(name)ConditionFactory {
                 $(for p in cf_props join () => $(p))
             }
-            fn new_$(name_lower_case)_condition_factory() -> $(name)ConditionFactory<'static> {
+            pub fn new_$(name_lower_case)_condition_factory() -> $(name)ConditionFactory {
                 $(name)ConditionFactory {
                   $(for p in cf_init_props join () => $(p))
                 }

@@ -397,7 +397,8 @@ pub trait VecU8Blanket<Entity: OBBlanket>:
 }
 
 pub trait StringBlanket<Entity: OBBlanket>:
-    BasicExt<Entity>
+    StringExt<Entity>
+    + BasicExt<Entity>
     + EqExt<Entity, String>
     + OrdExt<Entity, String>
     + InOutExt<Entity, String>
@@ -497,7 +498,7 @@ impl<Entity: OBBlanket> VecU8Blanket<Entity> for Entity where
 {
 }
 impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where
-    Entity: BasicExt<Entity>
+    Entity: StringExt<Entity> + BasicExt<Entity>
         + EqExt<Entity, String>
         + OrdExt<Entity, String>
         + InOutExt<Entity, String>
@@ -546,9 +547,32 @@ mod tests {
     // impl traits::OBBlanket for TEntity2 {}
 
     struct EntityConditionFactories<'a> {
-        uniform: &'a dyn F64Blanket<TEntity2>,
+        foxtrot: &'a dyn F64Blanket<TEntity2>,
         charlie: &'a dyn F64Blanket<TEntity2>,
     }
+
+    struct EntityConditionFactories2 {
+        uniform: ConditionBuilder<TEntity2>,
+        kilo: ConditionBuilder<TEntity2>,
+    }
+
+    fn group_condition_builders() -> EntityConditionFactories2 {
+        EntityConditionFactories2 {
+            uniform: create_condition_builder::<TEntity2, 1, 1, 1>(), // as &dyn F64Blanket<TEntity2>,
+            kilo: create_condition_builder::<TEntity2, 1, 1, 1>(), // as &dyn F64Blanket<TEntity2>,
+        }    
+    }
+
+    impl I16Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl I64Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl BoolBlanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl I32Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl I8Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl F64Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl VecU8Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl CharBlanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl StringBlanket<TEntity2> for ConditionBuilder<TEntity2> {}
+    impl F32Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
 
     #[test]
     fn trait_impl_test() {
@@ -569,7 +593,7 @@ mod tests {
 
         // The  following lines need to be generated:
         let _ = HashMap::<String, Box<dyn std::any::Any>>::new();
-        impl F64Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
+        // impl F64Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
 
         // map.insert("name_of_field".to_string(), Box::<dyn F64Blanket<TEntity2>>::new(create_condition_builder::<TEntity2, 3, 3, 3>() as dyn F64Blanket<TEntity2>));
 
@@ -581,11 +605,11 @@ mod tests {
         let _ = retype_cb2.between(0.000000000001, 2.0000000000000000000);
 
         let _ = EntityConditionFactories {
-            uniform: &create_condition_builder::<TEntity2, 1, 1, 1>() as &dyn F64Blanket<TEntity2>,
+            foxtrot: &create_condition_builder::<TEntity2, 1, 1, 1>() as &dyn F64Blanket<TEntity2>,
             charlie: &cb2 as &dyn F64Blanket<TEntity2>,
         };
         let _ = EntityConditionFactories {
-            uniform: retype_cb2,
+            foxtrot: retype_cb2,
             charlie: retype_cb2,
         };
 
@@ -597,5 +621,23 @@ mod tests {
         let _ = &mut cb2.order_flags(1);
 
         boxed_cb1.is_not_null(); // basic op, all properties should be capable of doing this check
+
+        let g = group_condition_builders();
+    }
+
+    struct EntityConditionFactory {
+        id: Box<dyn StringBlanket<TEntity2>>,
+    }
+    fn new_entity_condition_factory() -> EntityConditionFactory {
+        EntityConditionFactory {
+            id: Box::new(create_condition_builder::<TEntity2, 1, 1, 6>())
+                /*as Box<&dyn I64Blanket<TEntity2>>*/,
+        }
+    }
+
+    #[test]
+    fn trait_impl_test2() {
+        let necf = new_entity_condition_factory();
+        necf.id.contains("stuff");
     }
 }

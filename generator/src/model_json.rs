@@ -336,102 +336,62 @@ impl ModelProperty {
         let name = &self.name;
         match self.type_field {
             ob_consts::OBXPropertyType_Double => quote! {
-                $name: &'a dyn $type_double<$entity_name>,
+                $name: Box<dyn $type_double<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Long => quote! {
-                $name: &'a dyn $type_long<$entity_name>,
+                $name: Box<dyn $type_long<$entity_name>>,
             },
             ob_consts::OBXPropertyType_ByteVector => quote! {
-                $name: &'a dyn $type_byte_vec<$entity_name>,
+                $name: Box<dyn $type_byte_vec<$entity_name>>,
             },
             ob_consts::OBXPropertyType_String => quote! {
-                $name: &'a dyn $type_string<$entity_name>,
+                $name: Box<dyn $type_string<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Float => quote! {
-                $name: &'a dyn $type_float<$entity_name>,
+                $name: Box<dyn $type_float<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Int => quote! {
-                $name: &'a dyn $type_int<$entity_name>,
+                $name: Box<dyn $type_int<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Char => quote! {
-                $name: &'a dyn $type_char<$entity_name>,
+                $name: Box<dyn $type_char<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Short => quote! {
-                $name: &'a dyn $type_short<$entity_name>,
+                $name: Box<dyn $type_short<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Bool => quote! {
-                $name: &'a dyn $type_bool<$entity_name>,
+                $name: Box<dyn $type_bool<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Byte => quote! {
-                $name: &'a dyn $type_byte<$entity_name>,
+                $name: Box<dyn $type_byte<$entity_name>>,
             },
             _ => quote!(), // TODO refine this for the remaining types, no support for now
         }
     }
 
-    pub(crate) fn to_condition_factory_init_dyn_cast(
+    pub(crate) fn to_condition_factory_init_dyn(
         &self,
         entity_name: &genco::lang::rust::Import,
         entity_id: Tokens<Rust>,
     ) -> Tokens<Rust> {
-        let type_double =
-            &rust::import("objectbox::query::traits", "F64Blanket").with_module_alias("qtraits");
-        let type_float =
-            &rust::import("objectbox::query::traits", "F32Blanket").with_module_alias("qtraits");
-        let type_long =
-            &rust::import("objectbox::query::traits", "I64Blanket").with_module_alias("qtraits");
-        let type_int =
-            &rust::import("objectbox::query::traits", "I32Blanket").with_module_alias("qtraits");
-        let type_char =
-            &rust::import("objectbox::query::traits", "CharBlanket").with_module_alias("qtraits");
-        let type_short =
-            &rust::import("objectbox::query::traits", "I16Blanket").with_module_alias("qtraits");
-        let type_bool =
-            &rust::import("objectbox::query::traits", "BoolBlanket").with_module_alias("qtraits");
-        let type_byte =
-            &rust::import("objectbox::query::traits", "I8Blanket").with_module_alias("qtraits");
-        let type_byte_vec =
-            &rust::import("objectbox::query::traits", "VecU8Blanket").with_module_alias("qtraits");
-        let type_string =
-            &rust::import("objectbox::query::traits", "StringBlanket").with_module_alias("qtraits");
         let ccb_fn = &rust::import("objectbox::query::traits", "create_condition_builder")
             .with_module_alias("qtraits");
 
         let name = &self.name;
         let property_id = &self.id.get_id();
 
-        // TODO refactor all of these copy paste monstrosities,
-        // TODO starting from `self.type_field` -> `dyn $dyn_type<$entity_name>`, in the three related functions
         match self.type_field {
-            ob_consts::OBXPropertyType_Double => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_double<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_Long => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_long<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_ByteVector => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_byte_vec<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_String => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_string<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_Float => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_float<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_Int => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_int<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_Char => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_char<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_Short => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_short<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_Bool => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_bool<$entity_name>,
-            },
-            ob_consts::OBXPropertyType_Byte => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_byte<$entity_name>,
+            ob_consts::OBXPropertyType_Double
+            | ob_consts::OBXPropertyType_Long
+            | ob_consts::OBXPropertyType_ByteVector
+            | ob_consts::OBXPropertyType_String
+            | ob_consts::OBXPropertyType_Float
+            | ob_consts::OBXPropertyType_Int
+            | ob_consts::OBXPropertyType_Char
+            | ob_consts::OBXPropertyType_Short
+            | ob_consts::OBXPropertyType_Bool
+            | ob_consts::OBXPropertyType_Byte => quote! {
+                $name: Box::new($ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>()),
             },
             _ => quote!(), // TODO refine this for the remaining types, no support for now
         }

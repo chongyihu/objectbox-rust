@@ -309,5 +309,11 @@ mod tests {
 
             assert!(box1.is_empty().expect("crash"));
         }
+
+        // query builder, query condition
+        {
+            let EntityConditionFactory { t_string, .. } = new_entity_condition_factory();
+            
+        }
     }
 }
