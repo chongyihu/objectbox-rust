@@ -1,13 +1,3 @@
-// Reminder:
-// Expression in dart: box.query(i.greaterThan(0)).build().property(pq);
-// box.query -> QueryBuilder
-// i -> QueryProperty (QP)
-// i.greaterThan(0) -> Condition
-// ..build() -> Query
-// ..property(j) -> PropertyQuery (PQ) PQ vs QP are confusing as hell, mea culpa
-// j -> QP (like i)
-
-
 use crate::c;
 use crate::c::*;
 use crate::cursor::Cursor;
@@ -186,38 +176,60 @@ impl<T: OBBlanket> Query<T> {
         }
     }
 
-    fn get_tx_cursor_mut(&self) -> (Tx, Cursor<T>) {
+    fn get_tx_cursor_mut(&self) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
         get_tx_cursor_mut(self.obx_store, self.helper.clone())
     }
 
-    fn get_tx_cursor(&self) -> (Tx, Cursor<T>) {
+    fn get_tx_cursor(&self) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
         get_tx_cursor(self.obx_store, self.helper.clone())
     }
 
-    // TODO create tx and cursor boilerplate macro, which requires a ptr to store -> tx -> cursor -> close on read, success on write
-    // TODO pass a closure fn to this in the pub fn impl
-    // TODO translate to iter()?
-    unsafe fn cursor_visit(
-        &mut self,
-        cursor: &mut OBX_cursor,
-        visitor: obx_data_visitor,
-        user_data: *mut ::std::os::raw::c_void,
-    ) -> obx_err {
-        obx_query_cursor_visit(self.obx_query, cursor, visitor, user_data)
-    }
+    /*
+        // TODO pass a closure fn to this in the pub fn impl
+        // TODO translate to iter trait?
+        unsafe fn cursor_visit(
+            &mut self,
+            cursor: &mut OBX_cursor,
+            visitor: obx_data_visitor, // typedef bool obx_data_visitor(const void *data, size_t size, void *user_data)
+            user_data: *mut ::std::os::raw::c_void,
+        ) -> obx_err {
+            obx_query_cursor_visit(self.obx_query, cursor, visitor, user_data)
+        }
 
-    unsafe fn cursor_find(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_bytes_array {
-        obx_query_cursor_find(self.obx_query, cursor)
+        unsafe fn cursor_find(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_bytes_array {
+            obx_query_cursor_find(self.obx_query, cursor)
+        }
+    */
+
+    // Reuse what you have, until someone has the time
+    // and shares a PR, and improves on this
+    // by calling obx_query_cursor_find
+    pub fn find(&mut self) -> error::Result<Vec<T>> {
+        let mut vec = Vec::new();
+        let (_, cursor) = self.get_tx_cursor();
+        let ids = self.find_ids()?;
+
+        let mut c = match cursor {
+            Ok(c) => c,
+            Err(e) => return Err(e),
+        };
+
+        for id in ids {
+            vec.push(c.get_entity(id)?.map_or(self.helper.new_entity(), |e| e));
+        }
+        self.error.clone().map_or(Ok(vec), |e| Err(e))
     }
 
     unsafe fn cursor_find_ids(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_id_array {
         obx_query_cursor_find_ids(self.obx_query, cursor)
     }
+
+    // TODO write test
     pub fn find_ids(&mut self) -> error::Result<Vec<c::obx_id>> {
         let mut vec = Vec::new();
         unsafe {
             let (_, cursor) = self.get_tx_cursor();
-            let c_id_array = self.cursor_find_ids(&mut *cursor.obx_cursor);
+            let c_id_array = self.cursor_find_ids(&mut *cursor?.obx_cursor);
             // TODO error check tx, cursor, with get_result_from_ptr
             let c = &*c_id_array;
             let len = c.count;
@@ -232,11 +244,12 @@ impl<T: OBBlanket> Query<T> {
         obx_query_cursor_count(self.obx_query, cursor, out_count)
     }
 
+    // TODO write test
     pub fn count(&mut self) -> error::Result<u64> {
         unsafe {
             let (_, cursor) = self.get_tx_cursor();
             let count: *mut u64 = &mut 0;
-            let err_code = self.cursor_count(&mut *cursor.obx_cursor, count);
+            let err_code = self.cursor_count(&mut *cursor?.obx_cursor, count);
             // TODO error check tx, cursor, with get_result_from_ptr
             c::get_result(err_code, *count)
         }
@@ -250,11 +263,10 @@ impl<T: OBBlanket> Query<T> {
         unsafe {
             let (mut tx, cursor) = self.get_tx_cursor_mut();
             let count: *mut u64 = &mut 0;
-            let err_code = self.cursor_remove(&mut *cursor.obx_cursor, count);
+            let err_code = self.cursor_remove(&mut *cursor?.obx_cursor, count);
             if err_code == 0 {
-                tx.success();
+                tx?.success();
             }
-            // TODO error check tx, cursor, with get_result_from_ptr
             c::get_result(err_code, *count)
         }
     }

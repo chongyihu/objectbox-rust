@@ -4,10 +4,10 @@ use std::path::Path;
 use std::ptr::null;
 use std::rc::Rc;
 
-use crate::c;
 use crate::cursor::Cursor;
 use crate::traits::EntityFactoryExt;
 use crate::txn::Tx;
+use crate::{c, error};
 
 // not using bindgen's derived #define OBX_NOT_FOUND 404, because it's a u32
 pub const NOT_FOUND_404: i32 = 404;
@@ -26,7 +26,7 @@ pub(crate) fn as_c_char_ptr(s: &str) -> *const c_char {
         Err(err) => {
             eprintln!("{err}");
             null()
-        },
+        }
     }
 }
 
@@ -103,26 +103,28 @@ impl VecToPtrAndLength for Vec<&CStr> {
     }
 }
 
-pub(crate) fn get_tx_cursor_mut<T>(obx_store: *mut c::OBX_store, helper: Rc<dyn EntityFactoryExt<T>>) -> (Tx, Cursor<T>) {
-    assert!(!obx_store.is_null());
-
+pub(crate) fn get_tx_cursor_mut<T>(
+    obx_store: *mut c::OBX_store,
+    helper: Rc<dyn EntityFactoryExt<T>>,
+) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
     let tx = Tx::new_mut(obx_store);
-    assert!(!tx.obx_txn.is_null());
-
     let cursor = Cursor::new(tx.obx_txn, helper.clone());
-    assert!(!cursor.obx_cursor.is_null());
 
-    (tx, cursor)
+    (
+        tx.error.clone().map_or(Ok(tx), |e| Err(e)),
+        cursor.error.clone().map_or(Ok(cursor), |e| Err(e)),
+    )
 }
 
-pub(crate) fn get_tx_cursor<T>(obx_store: *mut c::OBX_store, helper: Rc<dyn EntityFactoryExt<T>>) -> (Tx, Cursor<T>) {
-    assert!(!obx_store.is_null());
-
+pub(crate) fn get_tx_cursor<T>(
+    obx_store: *mut c::OBX_store,
+    helper: Rc<dyn EntityFactoryExt<T>>,
+) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
     let tx = Tx::new(obx_store);
-    assert!(!tx.obx_txn.is_null());
-
     let cursor = Cursor::new(tx.obx_txn, helper.clone());
-    assert!(!cursor.obx_cursor.is_null());
 
-    (tx, cursor)
+    (
+        tx.error.clone().map_or(Ok(tx), |e| Err(e)),
+        cursor.error.clone().map_or(Ok(cursor), |e| Err(e)),
+    )
 }

@@ -1,10 +1,10 @@
-use std::rc::Rc;
+use std::{ptr, rc::Rc, slice::from_raw_parts};
 
 use crate::{
     c::{self, *},
-    error::Error,
+    error::{Error, self},
     traits::EntityFactoryExt,
-    util::{MutConstVoidPtr, ToCVoid},
+    util::{MutConstVoidPtr, ToCVoid, NOT_FOUND_404},
 };
 
 // The best article ever on ffi
@@ -41,6 +41,40 @@ impl<T> Cursor<T> {
                 error: None,
             },
             Err(err) => panic!("{err}"),
+        }
+    }
+
+    pub(crate) unsafe fn from_raw_parts_to_object(
+        &self,
+        data_ptr_ptr: *mut *mut u8,
+        size_ptr: *mut usize,
+    ) -> T {
+        let data_slice = from_raw_parts(*data_ptr_ptr, *size_ptr);
+        let first_offset: usize = data_slice[0].into();
+
+        // TODO check speed improvement if table is recycled
+        let mut table = flatbuffers::Table::new(data_slice, first_offset);
+        self.helper.make(&mut table)
+    }
+
+    pub(crate) fn get_entity(&mut self, id: c::obx_id) -> error::Result<Option<T>> {
+        unsafe {
+            let data_ptr_ptr: *mut *mut u8 = &mut ptr::null_mut();
+
+            let size_ptr: *mut usize = &mut 0;
+            let code = self.get(id, data_ptr_ptr as MutConstVoidPtr, size_ptr);
+
+            if let Some(err) = &self.error {
+                return Err(err.clone());
+            }
+
+            let r = if data_ptr_ptr.is_null() || code == NOT_FOUND_404 {
+                None
+            } else {
+                Some(self.from_raw_parts_to_object(data_ptr_ptr, size_ptr))
+            };
+
+            Ok(r)
         }
     }
 

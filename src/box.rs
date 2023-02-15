@@ -1,8 +1,7 @@
 use std::ptr;
 use std::rc::Rc;
-use std::slice::from_raw_parts;
 
-#[allow(dead_code)]
+// #[allow(dead_code)]
 use crate::c::{self, *};
 use crate::error::{self, Error};
 
@@ -10,7 +9,7 @@ use crate::query::builder::Builder;
 use crate::query::condition::Condition;
 use crate::query::Query;
 use crate::traits::{EntityFactoryExt, OBBlanket};
-use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0, get_tx_cursor_mut, get_tx_cursor};
+use crate::util::{get_tx_cursor, get_tx_cursor_mut, MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
 use crate::{cursor::Cursor, txn::Tx};
 use flatbuffers::FlatBufferBuilder;
 
@@ -270,14 +269,20 @@ impl<T: OBBlanket> Box<'_, T> {
         }
       }
     */
-    fn get_tx_cursor_mut(&self) -> (Tx, Cursor<T>) {
+    fn get_tx_cursor_mut(&self) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
         get_tx_cursor_mut(self.get_store(), self.helper.clone())
     }
 
-    fn get_tx_cursor(&self) -> (Tx, Cursor<T>) {
+    fn get_tx_cursor(&self) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
         get_tx_cursor(self.get_store(), self.helper.clone())
     }
 
+    /// A box has a longer lifetime than a cursor,
+    /// and the only thing keeping this method here
+    /// is the FB Builder.
+    /// To prevent reinitializing builders for
+    /// every cursor operation, we keep this method here,
+    /// it's better to recycle.
     pub(crate) fn put_entity_in_ob(&mut self, cursor: &mut Cursor<T>, object: &mut T) -> c::obx_id {
         let old_id = object.get_id();
         let is_object_new = old_id == 0;
@@ -297,131 +302,63 @@ impl<T: OBBlanket> Box<'_, T> {
     }
 
     pub fn put(&mut self, object: &mut T) -> error::Result<c::obx_id> {
-        let (mut tx, mut cursor) = self.get_tx_cursor_mut();
-        let new_id = self.put_entity_in_ob(&mut cursor, object);
-        tx.success();
+        let (tx, cursor) = self.get_tx_cursor_mut();
+        
+        let new_id = self.put_entity_in_ob(&mut cursor?, object);
+        tx?.success();
 
-        if let Some(err) = &self.error {
-            Err(err.clone())
-        } else if let Some(err) = &tx.error {
-            Err(err.clone())
-        } else if let Some(err) = &cursor.error {
-            Err(err.clone())
-        } else {
-            Ok(new_id)
-        }
+        self.error.clone().map_or(Ok(new_id), |e| Err(e))
     }
 
     pub fn put_many(&mut self, objects: Vec<&mut T>) -> error::Result<Vec<c::obx_id>> {
-        let (mut tx, mut cursor) = self.get_tx_cursor_mut();
+        let (tx, cursor) = self.get_tx_cursor_mut();
 
         let mut vec_out = Vec::<c::obx_id>::new();
+
+        let mut c = match cursor {
+            Ok(c) => c,
+            Err(e) => return Err(e),
+        };
+
         for o in objects {
-            vec_out.push(self.put_entity_in_ob(&mut cursor, o));
+            vec_out.push(self.put_entity_in_ob(&mut c, o));
         }
 
-        if let Some(err) = &self.error {
-            Err(err.clone())
-        } else if let Some(err) = &tx.error {
-            Err(err.clone())
-        } else if let Some(err) = &cursor.error {
-            Err(err.clone())
-        } else {
-            tx.success();
-            Ok(vec_out)
-        }
+        tx?.success();
+        self.error.clone().map_or(Ok(vec_out), |e| Err(e))
     }
 
     /// For testing purposes
     pub fn count_with_cursor(&self) -> error::Result<u64> {
-        let (tx, mut cursor) = self.get_tx_cursor();
-
-        if let Some(err) = &tx.error {
-            err.as_result()?;
-        } else if let Some(err) = &cursor.error {
-            err.as_result()?;
-        }
-
-        Ok(cursor.count())
-    }
-
-    unsafe fn from_raw_parts_to_object(
-        &self,
-        data_ptr_ptr: *mut *mut u8,
-        size_ptr: *mut usize,
-    ) -> T {
-        let data_slice = from_raw_parts(*data_ptr_ptr, *size_ptr);
-        let first_offset: usize = data_slice[0].into();
-
-        assert!(
-            first_offset > 0 && first_offset < *size_ptr,
-            "Data from OB should be within bounds"
-        );
-
-        // TODO check speed improvement if table is recycled
-        let mut table = flatbuffers::Table::new(data_slice, first_offset);
-        self.helper.make(&mut table)
-    }
-
-    pub(crate) fn get_entity_from_cursor(
-        &self,
-        cursor: &mut Cursor<T>,
-        id: c::obx_id,
-    ) -> Option<T> {
-        unsafe {
-            let data_ptr_ptr: *mut *mut u8 = &mut ptr::null_mut();
-
-            let size_ptr: *mut usize = &mut 0;
-            let code = cursor.get(id, data_ptr_ptr as MutConstVoidPtr, size_ptr);
-
-            // ensure first offset is within bounds
-
-            if data_ptr_ptr.is_null() || code == NOT_FOUND_404 {
-                None
-            } else {
-                Some(self.from_raw_parts_to_object(data_ptr_ptr, size_ptr))
-            }
-        }
+        let (_, cursor) = self.get_tx_cursor();
+        Ok(cursor?.count())
     }
 
     pub fn get(&self, id: c::obx_id) -> error::Result<Option<T>> {
-        let (tx, mut cursor) = self.get_tx_cursor();
-        let r = self.get_entity_from_cursor(&mut cursor, id);
-
-        if let Some(err) = &self.error {
-            Err(err.clone())
-        } else if let Some(err) = &tx.error {
-            Err(err.clone())
-        } else if let Some(err) = &cursor.error {
-            Err(err.clone())
-        } else {
-            Ok(r)
-        }
+        let (_, cursor) = self.get_tx_cursor();
+        let r = cursor?.get_entity(id);
+        self.error.clone().map_or(Ok(r?), |e| Err(e))
     }
 
     pub fn get_many(&self, ids: &[c::obx_id]) -> error::Result<Vec<Option<T>>> {
-        let (tx, mut cursor) = self.get_tx_cursor();
+        let (_, cursor) = self.get_tx_cursor();
 
         let mut r = Vec::<Option<T>>::new();
 
-        for id in ids {
-            r.push(self.get_entity_from_cursor(&mut cursor, *id));
-        }
+        let mut c = match cursor {
+            Ok(c) => c,
+            Err(e) => return Err(e),
+        };
 
-        if let Some(err) = &self.error {
-            Err(err.clone())
-        } else if let Some(err) = &tx.error {
-            Err(err.clone())
-        } else if let Some(err) = &cursor.error {
-            Err(err.clone())
-        } else {
-            Ok(r)
+        for id in ids {
+            r.push(c.get_entity(*id)?);
         }
+        self.error.clone().map_or(Ok(r), |e| Err(e))
     }
 
     /// Returns all stored objects in this Box
     pub fn get_all(&self) -> error::Result<Vec<T>> {
-        let (tx, mut cursor) = self.get_tx_cursor();
+        let (_, cursor) = self.get_tx_cursor();
 
         let data_ptr_ptr: *mut *mut u8 = &mut ptr::null_mut();
 
@@ -429,36 +366,31 @@ impl<T: OBBlanket> Box<'_, T> {
 
         let mut r: Vec<T> = Vec::new();
 
-        let mut code = cursor.first(data_ptr_ptr as MutConstVoidPtr, size_ptr);
+        let mut c = match cursor {
+            Ok(c) => c,
+            Err(e) => return Err(e),
+        };
+
+        let mut code = c.first(data_ptr_ptr as MutConstVoidPtr, size_ptr);
 
         // c::OBX_NOT_FOUND was a C #define that became a u32
         // which is incompatible with obx_err === i32
         while code != NOT_FOUND_404 {
             unsafe {
-                r.push(self.from_raw_parts_to_object(data_ptr_ptr, size_ptr));
+                r.push(c.from_raw_parts_to_object(data_ptr_ptr, size_ptr));
             }
-            code = cursor.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);
+            code = c.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);
 
-            if code != SUCCESS_0 /* c::OBX_SUCCESS */ && code != NOT_FOUND_404
-            /* c::OBX_NOT_FOUND */
-            {
+            if code != SUCCESS_0 && code != NOT_FOUND_404 {
                 let err = c::call(code, Some("box::get_all")).err();
                 if let Some(err) = &err {
-                    cursor.error = Some(err.to_owned());
+                    c.error = Some(err.to_owned());
                 }
                 break;
             }
         }
 
-        if let Some(err) = &self.error {
-            Err(err.clone())
-        } else if let Some(err) = &tx.error {
-            Err(err.clone())
-        } else if let Some(err) = &cursor.error {
-            Err(err.clone())
-        } else {
-            Ok(r)
-        }
+        self.error.clone().map_or(Ok(r), |e| Err(e))
     }
 
     // TODO
