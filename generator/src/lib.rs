@@ -157,7 +157,7 @@ impl EntityVecHelper for Vec<ModelEntity> {
 mod code_gen;
 use code_gen::CodeGenExt;
 
-pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
+pub fn generate_assets(out_path: &PathBuf, target_dir: &PathBuf) {
     // Read <entity>.objectbox.info and consolidate into
     let pbs = glob_generated_json(out_path);
 
@@ -166,8 +166,8 @@ pub fn generate_assets(out_path: &PathBuf, cargo_manifest_dir: &PathBuf) {
         return;
     }
 
-    let mut json_dest_path = cargo_manifest_dir.join("src/objectbox-model.json");
-    let mut ob_dest_path = cargo_manifest_dir.join("src/objectbox_gen.rs");
+    let mut json_dest_path = target_dir.join("objectbox-model.json");
+    let mut ob_dest_path = target_dir.join("objectbox_gen.rs");
     let mut model_has_changed = false;
     // Exports everything a user needs from objectbox, fully generated
     if json_dest_path.exists() {
