@@ -404,34 +404,34 @@ impl ModelProperty {
         // TODO starting from `self.type_field` -> `dyn $dyn_type<$entity_name>`, in the three related functions
         match self.type_field {
             ob_consts::OBXPropertyType_Double => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_double<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_double<$entity_name>,
             },
             ob_consts::OBXPropertyType_Long => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_long<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_long<$entity_name>,
             },
             ob_consts::OBXPropertyType_ByteVector => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_byte_vec<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_byte_vec<$entity_name>,
             },
             ob_consts::OBXPropertyType_String => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_string<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_string<$entity_name>,
             },
             ob_consts::OBXPropertyType_Float => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_float<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_float<$entity_name>,
             },
             ob_consts::OBXPropertyType_Int => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_int<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_int<$entity_name>,
             },
             ob_consts::OBXPropertyType_Char => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_char<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_char<$entity_name>,
             },
             ob_consts::OBXPropertyType_Short => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_short<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_short<$entity_name>,
             },
             ob_consts::OBXPropertyType_Bool => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_bool<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_bool<$entity_name>,
             },
             ob_consts::OBXPropertyType_Byte => quote! {
-                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)> as &dyn $type_byte<$entity_name>,
+                $name: &$ccb_fn::<$entity_name, $entity_id, $(property_id), $(self.type_field)>() as &dyn $type_byte<$entity_name>,
             },
             _ => quote!(), // TODO refine this for the remaining types, no support for now
         }
