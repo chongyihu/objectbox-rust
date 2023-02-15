@@ -498,7 +498,8 @@ impl<Entity: OBBlanket> VecU8Blanket<Entity> for Entity where
 {
 }
 impl<Entity: OBBlanket> StringBlanket<Entity> for Entity where
-    Entity: StringExt<Entity> + BasicExt<Entity>
+    Entity: StringExt<Entity>
+        + BasicExt<Entity>
         + EqExt<Entity, String>
         + OrdExt<Entity, String>
         + InOutExt<Entity, String>
@@ -560,7 +561,7 @@ mod tests {
         EntityConditionFactories2 {
             uniform: create_condition_builder::<TEntity2, 1, 1, 1>(), // as &dyn F64Blanket<TEntity2>,
             kilo: create_condition_builder::<TEntity2, 1, 1, 1>(), // as &dyn F64Blanket<TEntity2>,
-        }    
+        }
     }
 
     impl I16Blanket<TEntity2> for ConditionBuilder<TEntity2> {}
@@ -630,8 +631,7 @@ mod tests {
     }
     fn new_entity_condition_factory() -> EntityConditionFactory {
         EntityConditionFactory {
-            id: Box::new(create_condition_builder::<TEntity2, 1, 1, 6>())
-                /*as Box<&dyn I64Blanket<TEntity2>>*/,
+            id: Box::new(create_condition_builder::<TEntity2, 1, 1, 6>()), /*as Box<&dyn I64Blanket<TEntity2>>*/
         }
     }
 

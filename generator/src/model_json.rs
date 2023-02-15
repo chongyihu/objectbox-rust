@@ -336,34 +336,34 @@ impl ModelProperty {
         let name = &self.name;
         match self.type_field {
             ob_consts::OBXPropertyType_Double => quote! {
-                $name: Box<dyn $type_double<$entity_name>>,
+                pub $name: Box<dyn $type_double<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Long => quote! {
-                $name: Box<dyn $type_long<$entity_name>>,
+                pub $name: Box<dyn $type_long<$entity_name>>,
             },
             ob_consts::OBXPropertyType_ByteVector => quote! {
-                $name: Box<dyn $type_byte_vec<$entity_name>>,
+                pub $name: Box<dyn $type_byte_vec<$entity_name>>,
             },
             ob_consts::OBXPropertyType_String => quote! {
-                $name: Box<dyn $type_string<$entity_name>>,
+                pub $name: Box<dyn $type_string<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Float => quote! {
-                $name: Box<dyn $type_float<$entity_name>>,
+                pub $name: Box<dyn $type_float<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Int => quote! {
-                $name: Box<dyn $type_int<$entity_name>>,
+                pub $name: Box<dyn $type_int<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Char => quote! {
-                $name: Box<dyn $type_char<$entity_name>>,
+                pub $name: Box<dyn $type_char<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Short => quote! {
-                $name: Box<dyn $type_short<$entity_name>>,
+                pub $name: Box<dyn $type_short<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Bool => quote! {
-                $name: Box<dyn $type_bool<$entity_name>>,
+                pub $name: Box<dyn $type_bool<$entity_name>>,
             },
             ob_consts::OBXPropertyType_Byte => quote! {
-                $name: Box<dyn $type_byte<$entity_name>>,
+                pub $name: Box<dyn $type_byte<$entity_name>>,
             },
             _ => quote!(), // TODO refine this for the remaining types, no support for now
         }
