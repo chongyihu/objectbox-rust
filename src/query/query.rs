@@ -6,15 +6,7 @@
 // ..build() -> Query
 // ..property(j) -> PropertyQuery (PQ) PQ vs QP are confusing as hell, mea culpa
 // j -> QP (like i)
-//
-// Traits to reuse: https://doc.rust-lang.org/std/ops/index.html
-// Ops: https://doc.rust-lang.org/book/appendix-02-operators.html
-// Available ops should be known in compile time
-// For lack of variadic args on .query(), use query(vec!(condition...));
 
-// TODO write macro for boilerplate: fn obx_query_something(...) -> obx_err, rewrite to call,
-// TODO also error check before chaining the next call
-// TODO depending on property type, allow only certain calls at compile time?
 
 use crate::c;
 use crate::c::*;
