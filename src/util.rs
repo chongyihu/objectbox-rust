@@ -2,12 +2,7 @@ use std::ffi::{c_void, CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
 use std::ptr::null;
-use std::rc::Rc;
-
-use crate::cursor::Cursor;
-use crate::traits::EntityFactoryExt;
-use crate::txn::Tx;
-use crate::{c, error};
+use crate::c;
 
 // not using bindgen's derived #define OBX_NOT_FOUND 404, because it's a u32
 pub const NOT_FOUND_404: i32 = 404;
@@ -103,28 +98,3 @@ impl VecToPtrAndLength for Vec<&CStr> {
     }
 }
 
-pub(crate) fn get_tx_cursor_mut<T>(
-    obx_store: *mut c::OBX_store,
-    helper: Rc<dyn EntityFactoryExt<T>>,
-) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
-    let tx = Tx::new_mut(obx_store);
-    let cursor = Cursor::new(tx.obx_txn, helper.clone());
-
-    (
-        tx.error.clone().map_or(Ok(tx), |e| Err(e)),
-        cursor.error.clone().map_or(Ok(cursor), |e| Err(e)),
-    )
-}
-
-pub(crate) fn get_tx_cursor<T>(
-    obx_store: *mut c::OBX_store,
-    helper: Rc<dyn EntityFactoryExt<T>>,
-) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
-    let tx = Tx::new(obx_store);
-    let cursor = Cursor::new(tx.obx_txn, helper.clone());
-
-    (
-        tx.error.clone().map_or(Ok(tx), |e| Err(e)),
-        cursor.error.clone().map_or(Ok(cursor), |e| Err(e)),
-    )
-}

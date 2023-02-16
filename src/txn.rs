@@ -1,7 +1,4 @@
-#[allow(dead_code)]
-use std::ptr;
-
-use crate::c;
+use crate::{c, error};
 use crate::c::*;
 use crate::error::Error;
 
@@ -44,56 +41,55 @@ impl Tx {
 
     // TODO check memory leak
     // new will clean itself up with drop
-    pub(crate) fn new(store: *mut c::OBX_store) -> Self {
+    pub(crate) fn new(store: *mut c::OBX_store) -> error::Result<Self> {
         match c::new_mut(unsafe { obx_txn_read(store) }, Some("Tx::new")) {
-            Ok(obx_txn) => Tx {
+            Ok(obx_txn) => Ok(Tx {
                 obx_txn,
                 error: None,
                 ptr_closed: false,
-            },
-            Err(e) => panic!("{e}"),
+            }),
+            Err(e) => Err(e.clone()),
         }
     }
 
     // new_mut requires calling `obx_txn_success`
-    pub(crate) fn new_mut(store: *mut c::OBX_store) -> Self {
+    pub(crate) fn new_mut(store: *mut c::OBX_store) -> error::Result<Self> {
         match c::new_mut(unsafe { obx_txn_write(store) }, Some("Tx::new_mut")) {
-            Ok(obx_txn) => Tx {
+            Ok(obx_txn) => Ok(Tx {
                 obx_txn,
                 error: None,
                 ptr_closed: false,
-            },
-            Err(e) => panic!("{e}"),
+            }),
+            Err(e) => Err(e.clone()),
         }
     }
 
     // only run on write tx, read tx closes itself on the drop
-    pub(crate) fn success(&mut self) {
-        self.error = c::call(
-            unsafe { obx_txn_success(self.obx_txn) },
+    pub(crate) fn success(&mut self) -> error::Result<()> {
+        let r = unsafe { obx_txn_success(self.obx_txn) };
+
+        if r == 0 {
+            self.ptr_closed = true;
+            return Ok(());
+        }
+
+        c::call(
+            r,
             Some("Tx::success"),
         )
-        .err();
-        if let Some(err) = &self.error {
-            panic!("{err}");
-        } else {
-            self.ptr_closed = true;
-        }
     }
 
     fn abort(&mut self) {
         self.error = c::call(unsafe { obx_txn_abort(self.obx_txn) }, Some("Tx::abort")).err();
     }
 
-    // TODO open up for debugging
-    pub(crate) fn data_size(&mut self) -> (u64, u64) {
+    // TODO write test
+    pub(crate) fn data_size(&mut self) -> error::Result<(u64, u64)> {
         let mut committed_size = 0;
         let mut size_change = 0;
-        self.error = c::call(
+        c::call(
             unsafe { obx_txn_data_size(self.obx_txn, &mut committed_size, &mut size_change) },
             Some("Tx::data_size"),
-        )
-        .err();
-        (committed_size, size_change)
+        ).map(|_|(committed_size, size_change))
     }
 }

@@ -9,8 +9,8 @@ use crate::query::builder::Builder;
 use crate::query::condition::Condition;
 use crate::query::Query;
 use crate::traits::{EntityFactoryExt, OBBlanket};
-use crate::util::{get_tx_cursor, get_tx_cursor_mut, MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
-use crate::{cursor::Cursor, txn::Tx};
+use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
+use crate::cursor::Cursor;
 use flatbuffers::FlatBufferBuilder;
 
 // This Box type will confuse a lot of rust users of std::boxed::Box
@@ -269,13 +269,6 @@ impl<T: OBBlanket> Box<'_, T> {
         }
       }
     */
-    fn get_tx_cursor_mut(&self) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
-        get_tx_cursor_mut(self.get_store(), self.helper.clone())
-    }
-
-    fn get_tx_cursor(&self) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
-        get_tx_cursor(self.get_store(), self.helper.clone())
-    }
 
     /// A box has a longer lifetime than a cursor,
     /// and the only thing keeping this method here
@@ -302,63 +295,53 @@ impl<T: OBBlanket> Box<'_, T> {
     }
 
     pub fn put(&mut self, object: &mut T) -> error::Result<c::obx_id> {
-        let (tx, cursor) = self.get_tx_cursor_mut();
+        let mut cursor = Cursor::new(true, self.get_store(), self.helper.clone())?;
         
-        let new_id = self.put_entity_in_ob(&mut cursor?, object);
-        tx?.success();
+        let new_id = self.put_entity_in_ob(&mut cursor, object);
+        cursor.get_tx().success();
 
         self.error.clone().map_or(Ok(new_id), |e| Err(e))
     }
 
     pub fn put_many(&mut self, objects: Vec<&mut T>) -> error::Result<Vec<c::obx_id>> {
-        let (tx, cursor) = self.get_tx_cursor_mut();
+        let mut cursor = Cursor::new(true, self.get_store(), self.helper.clone())?;
 
         let mut vec_out = Vec::<c::obx_id>::new();
 
-        let mut c = match cursor {
-            Ok(c) => c,
-            Err(e) => return Err(e),
-        };
-
         for o in objects {
-            vec_out.push(self.put_entity_in_ob(&mut c, o));
+            vec_out.push(self.put_entity_in_ob(&mut cursor, o));
         }
 
-        tx?.success();
+        cursor.get_tx().success();
         self.error.clone().map_or(Ok(vec_out), |e| Err(e))
     }
 
     /// For testing purposes
     pub fn count_with_cursor(&self) -> error::Result<u64> {
-        let (_, cursor) = self.get_tx_cursor();
-        Ok(cursor?.count())
+        let mut cursor = Cursor::new(false, self.get_store(), self.helper.clone())?;
+        Ok(cursor.count())
     }
 
     pub fn get(&self, id: c::obx_id) -> error::Result<Option<T>> {
-        let (_, cursor) = self.get_tx_cursor();
-        let r = cursor?.get_entity(id);
+        let mut cursor = Cursor::new(false, self.get_store(), self.helper.clone())?;
+        let r = cursor.get_entity(id);
         self.error.clone().map_or(Ok(r?), |e| Err(e))
     }
 
     pub fn get_many(&self, ids: &[c::obx_id]) -> error::Result<Vec<Option<T>>> {
-        let (_, cursor) = self.get_tx_cursor();
+        let mut cursor = Cursor::new(false, self.get_store(), self.helper.clone())?;
 
         let mut r = Vec::<Option<T>>::new();
 
-        let mut c = match cursor {
-            Ok(c) => c,
-            Err(e) => return Err(e),
-        };
-
         for id in ids {
-            r.push(c.get_entity(*id)?);
+            r.push(cursor.get_entity(*id)?);
         }
         self.error.clone().map_or(Ok(r), |e| Err(e))
     }
 
     /// Returns all stored objects in this Box
     pub fn get_all(&self) -> error::Result<Vec<T>> {
-        let (_, cursor) = self.get_tx_cursor();
+        let mut cursor = Cursor::new(false, self.get_store(), self.helper.clone())?;
 
         let data_ptr_ptr: *mut *mut u8 = &mut ptr::null_mut();
 
@@ -366,26 +349,18 @@ impl<T: OBBlanket> Box<'_, T> {
 
         let mut r: Vec<T> = Vec::new();
 
-        let mut c = match cursor {
-            Ok(c) => c,
-            Err(e) => return Err(e),
-        };
-
-        let mut code = c.first(data_ptr_ptr as MutConstVoidPtr, size_ptr);
+        let mut code = cursor.first(data_ptr_ptr as MutConstVoidPtr, size_ptr);
 
         // c::OBX_NOT_FOUND was a C #define that became a u32
         // which is incompatible with obx_err === i32
         while code != NOT_FOUND_404 {
             unsafe {
-                r.push(c.from_raw_parts_to_object(data_ptr_ptr, size_ptr));
+                r.push(cursor.from_raw_parts_to_object(data_ptr_ptr, size_ptr));
             }
-            code = c.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);
+            code = cursor.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);
 
             if code != SUCCESS_0 && code != NOT_FOUND_404 {
-                let err = c::call(code, Some("box::get_all")).err();
-                if let Some(err) = &err {
-                    c.error = Some(err.to_owned());
-                }
+                let _ = c::call(code, Some("box::get_all"))?;
                 break;
             }
         }

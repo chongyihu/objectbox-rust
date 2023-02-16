@@ -4,9 +4,6 @@ use crate::cursor::Cursor;
 use crate::error;
 use crate::traits::EntityFactoryExt;
 use crate::traits::OBBlanket;
-use crate::txn::Tx;
-use crate::util::get_tx_cursor;
-use crate::util::get_tx_cursor_mut;
 use crate::util::test_fn_ptr_on_char_ptr;
 use core::slice;
 use std::marker::PhantomData;
@@ -176,14 +173,6 @@ impl<T: OBBlanket> Query<T> {
         }
     }
 
-    fn get_tx_cursor_mut(&self) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
-        get_tx_cursor_mut(self.obx_store, self.helper.clone())
-    }
-
-    fn get_tx_cursor(&self) -> (error::Result<Tx>, error::Result<Cursor<T>>) {
-        get_tx_cursor(self.obx_store, self.helper.clone())
-    }
-
     /*
         // TODO pass a closure fn to this in the pub fn impl
         // TODO translate to iter trait?
@@ -206,16 +195,11 @@ impl<T: OBBlanket> Query<T> {
     // by calling obx_query_cursor_find
     pub fn find(&mut self) -> error::Result<Vec<T>> {
         let mut vec = Vec::new();
-        let (_, cursor) = self.get_tx_cursor();
+        let mut cursor = Cursor::new(false, self.obx_store, self.helper.clone())?;
         let ids = self.find_ids()?;
 
-        let mut c = match cursor {
-            Ok(c) => c,
-            Err(e) => return Err(e),
-        };
-
         for id in ids {
-            vec.push(c.get_entity(id)?.map_or(self.helper.new_entity(), |e| e));
+            vec.push(cursor.get_entity(id)?.map_or(self.helper.new_entity(), |e| e));
         }
         self.error.clone().map_or(Ok(vec), |e| Err(e))
     }
@@ -228,8 +212,8 @@ impl<T: OBBlanket> Query<T> {
     pub fn find_ids(&mut self) -> error::Result<Vec<c::obx_id>> {
         let mut vec = Vec::new();
         unsafe {
-            let (_, cursor) = self.get_tx_cursor();
-            let c_id_array = self.cursor_find_ids(&mut *cursor?.obx_cursor);
+            let cursor = Cursor::new(false, self.obx_store, self.helper.clone())?;
+            let c_id_array = self.cursor_find_ids(&mut *cursor.obx_cursor);
             // TODO error check tx, cursor, with get_result_from_ptr
             let c = &*c_id_array;
             let len = c.count;
@@ -247,9 +231,9 @@ impl<T: OBBlanket> Query<T> {
     // TODO write test
     pub fn count(&mut self) -> error::Result<u64> {
         unsafe {
-            let (_, cursor) = self.get_tx_cursor();
+            let cursor = Cursor::new(false, self.obx_store, self.helper.clone())?;
             let count: *mut u64 = &mut 0;
-            let err_code = self.cursor_count(&mut *cursor?.obx_cursor, count);
+            let err_code = self.cursor_count(&mut *cursor.obx_cursor, count);
             // TODO error check tx, cursor, with get_result_from_ptr
             c::get_result(err_code, *count)
         }
@@ -261,11 +245,11 @@ impl<T: OBBlanket> Query<T> {
 
     pub fn remove(&mut self) -> error::Result<u64> {
         unsafe {
-            let (mut tx, cursor) = self.get_tx_cursor_mut();
+            let mut cursor = Cursor::new(true, self.obx_store, self.helper.clone())?;
             let count: *mut u64 = &mut 0;
-            let err_code = self.cursor_remove(&mut *cursor?.obx_cursor, count);
+            let err_code = self.cursor_remove(&mut *cursor.obx_cursor, count);
             if err_code == 0 {
-                tx?.success();
+                cursor.get_tx().success();
             }
             c::get_result(err_code, *count)
         }

@@ -4,7 +4,7 @@ use crate::{
     c::{self, *},
     error::{Error, self},
     traits::EntityFactoryExt,
-    util::{MutConstVoidPtr, ToCVoid, NOT_FOUND_404},
+    util::{MutConstVoidPtr, ToCVoid, NOT_FOUND_404}, txn::Tx,
 };
 
 // The best article ever on ffi
@@ -13,6 +13,7 @@ pub(crate) struct Cursor<T> {
     helper: Rc<dyn EntityFactoryExt<T>>,
     pub(crate) error: Option<Error>,
     pub(crate) obx_cursor: *mut c::OBX_cursor,
+    tx: Tx,
 }
 
 impl<T> Drop for Cursor<T> {
@@ -32,16 +33,22 @@ impl<T> Drop for Cursor<T> {
 }
 
 impl<T> Cursor<T> {
-    pub(crate) fn new(tx: *mut OBX_txn, helper: Rc<dyn EntityFactoryExt<T>>) -> Self {
+    pub(crate) fn new(is_mut: bool, store: *mut c::OBX_store, helper: Rc<dyn EntityFactoryExt<T>>) -> error::Result<Self> {
         let entity_id = helper.get_entity_id();
-        match c::new_mut(unsafe { c::obx_cursor(tx, entity_id) }, Some("cursor::new")) {
-            Ok(obx_cursor) => Cursor {
+        let tx = if is_mut { Tx::new_mut(store) } else { Tx::new(store) }?;
+        match c::new_mut(unsafe { c::obx_cursor(tx.obx_txn, entity_id) }, Some("cursor::new")) {
+            Ok(obx_cursor) => Ok(Cursor {
                 helper,
                 obx_cursor,
                 error: None,
-            },
-            Err(err) => panic!("{err}"),
+                tx,
+            }),
+            Err(err) => Err(err.clone()),
         }
+    }
+
+    pub(crate) fn get_tx(&mut self) -> &mut Tx {
+        &mut self.tx
     }
 
     pub(crate) unsafe fn from_raw_parts_to_object(
