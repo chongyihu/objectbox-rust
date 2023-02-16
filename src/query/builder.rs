@@ -181,6 +181,7 @@ impl<T: OBBlanket> Builder<T> {
                     }
                     let vec: Vec<_> = new_strings
                         .iter()
+                        // TODO rewrite the unwrap
                         .map(|s| CString::new(s.as_bytes()).unwrap())
                         .collect();
                     let cstrs: Vec<&CStr> = vec.iter().map(|c| c.as_c_str()).collect();
