@@ -1,4 +1,4 @@
-#[allow(dead_code)]
+#![allow(dead_code)]
 use crate::{c, entity_builder::EntityBuilder, error::Error};
 use std::{ffi, ptr};
 

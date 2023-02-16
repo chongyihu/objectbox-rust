@@ -1,4 +1,5 @@
-use crate::{c, error, util::ConstVoidPtr};
+#![allow(dead_code)]
+use crate::{c, error};
 
 // TODO required for putAsync and putQueued
 pub(crate) struct Async {

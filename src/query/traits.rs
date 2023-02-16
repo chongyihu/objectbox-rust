@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::{c, traits::OBBlanket};
 use core::marker::PhantomData;
 use std::rc::Rc;

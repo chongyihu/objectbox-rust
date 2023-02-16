@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 pub struct Version {
     pub major: u32,
     pub minor: u32,

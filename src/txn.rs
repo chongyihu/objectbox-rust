@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::c::*;
 use crate::error::Error;
 use crate::{c, error};

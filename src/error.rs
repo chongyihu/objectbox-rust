@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::c;
 use std::{error, fmt, result};
 

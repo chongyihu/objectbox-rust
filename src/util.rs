@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::c;
 use std::ffi::{c_void, CStr, CString};
 use std::os::raw::c_char;

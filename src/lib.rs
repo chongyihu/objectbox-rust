@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 // pub extern crate predicates;
 pub extern crate anymap as map;
 pub extern crate flatbuffers as flatbuffers;

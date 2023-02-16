@@ -1,7 +1,7 @@
+#![allow(dead_code)]
 use std::ptr;
 use std::rc::Rc;
 
-// #[allow(dead_code)]
 use crate::c::{self, *};
 use crate::error::{self, Error};
 

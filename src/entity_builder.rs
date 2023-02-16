@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::c::{self, OBXPropertyFlags, OBXPropertyType};
 
 pub(crate) struct Entity {

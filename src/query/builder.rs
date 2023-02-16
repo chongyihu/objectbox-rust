@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{
     ffi::{CStr, CString},
     marker::PhantomData,

@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use std::{ptr, rc::Rc, slice::from_raw_parts};
 
 use crate::{
