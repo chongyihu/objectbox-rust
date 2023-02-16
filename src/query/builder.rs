@@ -82,7 +82,7 @@ impl<T: OBBlanket> Builder<T> {
                 ConditionOp::OrderFlags(flags) => self.order(*flags),
                 ConditionOp::CaseSensitive(b) => {
                     self.case_sensitive = *b;
-                    0
+                    QUERY_NO_OP
                 }
                 ConditionOp::Contains(s) => self.contains_string(s.as_c_char_ptr()),
                 ConditionOp::ContainsElement(s) => self.contains_element_string(s.as_c_char_ptr()),
@@ -106,21 +106,21 @@ impl<T: OBBlanket> Builder<T> {
                 ConditionOp::Le_string(s) => self.less_or_equal_string(s.as_c_char_ptr()),
                 ConditionOp::Ge_string(s) => self.greater_or_equal_string(s.as_c_char_ptr()),
                 ConditionOp::All => {
-                    let cs = c.collect_children_results();
+                    let cs = c.collect_results();
                     let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
                     if cs.len() > 0 {
                         self.all(ptr, len)
                     } else {
-                        0
+                        QUERY_NO_OP
                     }
                 }
                 ConditionOp::Any => {
-                    let cs = c.collect_children_results();
+                    let cs = c.collect_results();
                     let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
                     if cs.len() > 0 {
                         self.any(ptr, len)
                     } else {
-                        0
+                        QUERY_NO_OP
                     }
                 }
                 ConditionOp::ContainsKeyValue(k, v) => {
@@ -176,7 +176,7 @@ impl<T: OBBlanket> Builder<T> {
                                 "Bad string conversion (in_strings: {})",
                                 err.to_string()
                             )));
-                            return 0;
+                            return QUERY_NO_OP;
                         }
                     }
                     let vec: Vec<_> = new_strings
@@ -187,7 +187,7 @@ impl<T: OBBlanket> Builder<T> {
                     let (ptr, len) = cstrs.as_ptr_and_length_tuple();
                     self.in_strings(ptr, len)
                 }
-                ConditionOp::NoOp => 0,
+                ConditionOp::NoOp => QUERY_NO_OP,
             };
             result
         }

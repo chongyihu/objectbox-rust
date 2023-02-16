@@ -298,7 +298,7 @@ impl<T: OBBlanket> Box<'_, T> {
         let mut cursor = Cursor::new(true, self.get_store(), self.helper.clone())?;
 
         let new_id = self.put_entity_in_ob(&mut cursor, object);
-        cursor.get_tx().success();
+        cursor.get_tx().success()?;
 
         self.error.clone().map_or(Ok(new_id), |e| Err(e))
     }
@@ -312,7 +312,7 @@ impl<T: OBBlanket> Box<'_, T> {
             vec_out.push(self.put_entity_in_ob(&mut cursor, o));
         }
 
-        cursor.get_tx().success();
+        cursor.get_tx().success()?;
         self.error.clone().map_or(Ok(vec_out), |e| Err(e))
     }
 

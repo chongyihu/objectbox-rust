@@ -7,6 +7,7 @@ use std::ptr::null;
 // not using bindgen's derived #define OBX_NOT_FOUND 404, because it's a u32
 pub const NOT_FOUND_404: i32 = 404;
 pub const SUCCESS_0: i32 = 0;
+pub const QUERY_NO_OP: i32 = 0;
 
 pub type MutConstVoidPtr = *mut *const c_void;
 pub type ConstVoidPtr = *const c_void;

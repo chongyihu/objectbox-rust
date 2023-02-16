@@ -4,6 +4,7 @@ use std::rc::Rc;
 use crate::c::{self, obx_schema_id};
 use crate::query::enums::ConditionOp;
 use crate::traits::OBBlanket;
+use crate::util::QUERY_NO_OP;
 
 /// entity id, property id, property type
 pub type IdsAndType = Rc<(obx_schema_id, obx_schema_id, c::OBXPropertyType)>;
@@ -77,11 +78,13 @@ impl<Entity: OBBlanket> Condition<Entity> {
         Self::new_group(id_t, ConditionOp::All, those)
     }
 
-    pub(crate) fn collect_children_results(&self) -> Vec<c::obx_qb_cond> {
+    pub(crate) fn collect_results(&self) -> Vec<c::obx_qb_cond> {
         let mut vec = Vec::<c::obx_qb_cond>::new();
         if let Some(children) = &self.group {
             for c in children {
-                vec.push(c.result.map_or(0, |v| v));
+                if let Some(r) = c.result {
+                    vec.push(r);
+                }
             }
         }
         vec
@@ -94,6 +97,6 @@ impl<Entity: OBBlanket> Condition<Entity> {
             }
         }
         let i = f(self);
-        self.result = if i == 0 { None } else { Some(i) }
+        self.result = if i == QUERY_NO_OP { None } else { Some(i) }
     }
 }
