@@ -89,6 +89,8 @@ mod tests {
     use objectbox::{opt::Opt, store::Store};
     use std::rc;
 
+    use crate::ob::{new_entity_condition_factory, EntityConditionFactory, new_entity3_condition_factory, Entity3ConditionFactory};
+
     use super::*;
 
     #[test]
@@ -311,7 +313,7 @@ mod tests {
         }
     }
 
-    /*
+    
     #[test]
     fn query_tests() {
         let mut model = ob::make_model();
@@ -328,38 +330,39 @@ mod tests {
 
         // syntax test
         // query builder, query condition
-        {
-            let _ = box3.put(&mut Entity3 {
-                id: 1,
-                hello: "real world".to_string(),
-            });
-            let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
-            let mut c = hello
-                .case_sensitive(true)
-                .and(hello.contains("real"))
-                .and(hello.contains("world"));
-            let q = box3.query(&mut c);
-            // q.expect("explode"); // TODO turn on when fixed
-        }
+        // {
+        //     let _ = box3.put(&mut Entity3 {
+        //         id: 1,
+        //         hello: "real world".to_string(),
+        //     });
+        //     let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
+        //     let mut c = hello
+        //         .case_sensitive(true)
+        //         .and(hello.contains("real"))
+        //         .and(hello.contains("world"));
+        //     let q = box3.query(&mut c);
+        //     // q.expect("explode"); // TODO turn on when fixed
+        // }
 
         let EntityConditionFactory {
-            id,
+            // id,
             index_u32,
-            t_bool,
-            t_u8,
-            t_i8,
-            t_i16,
-            t_u16,
-            unique_i32,
-            t_i32,
-            t_u32,
-            t_u64,
-            t_i64,
-            t_f32,
-            t_f64,
-            t_string,
-            t_char,
-            t_vec_bytes,
+            ..
+            // t_bool,
+            // t_u8,
+            // t_i8,
+            // t_i16,
+            // t_u16,
+            // unique_i32,
+            // t_i32,
+            // t_u32,
+            // t_u64,
+            // t_i64,
+            // t_f32,
+            // t_f64,
+            // t_string,
+            // t_char,
+            // t_vec_bytes,
         } = new_entity_condition_factory();
 
         let mut entity = Entity {
@@ -385,12 +388,13 @@ mod tests {
 
         box1.put(&mut entity).expect("explode");
 
-        box1.query(&mut index_u32.ge(1)).expect("explode");
-        box1.query(&mut index_u32.le(1)).expect("explode");
-        box1.query(&mut index_u32.lt(2)).expect("explode");
-        box1.query(&mut index_u32.gt(0)).expect("explode");
-
+        assert_eq!(1, box1.query(&mut index_u32.ge(1)).expect("explode").count().expect("explode"));
+        assert_eq!(1, box1.query(&mut index_u32.le(2)).expect("explode").count().expect("explode"));
+        assert_eq!(1, box1.query(&mut index_u32.gt(0)).expect("explode").count().expect("explode"));
+        assert_eq!(1, box1.query(&mut index_u32.lt(2)).expect("explode").count().expect("explode"));
+        assert_eq!(1, box1.query(&mut index_u32.eq(1)).expect("explode").count().expect("explode"));
+        assert_eq!(1, box1.query(&mut index_u32.ne(0)).expect("explode").count().expect("explode"));
+        
         // TODO generate all the tests
     }
-    */
 }
