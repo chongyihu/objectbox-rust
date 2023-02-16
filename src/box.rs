@@ -5,12 +5,12 @@ use std::rc::Rc;
 use crate::c::{self, *};
 use crate::error::{self, Error};
 
+use crate::cursor::Cursor;
 use crate::query::builder::Builder;
 use crate::query::condition::Condition;
 use crate::query::Query;
 use crate::traits::{EntityFactoryExt, OBBlanket};
 use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
-use crate::cursor::Cursor;
 use flatbuffers::FlatBufferBuilder;
 
 // This Box type will confuse a lot of rust users of std::boxed::Box
@@ -296,7 +296,7 @@ impl<T: OBBlanket> Box<'_, T> {
 
     pub fn put(&mut self, object: &mut T) -> error::Result<c::obx_id> {
         let mut cursor = Cursor::new(true, self.get_store(), self.helper.clone())?;
-        
+
         let new_id = self.put_entity_in_ob(&mut cursor, object);
         cursor.get_tx().success();
 

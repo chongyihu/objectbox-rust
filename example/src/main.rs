@@ -311,7 +311,7 @@ mod tests {
         }
     }
 
-/*
+    /*
     #[test]
     fn query_tests() {
         let mut model = ob::make_model();

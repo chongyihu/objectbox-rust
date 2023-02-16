@@ -2,9 +2,10 @@ use std::{ptr, rc::Rc, slice::from_raw_parts};
 
 use crate::{
     c::{self, *},
-    error::{Error, self},
+    error::{self, Error},
     traits::EntityFactoryExt,
-    util::{MutConstVoidPtr, ToCVoid, NOT_FOUND_404}, txn::Tx,
+    txn::Tx,
+    util::{MutConstVoidPtr, ToCVoid, NOT_FOUND_404},
 };
 
 // The best article ever on ffi
@@ -33,10 +34,21 @@ impl<T> Drop for Cursor<T> {
 }
 
 impl<T> Cursor<T> {
-    pub(crate) fn new(is_mut: bool, store: *mut c::OBX_store, helper: Rc<dyn EntityFactoryExt<T>>) -> error::Result<Self> {
+    pub(crate) fn new(
+        is_mut: bool,
+        store: *mut c::OBX_store,
+        helper: Rc<dyn EntityFactoryExt<T>>,
+    ) -> error::Result<Self> {
         let entity_id = helper.get_entity_id();
-        let tx = if is_mut { Tx::new_mut(store) } else { Tx::new(store) }?;
-        match c::new_mut(unsafe { c::obx_cursor(tx.obx_txn, entity_id) }, Some("cursor::new")) {
+        let tx = if is_mut {
+            Tx::new_mut(store)
+        } else {
+            Tx::new(store)
+        }?;
+        match c::new_mut(
+            unsafe { c::obx_cursor(tx.obx_txn, entity_id) },
+            Some("cursor::new"),
+        ) {
             Ok(obx_cursor) => Ok(Cursor {
                 helper,
                 obx_cursor,

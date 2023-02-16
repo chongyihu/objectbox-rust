@@ -199,7 +199,11 @@ impl<T: OBBlanket> Query<T> {
         let ids = self.find_ids()?;
 
         for id in ids {
-            vec.push(cursor.get_entity(id)?.map_or(self.helper.new_entity(), |e| e));
+            vec.push(
+                cursor
+                    .get_entity(id)?
+                    .map_or(self.helper.new_entity(), |e| e),
+            );
         }
         self.error.clone().map_or(Ok(vec), |e| Err(e))
     }

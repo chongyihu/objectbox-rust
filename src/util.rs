@@ -1,8 +1,8 @@
+use crate::c;
 use std::ffi::{c_void, CStr, CString};
 use std::os::raw::c_char;
 use std::path::Path;
 use std::ptr::null;
-use crate::c;
 
 // not using bindgen's derived #define OBX_NOT_FOUND 404, because it's a u32
 pub const NOT_FOUND_404: i32 = 404;
@@ -97,4 +97,3 @@ impl VecToPtrAndLength for Vec<&CStr> {
         (self.as_ptr() as *const T, self.len())
     }
 }
-

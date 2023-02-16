@@ -1,6 +1,6 @@
-use crate::{c, error};
 use crate::c::*;
 use crate::error::Error;
+use crate::{c, error};
 
 pub(crate) struct Tx {
     pub(crate) error: Option<Error>,
@@ -73,10 +73,7 @@ impl Tx {
             return Ok(());
         }
 
-        c::call(
-            r,
-            Some("Tx::success"),
-        )
+        c::call(r, Some("Tx::success"))
     }
 
     fn abort(&mut self) {
@@ -90,6 +87,7 @@ impl Tx {
         c::call(
             unsafe { obx_txn_data_size(self.obx_txn, &mut committed_size, &mut size_change) },
             Some("Tx::data_size"),
-        ).map(|_|(committed_size, size_change))
+        )
+        .map(|_| (committed_size, size_change))
     }
 }
