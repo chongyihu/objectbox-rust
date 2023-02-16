@@ -395,6 +395,9 @@ mod tests {
         assert_eq!(1, box1.query(&mut index_u32.eq(1)).expect("explode").count().expect("explode"));
         assert_eq!(1, box1.query(&mut index_u32.ne(0)).expect("explode").count().expect("explode"));
         
+        let r: Vec<Entity> = box1.query(&mut index_u32.ne(0)).expect("explode").find().expect("explode");
+        assert_eq!(r[0].index_u32, entity.index_u32);
+        
         // TODO generate all the tests
     }
 }
