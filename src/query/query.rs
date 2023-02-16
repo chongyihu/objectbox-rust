@@ -253,7 +253,7 @@ impl<T: OBBlanket> Query<T> {
             let count: *mut u64 = &mut 0;
             let err_code = self.cursor_remove(&mut *cursor.obx_cursor, count);
             if err_code == 0 {
-                cursor.get_tx().success();
+                cursor.get_tx().success()?;
             }
             c::get_result(err_code, *count)
         }

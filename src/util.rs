@@ -17,7 +17,7 @@ pub type PtrConstChar = *const ::std::os::raw::c_char;
 // TODO verify correctness on all platforms
 pub(crate) fn as_c_char_ptr(s: &str) -> *const c_char {
     // println!("as_c_char_ptr: {}", s);
-    let mut out_path = String::from(s);
+    let out_path = String::from(s);
     match CString::new(out_path.as_str()) {
         Ok(c_str) => c_str.as_ptr() as *const c_char,
         Err(err) => {
