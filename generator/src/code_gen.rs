@@ -324,11 +324,15 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
         let entity_id = e.id.as_comma_separated_str();
         let last_property_iduid = e.properties.last().unwrap().id.as_comma_separated_str();
 
-        let props = e
+        let mut props_unsorted: Vec<(usize, Tokens<Rust>)> = e
             .properties
             .iter()
-            .map(|p| p.as_fluent_builder_invocation())
-            .collect::<Vec<Tokens<Rust>>>();
+            .enumerate()
+            .map(|(i, p)| (i, p.as_fluent_builder_invocation()))
+            .collect();
+
+        props_unsorted.sort_by(|a, b| a.0.cmp(&b.0));
+        let props: Vec<Tokens<Rust>> = props_unsorted.iter().map(|t| t.1.clone()).collect();
 
         let quote = quote! {
           .entity($(quoted(entity_name)), $entity_id)
