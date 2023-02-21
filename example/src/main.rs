@@ -87,7 +87,6 @@ mod tests {
     use objectbox::flatbuffers::{FlatBufferBuilder, Table};
     use objectbox::traits::{self, FBOBBridge, IdExt};
     use objectbox::{opt::Opt, store::Store};
-    use std::path::PathBuf;
     use std::rc;
 
     use crate::ob::{new_entity_condition_factory, EntityConditionFactory, new_entity3_condition_factory, Entity3ConditionFactory};
@@ -334,21 +333,39 @@ mod tests {
         let mut box1 = store.get_box::<Entity>().expect("crash");
         box1.remove_all().expect("crash");
 
-        // syntax test
-        // query builder, query condition
-        // {
-        //     let _ = box3.put(&mut Entity3 {
-        //         id: 1,
-        //         hello: "real world".to_string(),
-        //     });
-        //     let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
-        //     let mut c = hello
-        //         .case_sensitive(true)
-        //         .and(hello.contains("real"))
-        //         .and(hello.contains("world"));
-        //     let q = box3.query(&mut c);
-        //     // q.expect("explode"); // TODO turn on when fixed
-        // }
+        // query builder, query condition, case sensitivity
+        {
+            let mut first = Entity3 {
+                id: 1,
+                hello: "world".to_string(),
+            };
+            let mut second = Entity3 {
+                id: 2,
+                hello: "real world".to_string(),
+            };
+            let mut third = Entity3 {
+                id: 3,
+                hello: "REAL world".to_string(),
+            };
+            let _ = box3.put(&mut first);
+            let _ = box3.put(&mut second);
+            let _ = box3.put(&mut third);
+            let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
+            let mut c = hello
+                .case_sensitive(false)
+                .and(hello.contains("real"));
+            let mut q = box3.query(&mut c).expect("explode");
+            let found_list = q.find().expect("explode");
+            assert_eq!(2, found_list.len());
+            assert_eq!(first.hello, found_list[0].hello);
+
+            let mut c2 = hello
+            .case_sensitive(true)
+            .and(hello.contains("real"));
+            let mut q2 = box3.query(&mut c2).expect("explode");
+            let found_list2 = q2.find().expect("explode");
+            assert_eq!(1, found_list2.len());
+        }
 
         let EntityConditionFactory {
             // id,
