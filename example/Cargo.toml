@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 cargo-make = "0.36.3"
 objectbox = { path = "../" }
+serial_test = "1.0.0"
 
 [build-dependencies]
 objectbox = { path = "../" }

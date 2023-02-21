@@ -87,13 +87,17 @@ mod tests {
     use objectbox::flatbuffers::{FlatBufferBuilder, Table};
     use objectbox::traits::{self, FBOBBridge, IdExt};
     use objectbox::{opt::Opt, store::Store};
+    use std::path::PathBuf;
     use std::rc;
 
     use crate::ob::{new_entity_condition_factory, EntityConditionFactory, new_entity3_condition_factory, Entity3ConditionFactory};
 
+    use serial_test::serial;
+
     use super::*;
 
     #[test]
+    #[serial]
     fn test_write_and_read_fb() {
         let trait_map2 = ob::make_factory_map();
         let f1 = trait_map2
@@ -154,6 +158,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn test_box_put_and_count_and_remove_all() {
         let mut model = ob::make_model();
         let opt = Opt::from_model(&mut model);
@@ -315,6 +320,7 @@ mod tests {
 
     
     #[test]
+    #[serial]
     fn query_tests() {
         let mut model = ob::make_model();
         let opt = Opt::from_model(&mut model);
