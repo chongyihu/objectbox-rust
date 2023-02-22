@@ -59,24 +59,21 @@ impl IdUidMacroHelper for id::IdUid {
     }
 }
 
-// This will break with nested sub types.
-// The last bit will remove the annotations in the generated code
-// because the generated code cannot reference the attributes.
-// The result of this is unused imported attributes.
-// TODO also remove those unused imports, in the generated code
-#[proc_macro_attribute]
-pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
+fn _entity(input: TokenStream, args: Option<TokenStream>) -> TokenStream {
     // print_token_stream("all: ", input.clone());
 
     let struct_clone = input.clone();
     // all parse_macro_input! macro have to happen inside a proc_macro_attribute(d) function
     let struct_info = parse_macro_input!(struct_clone as DeriveInput);
 
-    let attr_args = parse_macro_input!(args as AttributeArgs);
     let mut id = id::IdUid::zero();
 
-    if !attr_args.is_empty() {
-        id.update_from_nested_metas(attr_args.iter());
+    if args.is_some() {
+        let args_unwrapped = args.unwrap();
+        let attr_args = parse_macro_input!(args_unwrapped as AttributeArgs);
+        if !attr_args.is_empty() {
+            id.update_from_nested_metas(attr_args.iter());
+        }    
     }
 
     let entity = Entity::from_entity_name_and_fields(id, struct_info);
@@ -110,9 +107,24 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
         .collect::<TokenStream>()
 }
 
-// TODO figure out how to silence the macro checker
-// that it isn't a derive macro on top of a type
-// #[proc_macro_derive(Entity)]
+// This will break with nested sub types.
+// The last bit will remove the annotations in the generated code
+// because the generated code cannot reference the attributes.
+// The result of this is unused imported attributes.
+// TODO also remove those unused imports, in the generated code
+#[proc_macro_attribute]
+pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
+    _entity(input, Some(args))
+}
+
+/*
+// TODO fix this, also allow for id/uid parameters to entity
+// TODO look into [darling](https://crates.io/crates/darling)
+#[proc_macro_derive(Entity, attributes(id, index, unique, transient, sync))]
+pub fn derive_ob_entity(input: TokenStream) -> TokenStream {
+    _entity(input.clone(), None)
+}
+*/
 
 #[proc_macro_attribute]
 pub fn sync(_attribute: TokenStream, input: TokenStream) -> TokenStream {

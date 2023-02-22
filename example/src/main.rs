@@ -1,6 +1,7 @@
 extern crate objectbox;
 
 use objectbox::{macros::entity, opt::Opt, store::Store};
+// use objectbox::macros::Entity;
 
 /// Run `cargo build` twice, ignore the errors
 mod objectbox_gen;
@@ -9,6 +10,17 @@ use objectbox_gen as ob;
 // hard assumption: your Entity must be on the crate's
 // ground-level, so the generated code can access it
 // via crate::Entity
+
+/*
+// TODO complete this, see macros/src/lib.rs
+#[derive(Debug, Entity)]
+pub struct DerivedEntity {
+    #[id]
+    id: u64,
+    hello: String,
+}
+*/
+
 #[derive(Debug)]
 #[entity]
 pub struct Entity3 {
@@ -352,8 +364,8 @@ mod tests {
             let _ = box3.put(&mut third);
             let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
             let mut c = hello
-                .case_sensitive(false)
-                .and(hello.contains("real"));
+                .case_sensitive(true)
+                .and(hello.contains("real world"));
             let mut q = box3.query(&mut c).expect("explode");
             let found_list = q.find().expect("explode");
             assert_eq!(2, found_list.len());
