@@ -1,7 +1,9 @@
 # Generator
 
-This crate along with the macros crate are required to generate the `src/objectbox-model.json` and `src/objectbox.rs`
+This crate along with the macros crate are required to generate the `src/objectbox-model.json` and `src/objectbox_gen.rs`
 for your project's crate.
+
+This crate is responsible for generating the `src/objectbox_gen.rs`.
 
 Applied on `cargo.toml`:
 
@@ -30,19 +32,17 @@ use std::path::PathBuf;
 use std::env;
 
 fn main() {
-  let cargo_manifest_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
+  let target_dir = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap()).join("src");
   let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
-  gen::generate_assets(&out_dir, &cargo_manifest_dir);
+  gen::generate_assets(&out_dir, &target_dir);
 }
 ```
 
 Please check the example crate for more details.
 
 ## TODO
-* Check rust char conversion back and fro is correct in relation with OB
-* Support `Option<primitive>` types, e.g. Option<u32>, Option<String> etc.
 * Implement relations, and everything else, roadmap?
 ## Other interesting avenues of research
 * leverage macro (see macros package)
-  * -> generate .fbs (maybe requires extending genco), simple use-case with fb tables
-  * -> generate .rs accessors with the [flatc-rust](https://github.com/frol/flatc-rust)
+  * spawn new project to generate .fbs (maybe requires extending genco), simple use-case with fb tables
+  * spawn new project to generate .rs accessors with the [flatc-rust](https://github.com/frol/flatc-rust)

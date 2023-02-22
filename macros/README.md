@@ -1,7 +1,8 @@
 # Macros
 
-This project contains the macros required to generate
-the `objectbox-model.json` file, from rust structs.
+This crate is responsible for generating the `target/../Entity.info` files that are used to generate `objectbox-model.json`,
+starting from the macros applied to structs.
+
 
 For example:
 
@@ -12,8 +13,8 @@ use objectbox::macros::{entity, index};
 
 #[entity]
 struct Entity {
-  #[index]
-  index: u64,
+  #[id]
+  id: u64,
   t_bool : bool,
   t_u8 : u8,
   t_i8 : i8,

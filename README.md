@@ -4,12 +4,9 @@ See the example crate, WiP.
 
 ## Abstract roadmap
 * Flesh out:
-  * impl Drop traits for objectbox-c
-  * Store
-  * Box
   * Query
 * Write tests along the way
-## Problems solved, 2023 Jan
+## Problems solved, 2023 Feb
 * Code generation from struct entities with macros
 * Code generation for injecting the model to Store
 
@@ -21,6 +18,5 @@ See the example crate, WiP.
 * Decide what to do with:
   * transient struct properties aka unmapped properties, e.g. `Box<dyn trait>`, `Box<SomeType>`, etc. (initial idea: only allow `Option<P>` where `P` primitive?)
   * also generically typed properties (e.g. panic when parsed generic param)
-* Benchmark rusty [planus](https://github.com/planus-org/planus) vs [the OG flatbuffers lib](https://github.com/google/flatbuffers/tree/master/rust/flatbuffers)
 * Experiment with memory pools, especially on the fb side of things (solve: what to do with unbounded aggregate types, e.g. Vector, Map, Set? Separate table?)
 * Run [Miri](https://github.com/rust-lang/miri) to scan for UBs across ARCHs
