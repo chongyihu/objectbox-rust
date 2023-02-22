@@ -327,8 +327,7 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
         let mut props_unsorted: Vec<(usize, Tokens<Rust>)> = e
             .properties
             .iter()
-            .enumerate()
-            .map(|(i, p)| (i, p.as_fluent_builder_invocation()))
+            .map(|p| (p.to_sorting_priority(), p.as_fluent_builder_invocation()))
             .collect();
 
         props_unsorted.sort_by(|a, b| a.0.cmp(&b.0));
