@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use std::marker::PhantomData;
+use std::ops::{BitAnd, BitOr};
 use std::rc::Rc;
 
 use crate::c::{self, obx_schema_id};
@@ -99,5 +100,60 @@ impl<Entity: OBBlanket> Condition<Entity> {
         }
         let i = f(self);
         self.result = if i == QUERY_NO_OP { None } else { Some(i) }
+    }
+}
+
+impl<Entity: OBBlanket> BitAnd for Condition<Entity> {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        self.and(rhs)
+    }
+}
+
+impl<Entity: OBBlanket> BitOr for Condition<Entity> {
+    type Output = Self;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        self.or(rhs)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use flatbuffers::FlatBufferBuilder;
+
+    use super::*;
+
+    use crate::{c, traits::{FBOBBridge, IdExt}};
+
+    struct SomeEntity {
+        id: c::obx_id,
+        t_string: String,
+    }
+
+    impl FBOBBridge for SomeEntity {
+        fn to_fb(&self, builder: &mut FlatBufferBuilder<'_>) {}
+    }
+
+    impl IdExt for SomeEntity {
+        fn get_id(&self) -> c::obx_id {
+            self.id
+        }
+        fn set_id(&mut self, id: c::obx_id) {
+            self.id = id;
+        }
+    }
+
+    #[test]
+    fn query_bitandor_overload() {
+        let it = IdsAndType::new((0,1,2));
+        let c1 = Condition::<SomeEntity>::new(it.clone(), ConditionOp::EndsWith("1234".to_string()));
+        let c2 = Condition::<SomeEntity>::new(it.clone(), ConditionOp::StartsWith("1234".to_string()));
+        let c3 = Condition::<SomeEntity>::new(it.clone(), ConditionOp::EndsWith("1234".to_string()));
+        let c4 = Condition::<SomeEntity>::new(it.clone(), ConditionOp::StartsWith("1234".to_string()));
+
+        let _ = c1 | c2;
+        let _ = c3 & c4;
     }
 }
