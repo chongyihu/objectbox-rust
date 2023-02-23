@@ -20,10 +20,16 @@ jobs:
       run: cargo build --verbose
     - name: Install ObjectBox C-API
       run: ./install.sh
+    - name: Generate objectbox_gen.rs and objectbox-model.json
+      continue-on-error: true
+      run: |
+        cd example
+        cargo build
     - name: Run tests
       run: |
         cargo test --verbose
         cd example
+        cargo build
         cargo test --verbose
         cd ../generator
         cargo test --verbose
