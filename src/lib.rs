@@ -14,7 +14,6 @@ pub mod store;
 pub mod util;
 pub mod version;
 
-pub mod entity_builder;
 pub mod query;
 pub mod traits;
 

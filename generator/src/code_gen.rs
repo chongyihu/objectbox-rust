@@ -359,12 +359,10 @@ fn generate_model_fn(model_info: &ModelInfo) -> Tokens<Rust> {
 
     let last_entity = model_info.entities.last().unwrap();
     let last_entity_id = last_entity.id.as_comma_separated_str();
-    let builder = &rust::import("objectbox::entity_builder", "EntityBuilder");
 
     quote! {
       pub fn make_model() -> $model {
-        let builder = Box::new($builder::new());
-        $model::new(builder)
+        $model::new()
         $(tokens.clone())
         .last_entity_id($last_entity_id)
         $last_index_id

@@ -1,12 +1,11 @@
 #![allow(dead_code)]
-use crate::{c, entity_builder::EntityBuilder, error::Error};
+use crate::{c, error::Error};
 use std::{ffi, ptr};
 
 /// Model is used to define a database model. Use as a fluent interface (builder pattern)
 pub struct Model {
     pub(crate) obx_model: *mut c::OBX_model,
     pub(crate) error: Option<Error>,
-    builder: Box<EntityBuilder>,
     pub(crate) ptr_consumed: bool,
 }
 
@@ -28,18 +27,17 @@ impl Drop for Model {
 }
 
 impl Model {
-    pub fn new(builder: Box<EntityBuilder>) -> Self {
+    pub fn new() -> Self {
         match c::new_mut(unsafe { c::obx_model() }, Some("model::new")) {
+            // TODO map on Ok
             Ok(c_ptr) => Model {
                 obx_model: c_ptr,
                 error: None,
-                builder,
                 ptr_consumed: false,
             },
             Err(e) => Model {
                 obx_model: ptr::null_mut(),
                 error: Some(e),
-                builder,
                 ptr_consumed: false,
             },
         }
@@ -55,7 +53,6 @@ impl Model {
             )
             .err();
         }
-        self.builder.as_mut().add_entity(name, id, uid);
         self
     }
 
@@ -110,13 +107,6 @@ impl Model {
         if self.error.is_none() {
             let c_name = ffi::CString::new(name).unwrap();
 
-            // TODO test hypothesis: conversion is not necessary, since OB char, is also 4x bytes wide
-            // let (new_type, new_flags) = if typ == c::OBXPropertyType_Char {
-            //     (c::OBXPropertyType_Int, flags | c::OBXPropertyFlags_UNSIGNED)
-            // }else {
-            //     (typ, flags)
-            // };
-
             self.error = c::call(
                 unsafe { c::obx_model_property(self.obx_model, c_name.as_ptr(), typ, id, uid) },
                 Some("model::property1"),
@@ -137,10 +127,6 @@ impl Model {
                 eprintln!("{err}")
             }
         }
-
-        self.builder
-            .as_mut()
-            .add_property(name, id, uid, typ, flags);
 
         self
     }
@@ -216,8 +202,7 @@ mod tests {
 
     #[test]
     fn model_builder_positive() {
-        let builder = Box::new(EntityBuilder::new());
-        let model = Model::new(builder)
+        let model = Model::new()
             .entity("A", 1, 1)
             .property(
                 "id",
@@ -243,14 +228,11 @@ mod tests {
             .last_index_id(1, 301);
 
         assert!(model.error.is_none());
-        assert_eq!(model.builder.entities.len(), 2);
-        assert_eq!(model.builder.entities.first().unwrap().properties.len(), 2);
     }
 
     #[test]
     fn big_model_test() {
-        let builder = Box::new(EntityBuilder::new());
-        let model = Model::new(builder)
+        let model = Model::new()
             .entity("Entity", 1, 12802433372377933144)
             .property("id", 1, 16303625144254194803, 6, 129)
             .property("index_u32", 2, 17348581232598351063, 5, 8232)
@@ -289,8 +271,7 @@ mod tests {
 
     #[test]
     fn model_builder_negative() {
-        let builder = Box::new(EntityBuilder::new());
-        let model = Model::new(builder).entity("A", 1, 1).last_property_id(0, 0);
+        let model = Model::new().entity("A", 1, 1).last_property_id(0, 0);
 
         let expected_err = format!(
             "{} {} Argument condition \"property_id\" not met",

@@ -127,7 +127,7 @@ impl Property {
                                 }
                             });
                         }
-                        /* syn::Meta::Path(path) */ _ => {}
+                        _ => {} // syn::Meta::Path(path)
                     }
                 }
             }
@@ -146,11 +146,7 @@ impl Property {
                 "i8" => consts::OBXPropertyType_Byte,
                 "i16" => consts::OBXPropertyType_Short,
                 "u16" => consts::OBXPropertyType_Short,
-                "char" => {
-                    // TODO test hypothesis: conversion is not necessary, since OB char, is also 4x bytes wide
-                    // println!("Warning: {} will be remapped behind the scenes as u32. A rusty char is 4 octets wide.", name);
-                    consts::OBXPropertyType_Char
-                }
+                "char" => consts::OBXPropertyType_Char,
                 "u32" => consts::OBXPropertyType_Int,
                 "i32" => consts::OBXPropertyType_Int,
                 "u64" => consts::OBXPropertyType_Long,
