@@ -299,9 +299,6 @@ impl<Entity: OBBlanket> InOutExt<Entity, String> for ConditionBuilder<Entity> {
 pub trait BoolBlanket<Entity: OBBlanket>:
     BasicExt<Entity>
     + EqExt<Entity, i64>
-    + OrdExt<Entity, i64>
-    + BetweenExt<Entity, i64>
-    + InOutExt<Entity, i32>
 {
 }
 
@@ -417,9 +414,6 @@ impl<Entity: OBBlanket> F64Blanket<Entity> for Entity where
 impl<Entity: OBBlanket> BoolBlanket<Entity> for Entity where
     Entity: BasicExt<Entity>
         + EqExt<Entity, i64>
-        + OrdExt<Entity, i64>
-        + BetweenExt<Entity, i64>
-        + InOutExt<Entity, i32>
 {
 }
 impl<Entity: OBBlanket> CharBlanket<Entity> for Entity where

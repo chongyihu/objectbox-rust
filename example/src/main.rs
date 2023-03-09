@@ -424,8 +424,8 @@ mod tests {
         let EntityConditionFactory {
             // id,
             index_u32,
+            t_bool,
             ..
-            // t_bool,
             // t_u8,
             // t_i8,
             // t_i16,
@@ -468,13 +468,28 @@ mod tests {
         // pretend this is a new object
         entity.id = 0;
 
-        // set a new unique values
+        // set new unique values
         entity.index_u32 = 555;
         entity.unique_i32 = 555;
 
         // store "two" items
         box1.put(&mut entity).expect("explode");
 
+        // TODO FIXME: broken
+        // assert_eq!(
+        //     2,
+        //     box1.query(&mut t_bool.eq(0))
+        //         .expect("explode")
+        //         .count()
+        //         .expect("explode")
+        // );
+        // assert_eq!(
+        //     2,
+        //     box1.query(&mut t_bool.ne(1))
+        //         .expect("explode")
+        //         .count()
+        //         .expect("explode")
+        // );
         assert_eq!(
             2,
             box1.query(&mut index_u32.ge(1))
