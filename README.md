@@ -33,7 +33,7 @@ fn main() {
         hello: "Hello world!".to_string(),
     };
 
-    let new_id = match box1.put(&mut e_before).expect("crash");
+    let new_id = box1.put(&mut e_before).expect("crash");
 
     match box1.get(new_id) {
         Err(err) => panic!("{err}"),
@@ -59,16 +59,17 @@ In the final stage, `objectbox-model.json` is used to generate all the necessary
 rust code to facilitate and access the basic and/or advanced features, in `objectbox_gen.rs`.
 
 ## Dependencies
-* Rustup(?), or get it from apt, brew, chocolatey, etc.
+* InstallRustup, or get it from apt, brew, chocolatey, etc.
 * llvm
-* make sure llvm-ar is also exported in `$PATH`
+* Also, make sure llvm-ar is also exported in `$PATH`
 
 ## Abstract roadmap
 * Fix String Query bugs, also write more tests
 * Support fields with `Option<P>` where `P` is some primitive type
 * Write more tests, especially for all condition ops
 
-## Problems solved, 2023 Feb
+## Problems solved, 2023 Feb-March
+* Testing query conditions implementation
 * Code generation from struct entities with macros
 * Code generation for injecting the model to Store
 * Weave traits to make blankets, so objects can be created, flattened, inflated.
@@ -77,4 +78,5 @@ rust code to facilitate and access the basic and/or advanced features, in `objec
 * Don't rely on nightly features, we'll take whatever edition 2021 has to offer
 
 ## TODO (Nice to haves)
-* Reimplement macros with [darling's](https://github.com/TedDriggs/darling/blob/master/examples/consume_fields.rs) [cleaner abstractions (example how)](https://github.com/Buggaboo/lean_buffer/blob/main/macros/src/lib.rs).
+* Reimplement macros with [darling's](https://github.com/TedDriggs/darling/blob/master/examples/consume_fields.rs)
+* Integrate: [cleaner abstractions (example how)](https://github.com/Buggaboo/lean_buffer/blob/main/macros/src/lib.rs).
