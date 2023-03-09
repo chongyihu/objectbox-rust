@@ -65,8 +65,6 @@ rust code to facilitate and access the basic and/or advanced features, in `objec
 
 ## Abstract roadmap
 * Fix Query bug: any condition returns all the objects from a box
-* Remove stored error pattern: return the Error immediately, map the Ok,
-  so they can be chained with ?-op / try
 * Support fields with `Option<P>` where `P` is some primitive type
 * Write more tests, especially for all condition ops
 
