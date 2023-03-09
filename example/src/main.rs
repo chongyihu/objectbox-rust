@@ -366,7 +366,7 @@ mod tests {
             let mut c = hello
                 .case_sensitive(true)
                 .and(hello.contains("real world"));
-            let mut q = box3.query(&mut c).expect("explode");
+            let q = box3.query(&mut c).expect("explode");
             let found_list = q.find().expect("explode");
             assert_eq!(2, found_list.len());
             assert_eq!(first.hello, found_list[0].hello);

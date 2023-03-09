@@ -37,16 +37,14 @@ impl Drop for Store {
 impl Store {
     /// Assumes ownership of map, and Opt,
     pub fn new(mut opt: Opt, map: AnyMap) -> error::Result<Self> {
-        unsafe {
-            let obx_store = obx_store_open(opt.obx_opt);
-            // This prevents a double free
-            opt.ptr_consumed = !obx_store.is_null();
-            let r = Store {
-                trait_map: map,
-                obx_store,
-            };
-            c::get_result_from_ptr(obx_store, r)
-        }
+        let obx_store = c::new_mut(unsafe { obx_store_open(opt.obx_opt) }, None)?;
+        // This prevents a double free
+        opt.ptr_consumed = !obx_store.is_null();
+        let r = Store {
+            trait_map: map,
+            obx_store,
+        };
+        Ok(r)
     }
 
     pub fn get_box<T: 'static + OBBlanket>(&self) -> error::Result<crate::r#box::Box<T>> {

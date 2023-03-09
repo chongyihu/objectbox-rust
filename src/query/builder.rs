@@ -168,7 +168,7 @@ impl<T: OBBlanket> Builder<T> {
                         new_string.push_str(s.as_str());
                         new_string.push('\0');
                         new_strings.push(new_string);
-                        if let Err(err) = CString::new(s.as_bytes()) {
+                        if let Err(_) = CString::new(s.as_bytes()) {
                             // TODO bring back self.error? or leave string validation to user?
                             // TODO validate strings outside function
                             // error::Error::new_local(&format!(
