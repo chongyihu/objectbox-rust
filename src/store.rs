@@ -25,7 +25,7 @@ impl Drop for Store {
         if !self.obx_store.is_null() {
             match self.prepare_then_close() {
                 Err(err) => eprintln!("Error: store: {err}"),
-                _ => ()
+                _ => (),
             }
             self.obx_store = std::ptr::null_mut();
         }
@@ -106,15 +106,14 @@ impl Store {
     //   }
     // }
 
-      pub fn from_core_wrap(core_store: &mut Vec<u8>, map: AnyMap) -> error::Result<Self> {
+    pub fn from_core_wrap(core_store: &mut Vec<u8>, map: AnyMap) -> error::Result<Self> {
         // TODO test
         let ptr = unsafe { obx_store_wrap(core_store.as_ptr() as *mut std::ffi::c_void) };
-        c::new_mut(ptr, None)
-        .map(|s| Store {
+        c::new_mut(ptr, None).map(|s| Store {
             obx_store: s,
             trait_map: map,
         })
-      }
+    }
 
     fn set_entity_id(&self, entity_name: &str) -> error::Result<obx_schema_id> {
         unsafe {
@@ -122,7 +121,7 @@ impl Store {
                 Ok(obx_store_entity_id(self.obx_store, cstr.as_ptr()))
             } else {
                 Error::new_local("Error: unable to parse the entity id").as_result()?
-            }            
+            }
         }
     }
 
@@ -133,7 +132,11 @@ impl Store {
     ) -> error::Result<obx_schema_id> {
         unsafe {
             if let Ok(cstr) = CString::new(property_name) {
-                Ok(obx_store_entity_property_id(self.obx_store, entity_id, cstr.as_ptr()))
+                Ok(obx_store_entity_property_id(
+                    self.obx_store,
+                    entity_id,
+                    cstr.as_ptr(),
+                ))
             } else {
                 Error::new_local("Error: unable to parse the property id").as_result()?
             }
@@ -152,7 +155,8 @@ impl Store {
         c::call(
             unsafe { obx_store_debug_flags(self.obx_store, flags) },
             Some("store::debug_flags"),
-        ).map(|_|self)
+        )
+        .map(|_| self)
     }
 
     pub fn opened_with_previous_commit(&self) -> bool {
@@ -163,14 +167,16 @@ impl Store {
         c::call(
             unsafe { obx_store_prepare_to_close(self.obx_store) },
             Some("store::prepare_to_close"),
-        ).map(|_|self)
+        )
+        .map(|_| self)
     }
 
     fn close(&self) -> error::Result<&Self> {
         c::call(
             unsafe { obx_store_close(self.obx_store) },
             Some("store::close"),
-        ).map(|_|self)
+        )
+        .map(|_| self)
     }
 
     fn prepare_then_close(&self) -> error::Result<&Self> {

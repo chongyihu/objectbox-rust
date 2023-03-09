@@ -2,9 +2,9 @@
 use std::ffi::{c_uint, CStr};
 use std::path::Path;
 
-use crate::{c::*, error};
 use crate::model::Model;
 use crate::util::{ToCChar, ToCVoid};
+use crate::{c::*, error};
 
 pub struct Opt {
     pub(crate) obx_opt: *mut OBX_store_options,
@@ -49,7 +49,8 @@ impl Opt {
         call(
             unsafe { obx_opt_directory(self.obx_opt, dir.as_c_char_ptr()) },
             Some("opt::directory"),
-        ).map(|_|self)
+        )
+        .map(|_| self)
     }
 
     pub fn max_db_size_in_kb(&self, size_in_kb: u64) -> &Self {
@@ -91,21 +92,24 @@ impl Opt {
         call(
             unsafe { obx_opt_model(self.obx_opt, model.obx_model) },
             Some("opt::model"),
-        ).map(|_|self)
+        )
+        .map(|_| self)
     }
 
     pub fn model_bytes(&self, bytes: &Vec<u8>, size: usize) -> error::Result<&Self> {
         call(
             unsafe { obx_opt_model_bytes(self.obx_opt, bytes.to_const_c_void(), size) },
             Some("opt::model_bytes"),
-        ).map(|_|self)
+        )
+        .map(|_| self)
     }
 
     pub fn model_bytes_direct(&self, bytes: &Vec<u8>, size: usize) -> error::Result<&Self> {
         call(
             unsafe { obx_opt_model_bytes_direct(self.obx_opt, bytes.to_const_c_void(), size) },
             Some("opt::model_bytes_direct"),
-        ).map(|_|self)
+        )
+        .map(|_| self)
     }
 
     pub fn validate_on_open(&self, page_limit: usize, leaf_level: bool) -> &Self {

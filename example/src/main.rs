@@ -101,7 +101,10 @@ mod tests {
     use objectbox::{opt::Opt, store::Store};
     use std::rc;
 
-    use crate::ob::{new_entity_condition_factory, EntityConditionFactory, new_entity3_condition_factory, Entity3ConditionFactory};
+    use crate::ob::{
+        new_entity3_condition_factory, new_entity_condition_factory, Entity3ConditionFactory,
+        EntityConditionFactory,
+    };
 
     use serial_test::serial;
 
@@ -329,7 +332,6 @@ mod tests {
         }
     }
 
-    
     #[test]
     #[serial]
     fn query_tests() {
@@ -363,17 +365,13 @@ mod tests {
             let _ = box3.put(&mut second);
             let _ = box3.put(&mut third);
             let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
-            let mut c = hello
-                .case_sensitive(true)
-                .and(hello.contains("real world"));
+            let mut c = hello.case_sensitive(true).and(hello.contains("real world"));
             let q = box3.query(&mut c).expect("explode");
             let found_list = q.find().expect("explode");
             assert_eq!(2, found_list.len());
             assert_eq!(first.hello, found_list[0].hello);
 
-            let mut c2 = hello
-            .case_sensitive(true)
-            .and(hello.contains("real"));
+            let mut c2 = hello.case_sensitive(true).and(hello.contains("real"));
             let q2 = box3.query(&mut c2).expect("explode");
             let found_list2 = q2.find().expect("explode");
             assert_eq!(1, found_list2.len());
@@ -417,22 +415,62 @@ mod tests {
             t_f64: 13.0,
             t_string: "14".to_string(),
             t_char: 'c',
-            t_vec_string: vec![ "str1".to_string(), "str2".to_string() ],
-            t_vec_bytes: vec![ 0x9, 0x8, 0x7, 0x6, 0x5 ],
+            t_vec_string: vec!["str1".to_string(), "str2".to_string()],
+            t_vec_bytes: vec![0x9, 0x8, 0x7, 0x6, 0x5],
         };
 
         box1.put(&mut entity).expect("explode");
 
-        assert_eq!(1, box1.query(&mut index_u32.ge(1)).expect("explode").count().expect("explode"));
-        assert_eq!(1, box1.query(&mut index_u32.le(2)).expect("explode").count().expect("explode"));
-        assert_eq!(1, box1.query(&mut index_u32.gt(0)).expect("explode").count().expect("explode"));
-        assert_eq!(1, box1.query(&mut index_u32.lt(2)).expect("explode").count().expect("explode"));
-        assert_eq!(1, box1.query(&mut index_u32.eq(1)).expect("explode").count().expect("explode"));
-        assert_eq!(1, box1.query(&mut index_u32.ne(0)).expect("explode").count().expect("explode"));
-        
-        let r: Vec<Entity> = box1.query(&mut index_u32.ne(0)).expect("explode").find().expect("explode");
+        assert_eq!(
+            1,
+            box1.query(&mut index_u32.ge(1))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            1,
+            box1.query(&mut index_u32.le(2))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            1,
+            box1.query(&mut index_u32.gt(0))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            1,
+            box1.query(&mut index_u32.lt(2))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            1,
+            box1.query(&mut index_u32.eq(1))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            1,
+            box1.query(&mut index_u32.ne(0))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+
+        let r: Vec<Entity> = box1
+            .query(&mut index_u32.ne(0))
+            .expect("explode")
+            .find()
+            .expect("explode");
         assert_eq!(r[0].index_u32, entity.index_u32);
-        
+
         // TODO generate all the tests
     }
 }

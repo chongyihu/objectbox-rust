@@ -272,7 +272,11 @@ impl<T: OBBlanket> Box<'_, T> {
     /// To prevent reinitializing builders for
     /// every cursor operation, we keep this method here,
     /// it's better to recycle.
-    pub(crate) fn put_entity_in_ob(&mut self, cursor: &mut Cursor<T>, object: &mut T) -> error::Result<c::obx_id> {
+    pub(crate) fn put_entity_in_ob(
+        &mut self,
+        cursor: &mut Cursor<T>,
+        object: &mut T,
+    ) -> error::Result<c::obx_id> {
         let old_id = object.get_id();
         let is_object_new = old_id == 0;
         let new_id = cursor.id_for_put(old_id);

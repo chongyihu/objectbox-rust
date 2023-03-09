@@ -125,7 +125,10 @@ mod tests {
 
     use super::*;
 
-    use crate::{c, traits::{FBOBBridge, IdExt}};
+    use crate::{
+        c,
+        traits::{FBOBBridge, IdExt},
+    };
 
     struct SomeEntity {
         id: c::obx_id,
@@ -147,11 +150,15 @@ mod tests {
 
     #[test]
     fn query_bitandor_overload() {
-        let it = IdsAndType::new((0,1,2));
-        let c1 = Condition::<SomeEntity>::new(it.clone(), ConditionOp::EndsWith("1234".to_string()));
-        let c2 = Condition::<SomeEntity>::new(it.clone(), ConditionOp::StartsWith("1234".to_string()));
-        let c3 = Condition::<SomeEntity>::new(it.clone(), ConditionOp::EndsWith("1234".to_string()));
-        let c4 = Condition::<SomeEntity>::new(it.clone(), ConditionOp::StartsWith("1234".to_string()));
+        let it = IdsAndType::new((0, 1, 2));
+        let c1 =
+            Condition::<SomeEntity>::new(it.clone(), ConditionOp::EndsWith("1234".to_string()));
+        let c2 =
+            Condition::<SomeEntity>::new(it.clone(), ConditionOp::StartsWith("1234".to_string()));
+        let c3 =
+            Condition::<SomeEntity>::new(it.clone(), ConditionOp::EndsWith("1234".to_string()));
+        let c4 =
+            Condition::<SomeEntity>::new(it.clone(), ConditionOp::StartsWith("1234".to_string()));
 
         let _ = c1 | c2;
         let _ = c3 & c4;

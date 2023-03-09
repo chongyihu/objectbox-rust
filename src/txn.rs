@@ -14,7 +14,7 @@ impl Drop for Tx {
             if !self.ptr_closed && !self.obx_txn.is_null() {
                 match c::call(c::obx_txn_close(self.obx_txn), Some("Tx::drop")).err() {
                     Some(err) => eprintln!("Error: txn: {err}"),
-                    _ => ()
+                    _ => (),
                 }
                 self.obx_txn = std::ptr::null_mut();
             }
@@ -23,28 +23,21 @@ impl Drop for Tx {
 }
 
 impl Tx {
-
     // TODO check memory leak
     // new will clean itself up with drop
     pub(crate) fn new(store: *mut c::OBX_store) -> error::Result<Self> {
-        c::new_mut(unsafe { obx_txn_read(store) }, Some("Tx::new"))
-        .map(|obx_txn|
-            Tx {
-                obx_txn,
-                ptr_closed: false,
-            }
-        )
+        c::new_mut(unsafe { obx_txn_read(store) }, Some("Tx::new")).map(|obx_txn| Tx {
+            obx_txn,
+            ptr_closed: false,
+        })
     }
 
     // new_mut requires calling `obx_txn_success`
     pub(crate) fn new_mut(store: *mut c::OBX_store) -> error::Result<Self> {
-        c::new_mut(unsafe { obx_txn_write(store) }, Some("Tx::new_mut"))
-        .map(|obx_txn|
-            Tx {
-                obx_txn,
-                ptr_closed: false,
-            }
-        )
+        c::new_mut(unsafe { obx_txn_write(store) }, Some("Tx::new_mut")).map(|obx_txn| Tx {
+            obx_txn,
+            ptr_closed: false,
+        })
     }
 
     // only run on write tx, read tx closes itself on the drop
