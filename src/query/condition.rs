@@ -136,7 +136,7 @@ mod tests {
     }
 
     impl FBOBBridge for SomeEntity {
-        fn flatten(&self, builder: &mut FlatBufferBuilder<'_>) {}
+        fn flatten(&self, _: &mut FlatBufferBuilder<'_>) {}
     }
 
     impl IdExt for SomeEntity {

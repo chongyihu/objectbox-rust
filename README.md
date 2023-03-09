@@ -64,7 +64,7 @@ rust code to facilitate and access the basic and/or advanced features, in `objec
 * make sure llvm-ar is also exported in `$PATH`
 
 ## Abstract roadmap
-* Fix Query bug: any condition returns all the objects from a box
+* Fix String Query bugs, also write more tests
 * Support fields with `Option<P>` where `P` is some primitive type
 * Write more tests, especially for all condition ops
 
