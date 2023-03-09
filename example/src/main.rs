@@ -425,7 +425,6 @@ mod tests {
             // id,
             index_u32,
             t_bool,
-            ..
             // t_u8,
             // t_i8,
             // t_i16,
@@ -438,8 +437,9 @@ mod tests {
             // t_f32,
             // t_f64,
             // t_string,
-            // t_char,
-            // t_vec_bytes,
+            t_char,
+            t_vec_bytes,
+            ..
         } = new_entity_condition_factory();
 
         let mut entity = Entity {
@@ -490,6 +490,90 @@ mod tests {
         //         .count()
         //         .expect("explode")
         // );
+        assert_eq!(
+            2,
+            box1.query(&mut t_vec_bytes.eq(vec![0x9, 0x8, 0x7, 0x6, 0x5]))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_vec_bytes.ne(vec![0x0]))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_vec_bytes.le(vec![0xA, 0x8, 0x7, 0x6, 0x5]))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_vec_bytes.ge(vec![0x8, 0x7, 0x6, 0x5, 0x4]))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_vec_bytes.lt(vec![0xA, 0xA, 0xA, 0xA, 0xA]))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_vec_bytes.gt(vec![0x0]))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_char.eq('c' as i64))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_char.ne('b' as i64))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_char.le('d' as i64))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_char.ge('b' as i64))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_char.lt('d' as i64))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
+        assert_eq!(
+            2,
+            box1.query(&mut t_char.gt('b' as i64))
+                .expect("explode")
+                .count()
+                .expect("explode")
+        );
         assert_eq!(
             2,
             box1.query(&mut index_u32.ge(1))
