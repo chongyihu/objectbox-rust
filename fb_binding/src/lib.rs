@@ -135,7 +135,7 @@ fn ob_make_entity(builder: &mut FlatBufferBuilder, dest: &mut Vec<u8>) -> crate:
         ],
     };
 
-    e1.to_fb(builder);
+    e1.flatten(builder);
     dest.extend_from_slice(builder.finished_data());
 
     let trait_map = ob::make_factory_map();

@@ -15,7 +15,7 @@ impl traits::IdExt for crate::Entity {
     }
 }
 impl traits::FBOBBridge for crate::Entity {
-    fn to_fb(&self, builder: &mut flatbuffers::FlatBufferBuilder) {
+    fn flatten(&self, builder: &mut flatbuffers::FlatBufferBuilder) {
         builder.reset();
         let str_28 = builder.create_string(self.t_string.as_str());
         let byte_vec_30 = builder.create_vector(&self.t_vec_u8.as_slice());

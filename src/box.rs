@@ -282,7 +282,7 @@ impl<T: OBBlanket> Box<'_, T> {
         let new_id = cursor.id_for_put(old_id);
         object.set_id(new_id);
 
-        object.to_fb(&mut self.builder);
+        object.flatten(&mut self.builder);
         let data = Vec::from(self.builder.finished_data());
 
         if is_object_new {

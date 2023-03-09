@@ -531,7 +531,7 @@ mod tests {
     }
 
     impl traits::FBOBBridge for TEntity {
-        fn to_fb(&self, builder: &mut flatbuffers::FlatBufferBuilder) {}
+        fn flatten(&self, builder: &mut flatbuffers::FlatBufferBuilder) {}
     }
 
     impl traits::IdExt for TEntity2 {
@@ -542,7 +542,7 @@ mod tests {
     }
 
     impl traits::FBOBBridge for TEntity2 {
-        fn to_fb(&self, builder: &mut flatbuffers::FlatBufferBuilder) {}
+        fn flatten(&self, builder: &mut flatbuffers::FlatBufferBuilder) {}
     }
 
     // conflicts with original generic one

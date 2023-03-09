@@ -138,7 +138,7 @@ mod tests {
         let mut fbb = FlatBufferBuilder::new();
 
         unsafe {
-            e3.to_fb(&mut fbb);
+            e3.flatten(&mut fbb);
             let vec = Vec::from(fbb.finished_data());
             let vec_slice = vec.as_slice();
 
@@ -149,7 +149,7 @@ mod tests {
         }
 
         unsafe {
-            e2.to_fb(&mut fbb);
+            e2.flatten(&mut fbb);
             let vec = Vec::from(fbb.finished_data());
             let vec_slice = vec.as_slice();
 
@@ -160,7 +160,7 @@ mod tests {
         }
 
         unsafe {
-            e1.to_fb(&mut fbb);
+            e1.flatten(&mut fbb);
             let vec = Vec::from(fbb.finished_data());
             let vec_slice = vec.as_slice();
 

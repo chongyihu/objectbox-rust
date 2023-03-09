@@ -5,7 +5,7 @@ use crate::c;
 use flatbuffers::FlatBufferBuilder;
 
 pub trait FBOBBridge {
-    fn to_fb(&self, builder: &mut FlatBufferBuilder);
+    fn flatten(&self, builder: &mut FlatBufferBuilder);
 
     // This is object-safe, but can't be dispatched on a (casted) trait object
     // fn from_FB(store: &mut store::Store, table: &Table) -> Self; // factory method
@@ -66,7 +66,7 @@ fn blanket_directly_applied_on_entity_type() {
     }
 
     impl FBOBBridge for SomeEntity {
-        fn to_fb(&self, builder: &mut FlatBufferBuilder<'_>) {}
+        fn flatten(&self, builder: &mut FlatBufferBuilder<'_>) {}
 
         // non-member method, static(?) factory function, can't dispatch on a trait
         // fn from_FB(store: &mut store::Store, table: &Table) -> Self {

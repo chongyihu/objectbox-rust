@@ -36,7 +36,7 @@ trait CodeGenEntityExt {
     fn generate_query_trait_impls(&self) -> Tokens<Rust>;
 }
 
-fn encode_to_fb(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
+fn encode_flatten(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
     if let Some(f) = flags {
         if f == (ob_consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE | ob_consts::OBXPropertyFlags_ID) {
             let t: Tokens<Rust> = quote! {
@@ -194,7 +194,7 @@ impl CodeGenEntityExt for ModelEntity {
             .map(|(i, p)| {
                 (
                     p.to_sorting_priority(),
-                    encode_to_fb(p.type_field, p.flags, i * 2 + 4, &p.name),
+                    encode_flatten(p.type_field, p.flags, i * 2 + 4, &p.name),
                 )
             })
             .collect();
@@ -204,7 +204,7 @@ impl CodeGenEntityExt for ModelEntity {
 
         quote! {
           impl $bridge_trait for $entity {
-            fn to_fb(&self, builder: &mut $flatbuffer_builder) {
+            fn flatten(&self, builder: &mut $flatbuffer_builder) {
               builder.reset();
               $unnested_props
               let wip_offset_unfinished = builder.start_table();
