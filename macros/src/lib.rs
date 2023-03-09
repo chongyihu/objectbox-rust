@@ -73,7 +73,7 @@ fn _entity(input: TokenStream, args: Option<TokenStream>) -> TokenStream {
         let attr_args = parse_macro_input!(args_unwrapped as AttributeArgs);
         if !attr_args.is_empty() {
             id.update_from_nested_metas(attr_args.iter());
-        }    
+        }
     }
 
     let entity = Entity::from_entity_name_and_fields(id, struct_info);
@@ -117,7 +117,6 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
     _entity(input, Some(args))
 }
 
-
 // TODO fix this, also allow for id/uid parameters to entity
 // TODO look into [darling](https://crates.io/crates/darling)
 // #[proc_macro_derive(OB, attributes(entity))]
@@ -126,7 +125,6 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
 //     _entity(input, None)
 //     // input
 // }
-
 
 #[proc_macro_attribute]
 pub fn sync(_attribute: TokenStream, input: TokenStream) -> TokenStream {

@@ -36,7 +36,12 @@ trait CodeGenEntityExt {
     fn generate_query_trait_impls(&self) -> Tokens<Rust>;
 }
 
-fn encode_flatten(field_type: u32, flags: Option<u32>, offset: usize, name: &String) -> Tokens<Rust> {
+fn encode_flatten(
+    field_type: u32,
+    flags: Option<u32>,
+    offset: usize,
+    name: &String,
+) -> Tokens<Rust> {
     if let Some(f) = flags {
         if f == (ob_consts::OBXPropertyFlags_ID_SELF_ASSIGNABLE | ob_consts::OBXPropertyFlags_ID) {
             let t: Tokens<Rust> = quote! {
