@@ -46,12 +46,30 @@ fn main() {
 }
 ```
 
+## How the packages cooperate
+### [The macros package](macros/src/lib.rs)
+This is where the rust meta attributes are defined to parse structs, that triggers
+the build to produce files with the '.objectbox.info' suffix.
+
+### [The generator package](generator/src/lib.rs)
+Together, with the [build.rs](example/build.rs) file, the `entity.objectbox.info` files
+are globbed and processed, to generate a `objectbox-model.json` file.
+
+In the final stage, `objectbox-model.json` is used to generate all the necessary
+rust code to facilitate and access the basic and/or advanced features, in `objectbox_gen.rs`.
+
+## Dependencies
+* Rustup(?), or get it from apt, brew, chocolatey, etc.
+* llvm
+* make sure llvm-ar is also exported in `$PATH`
+
 ## Abstract roadmap
 * Fix Query bug: any condition returns all the objects from a box
 * Remove stored error pattern: return the Error immediately, map the Ok,
   so they can be chained with ?-op / try
 * Support fields with `Option<P>` where `P` is some primitive type
 * Write more tests, especially for all condition ops
+
 ## Problems solved, 2023 Feb
 * Code generation from struct entities with macros
 * Code generation for injecting the model to Store
