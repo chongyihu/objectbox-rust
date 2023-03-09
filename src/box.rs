@@ -3,20 +3,19 @@ use std::ptr;
 use std::rc::Rc;
 
 use crate::c::{self, *};
-use crate::error::{self, Error};
+use crate::error;
 
 use crate::cursor::Cursor;
 use crate::query::builder::Builder;
 use crate::query::condition::Condition;
 use crate::query::Query;
 use crate::traits::{EntityFactoryExt, OBBlanket};
-use crate::util::{MutConstVoidPtr, NOT_FOUND_404, SUCCESS_0};
+use crate::util::{MutConstVoidPtr, NOT_FOUND_404};
 use flatbuffers::FlatBufferBuilder;
 
 // This Box type will confuse a lot of rust users of std::boxed::Box
 pub struct Box<'a, T: OBBlanket> {
     pub(crate) helper: Rc<dyn EntityFactoryExt<T>>,
-    pub(crate) error: Option<Error>,
     pub(crate) obx_box: *mut OBX_box,
     builder: FlatBufferBuilder<'a>,
     // pub(crate) async_: std::boxed::Box<Async>, // TODO
@@ -29,10 +28,8 @@ impl<T: OBBlanket> Box<'_, T> {
 
             Box {
                 helper,
-                error: None,
                 obx_box,
                 builder: FlatBufferBuilder::new(),
-                // obx_store: store
             }
         }
     }
@@ -66,7 +63,7 @@ impl<T: OBBlanket> Box<'_, T> {
       // TODO alternative: run contains one by one
       pub fn contains_many_id_array(&mut self, ids: *const OBX_id_array) -> bool {
           let mut contains = false;
-          self.error = c::call(unsafe { obx_box_contains_many(self.obx_box, ids, &mut contains) }).err();
+          c::call(unsafe { obx_box_contains_many(self.obx_box, ids, &mut contains) });
           contains
       }
 
@@ -77,7 +74,7 @@ impl<T: OBBlanket> Box<'_, T> {
       ) -> (*mut *const ::std::os::raw::c_void, usize) {
           let data = std::ptr::null_mut(); // this is wrong, and will explode
           let mut size = 0;
-          self.error = c::call(unsafe { obx_box_get(self.obx_box, id, data, &mut size) }).err();
+          c::call(unsafe { obx_box_get(self.obx_box, id, data, &mut size) });
           (data, size)
       }
 
@@ -97,7 +94,7 @@ impl<T: OBBlanket> Box<'_, T> {
 
       pub fn ids_for_put(&mut self, count: u64) -> obx_id {
           let mut first_id = 0;
-          self.error = c::call(unsafe { obx_box_ids_for_put(self.obx_box, count, &mut first_id) }).err();
+          c::call(unsafe { obx_box_ids_for_put(self.obx_box, count, &mut first_id) });
           first_id
       }
 
@@ -106,7 +103,7 @@ impl<T: OBBlanket> Box<'_, T> {
           id: obx_id,
           data: &Vec<u8>,
       ) {
-        self.error = c::call(unsafe { obx_box_put(self.obx_box, id, data.to_const_c_void(), data.len()) }).err();
+        c::call(unsafe { obx_box_put(self.obx_box, id, data.to_const_c_void(), data.len()) });
       }
 
       pub fn insert_vec_u8(
@@ -114,7 +111,7 @@ impl<T: OBBlanket> Box<'_, T> {
           id: obx_id,
           data: &Vec<u8>,
       ) {
-        self.error = c::call(unsafe { obx_box_insert(self.obx_box, id, data.to_const_c_void(), data.len()) }).err();
+        c::call(unsafe { obx_box_insert(self.obx_box, id, data.to_const_c_void(), data.len()) });
       }
 
       pub fn update_vec_u8(
@@ -122,7 +119,7 @@ impl<T: OBBlanket> Box<'_, T> {
           id: obx_id,
           data: &Vec<u8>,
       ) {
-        self.error = c::call(unsafe { obx_box_update(self.obx_box, id, data.to_const_c_void(), data.len()) }).err();
+        c::call(unsafe { obx_box_update(self.obx_box, id, data.to_const_c_void(), data.len()) });
       }
 
       pub fn put5_vec_u8(
@@ -131,7 +128,7 @@ impl<T: OBBlanket> Box<'_, T> {
           data: &Vec<u8>,
           mode: OBXPutMode,
       ) {
-        self.error = c::call(unsafe { obx_box_put5(self.obx_box, id, data.to_const_c_void(), data.len(), mode) }).err();
+        c::call(unsafe { obx_box_put5(self.obx_box, id, data.to_const_c_void(), data.len(), mode) });
       }
 
       pub fn put_object(
@@ -155,21 +152,20 @@ impl<T: OBBlanket> Box<'_, T> {
           ids: *const obx_id,
           mode: OBXPutMode,
       ) {
-        self.error = c::call(unsafe { obx_box_put_many(self.obx_box, objects, ids, mode) }).err();
+        c::call(unsafe { obx_box_put_many(self.obx_box, objects, ids, mode) });
       }
 
       pub fn put_many5_bytes_array(&mut self, objects: *const OBX_bytes_array, ids: *const obx_id, mode: OBXPutMode, fail_on_id_failure: bool) {
-        self.error = c::call(unsafe { obx_box_put_many5(self.obx_box, objects, ids, mode, fail_on_id_failure) }).err();
+        c::call(unsafe { obx_box_put_many5(self.obx_box, objects, ids, mode, fail_on_id_failure) });
       }
 
     // TODO size 16, align 8
     fn remove_many_id_array(&mut self, ids: *const OBX_id_array) -> u64 {
         let out_count: u64 = 0;
-        self.error = c::call(
+        c::call(
             unsafe { obx_box_remove_many(self.obx_box, ids, out_count as *mut u64) },
             Some("box::remove_many_id_array"),
         )
-        .err();
         out_count
     }
     */
@@ -276,7 +272,7 @@ impl<T: OBBlanket> Box<'_, T> {
     /// To prevent reinitializing builders for
     /// every cursor operation, we keep this method here,
     /// it's better to recycle.
-    pub(crate) fn put_entity_in_ob(&mut self, cursor: &mut Cursor<T>, object: &mut T) -> c::obx_id {
+    pub(crate) fn put_entity_in_ob(&mut self, cursor: &mut Cursor<T>, object: &mut T) -> error::Result<c::obx_id> {
         let old_id = object.get_id();
         let is_object_new = old_id == 0;
         let new_id = cursor.id_for_put(old_id);
@@ -286,12 +282,12 @@ impl<T: OBBlanket> Box<'_, T> {
         let data = Vec::from(self.builder.finished_data());
 
         if is_object_new {
-            cursor.put_new(new_id, &data);
+            cursor.put_new(new_id, &data)?;
         } else {
-            cursor.put(new_id, &data);
+            cursor.put(new_id, &data)?;
         }
 
-        new_id
+        Ok(new_id)
     }
 
     pub fn put(&mut self, object: &mut T) -> error::Result<c::obx_id> {
@@ -300,7 +296,7 @@ impl<T: OBBlanket> Box<'_, T> {
         let new_id = self.put_entity_in_ob(&mut cursor, object);
         cursor.get_tx().success()?;
 
-        self.error.clone().map_or(Ok(new_id), |e| Err(e))
+        new_id
     }
 
     pub fn put_many(&mut self, objects: Vec<&mut T>) -> error::Result<Vec<c::obx_id>> {
@@ -309,23 +305,22 @@ impl<T: OBBlanket> Box<'_, T> {
         let mut vec_out = Vec::<c::obx_id>::new();
 
         for o in objects {
-            vec_out.push(self.put_entity_in_ob(&mut cursor, o));
+            vec_out.push(self.put_entity_in_ob(&mut cursor, o)?);
         }
 
         cursor.get_tx().success()?;
-        self.error.clone().map_or(Ok(vec_out), |e| Err(e))
+        Ok(vec_out)
     }
 
     /// For testing purposes
     pub fn count_with_cursor(&self) -> error::Result<u64> {
         let mut cursor = Cursor::new(false, self.get_store(), self.helper.clone())?;
-        Ok(cursor.count())
+        cursor.count()
     }
 
     pub fn get(&self, id: c::obx_id) -> error::Result<Option<T>> {
         let mut cursor = Cursor::new(false, self.get_store(), self.helper.clone())?;
-        let r = cursor.get_entity(id);
-        self.error.clone().map_or(Ok(r?), |e| Err(e))
+        cursor.get_entity(id)
     }
 
     pub fn get_many(&self, ids: &[c::obx_id]) -> error::Result<Vec<Option<T>>> {
@@ -336,7 +331,7 @@ impl<T: OBBlanket> Box<'_, T> {
         for id in ids {
             r.push(cursor.get_entity(*id)?);
         }
-        self.error.clone().map_or(Ok(r), |e| Err(e))
+        Ok(r)
     }
 
     /// Returns all stored objects in this Box
@@ -347,25 +342,20 @@ impl<T: OBBlanket> Box<'_, T> {
 
         let size_ptr: *mut usize = &mut 0;
 
-        let mut r: Vec<T> = Vec::new();
+        let mut vec: Vec<T> = Vec::new();
 
-        let mut code = cursor.first(data_ptr_ptr as MutConstVoidPtr, size_ptr);
+        let mut code = cursor.first(data_ptr_ptr as MutConstVoidPtr, size_ptr)?;
 
         // c::OBX_NOT_FOUND was a C #define that became a u32
         // which is incompatible with obx_err === i32
         while code != NOT_FOUND_404 {
             unsafe {
-                r.push(cursor.from_raw_parts_to_object(data_ptr_ptr, size_ptr));
+                vec.push(cursor.from_raw_parts_to_object(data_ptr_ptr, size_ptr));
             }
-            code = cursor.next(data_ptr_ptr as MutConstVoidPtr, size_ptr);
-
-            if code != SUCCESS_0 && code != NOT_FOUND_404 {
-                let _ = c::call(code, Some("box::get_all"))?;
-                break;
-            }
+            code = cursor.next(data_ptr_ptr as MutConstVoidPtr, size_ptr)?;
         }
 
-        self.error.clone().map_or(Ok(r), |e| Err(e))
+        Ok(vec)
     }
 
     // TODO
@@ -376,15 +366,11 @@ impl<T: OBBlanket> Box<'_, T> {
 
     /// Fetch the intermediate query builder, then if necessary call Builder::build()
     pub fn query_builder(&self, root: &mut Condition<T>) -> error::Result<Builder<T>> {
-        if let Some(err) = &self.error {
-            Err(err.clone())?;
-        }
         Builder::<T>::new(&self, root)
     }
 
     /// Immediately build the query
     pub fn query(&self, root: &mut Condition<T>) -> error::Result<Query<T>> {
-        let mut builder = self.query_builder(root)?;
-        builder.build()
+        self.query_builder(root)?.build()
     }
 }

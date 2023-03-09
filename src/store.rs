@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use std::ffi::CString;
 use std::path::Path;
 use std::rc::Rc;
 
@@ -16,21 +17,17 @@ use crate::util::ToCChar;
 pub struct Store {
     pub trait_map: AnyMap, // passed as a ref to a Box
     // TODO confirm: model and opt are cleaned up already and zero'ed, or else we'll have a double-free
-    // TODO get rid of all panics
-    pub(crate) error: Option<Error>,
     pub(crate) obx_store: *mut OBX_store, // TODO confirm: model and opt are cleaned up already
 }
 
 impl Drop for Store {
     fn drop(&mut self) {
         if !self.obx_store.is_null() {
-            self.prepare_to_close();
-            self.close();
+            match self.prepare_then_close() {
+                Err(err) => eprintln!("Error: store: {err}"),
+                _ => ()
+            }
             self.obx_store = std::ptr::null_mut();
-        }
-
-        if let Some(err) = &self.error {
-            eprintln!("Error: store: {err}");
         }
     }
 }
@@ -46,7 +43,6 @@ impl Store {
             opt.ptr_consumed = !obx_store.is_null();
             let r = Store {
                 trait_map: map,
-                error: None,
                 obx_store,
             };
             c::get_result_from_ptr(obx_store, r)
@@ -111,47 +107,41 @@ impl Store {
     //     error: None,
     //   }
     // }
-    /*
-      pub fn from_core_wrap(core_store: &mut Vec<u8>) -> Self {
-        Store {
-          obx_store: unsafe { obx_store_wrap(core_store) },
-          error: None,
-          trait_map: None,
-        }
-      }
-    */
 
-    // TODO improve possible error handling, replace panic!
-    /*
-    fn set_entity_id(&self, entity_name: &str) -> obx_schema_id {
+      pub fn from_core_wrap(core_store: &mut Vec<u8>, map: AnyMap) -> error::Result<Self> {
+        // TODO test
+        let ptr = unsafe { obx_store_wrap(core_store.as_ptr() as *mut std::ffi::c_void) };
+        c::new_mut(ptr, None)
+        .map(|s| Store {
+            obx_store: s,
+            trait_map: map,
+        })
+      }
+
+    fn set_entity_id(&self, entity_name: &str) -> error::Result<obx_schema_id> {
         unsafe {
-            let c_str = if let Ok(r) = CString::new(entity_name) {
-                r.as_ptr()
+            if let Ok(cstr) = CString::new(entity_name) {
+                Ok(obx_store_entity_id(self.obx_store, cstr.as_ptr()))
             } else {
-                panic!("Error: unable to convert entity name");
-            };
-            obx_store_entity_id(self.obx_store, c_str)
+                Error::new_local("Error: unable to parse the entity id").as_result()?
+            }            
         }
     }
 
-    // TODO improve possible error handling, replace panic!
     fn entity_property_id(
         &self,
         entity_id: obx_schema_id,
         property_name: &str,
-    ) -> obx_schema_id {
+    ) -> error::Result<obx_schema_id> {
         unsafe {
-            let c_str = if let Ok(r) = CString::new(property_name) {
-                r.as_ptr()
+            if let Ok(cstr) = CString::new(property_name) {
+                Ok(obx_store_entity_property_id(self.obx_store, entity_id, cstr.as_ptr()))
             } else {
-                panic!("Error: unable to convert property name");
-            };
-            obx_store_entity_property_id(self.obx_store, entity_id, c_str)
+                Error::new_local("Error: unable to parse the property id").as_result()?
+            }
         }
     }
-    */
 
-    /*
     pub fn await_async_completion(&self) -> bool {
         unsafe { obx_store_await_async_completion(self.obx_store) }
     }
@@ -159,39 +149,33 @@ impl Store {
     pub fn await_async_submitted(&self) -> bool {
         unsafe { obx_store_await_async_submitted(self.obx_store) }
     }
-    */
 
-    pub fn debug_flags(&mut self, flags: OBXDebugFlags) -> &Self {
-        self.error = c::call(
+    pub fn debug_flags(&self, flags: OBXDebugFlags) -> error::Result<&Self> {
+        c::call(
             unsafe { obx_store_debug_flags(self.obx_store, flags) },
             Some("store::debug_flags"),
-        )
-        .err();
-        self
+        ).map(|_|self)
     }
 
-    pub fn opened_with_previous_commit(&self) -> error::Result<bool> {
-        let r = unsafe { obx_store_opened_with_previous_commit(self.obx_store) };
-        if let Some(err) = &self.error {
-            err.as_result()?;
-        }
-        Ok(r)
+    pub fn opened_with_previous_commit(&self) -> bool {
+        unsafe { obx_store_opened_with_previous_commit(self.obx_store) }
     }
 
-    fn prepare_to_close(&mut self) -> &Self {
-        self.error = c::call(
+    fn prepare_to_close(&self) -> error::Result<&Self> {
+        c::call(
             unsafe { obx_store_prepare_to_close(self.obx_store) },
             Some("store::prepare_to_close"),
-        )
-        .err();
-        self
+        ).map(|_|self)
     }
 
-    fn close(&mut self) {
-        self.error = c::call(
+    fn close(&self) -> error::Result<&Self> {
+        c::call(
             unsafe { obx_store_close(self.obx_store) },
             Some("store::close"),
-        )
-        .err();
+        ).map(|_|self)
+    }
+
+    fn prepare_then_close(&self) -> error::Result<&Self> {
+        self.prepare_to_close()?.close()
     }
 }

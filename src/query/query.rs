@@ -15,18 +15,15 @@ impl<T: OBBlanket> Drop for Query<T> {
     fn drop(&mut self) {
         if !self.obx_query.is_null() {
             // always close regardless, no flags to set, no potential double frees
-            self.close();
+            if let Err(err) = self.close() {
+                eprintln!("Error: async: {err}");
+            }
             self.obx_query = ptr::null_mut();
-        }
-
-        if let Some(err) = &self.error {
-            eprintln!("Error: async: {err}");
         }
     }
 }
 
 pub struct Query<T: OBBlanket> {
-    error: Option<error::Error>,
     obx_query: *mut OBX_query,
     obx_store: *mut OBX_store,
     pub(crate) helper: Rc<dyn EntityFactoryExt<T>>,
@@ -41,11 +38,8 @@ impl<T: OBBlanket> Query<T> {
     ) -> error::Result<Self> {
         unsafe {
             let obx_query = obx_query(builder);
-            if let Err(err) = c::new_mut(obx_query, Some("Query::new")) {
-                err.as_result()?;
-            }
+            let _ = c::new_mut(obx_query, Some("Query::new"))?;
             Ok(Query {
-                error: None,
                 obx_query,
                 obx_store,
                 helper: helper.clone(),
@@ -54,8 +48,9 @@ impl<T: OBBlanket> Query<T> {
         }
     }
 
-    fn close(&mut self) -> obx_err {
-        unsafe { obx_query_close(self.obx_query) }
+    fn close(&self) -> error::Result<()> {
+        let code = unsafe { obx_query_close(self.obx_query) };
+        c::call(code, None)
     }
 
     // No Clone trait here, because that implies Copy,
@@ -63,16 +58,13 @@ impl<T: OBBlanket> Query<T> {
     pub fn clone(&self) -> error::Result<Self> {
         unsafe {
             let clone = obx_query_clone(self.obx_query);
-            if let Err(err) = c::new_mut(clone, Some("Query::clone")) {
-                err.as_result()?;
-            }
+            let _ = c::new_mut(clone, Some("Query::clone"))?;
 
             // if they are the same, a double free will occur
             // otherwise, the same drop semantics will apply
             assert_ne!(self.obx_query, clone);
 
             Ok(Query {
-                error: None,
                 obx_query: clone,
                 obx_store: self.obx_store,
                 helper: self.helper.clone(),
@@ -82,34 +74,33 @@ impl<T: OBBlanket> Query<T> {
     }
 
     /// Paging related
-    pub fn offset(&mut self, offset: usize) -> &Self {
+    pub fn offset(&self, offset: usize) -> error::Result<&Self> {
         unsafe {
             let result = obx_query_offset(self.obx_query, offset);
-            self.error = c::call(result, Some("Query::offset")).err();
+            c::call(result, Some("Query::offset")).map(|_|self)
         }
-        self
     }
 
     /// Paging related
-    pub fn offset_limit(&mut self, offset: usize, limit: usize) -> &Self {
+    pub fn offset_limit(&self, offset: usize, limit: usize) -> error::Result<&Self> {
         unsafe {
             let result = obx_query_offset_limit(self.obx_query, offset, limit);
-            self.error = c::call(result, Some("Query::offset_limit")).err();
+            c::call(result, Some("Query::offset_limit"))
+            .map(|_|self)
         }
-        self
     }
 
     /// Paging related
-    pub fn limit(&mut self, limit: usize) -> &Self {
+    pub fn limit(&self, limit: usize) -> error::Result<&Self> {
         unsafe {
             let result = obx_query_limit(self.obx_query, limit);
-            self.error = c::call(result, Some("Query::limit")).err();
+            c::call(result, Some("Query::limit"))
+            .map(|_|self)
         }
-        self
     }
 
     // elect the cursor version
-    // pub(crate) unsafe fn find(&mut self) -> *mut OBX_bytes_array {
+    // pub(crate) unsafe fn find(&self) -> *mut OBX_bytes_array {
     //     obx_query_find(self.obx_query)
     // }
 
@@ -141,23 +132,23 @@ impl<T: OBBlanket> Query<T> {
     // }
 
     // elect the cursor version
-    // pub(crate) unsafe fn find_ids(&mut self) -> *mut OBX_id_array {
+    // pub(crate) unsafe fn find_ids(&self) -> *mut OBX_id_array {
     //     obx_query_find_ids(self.obx_query)
     // }
 
     // elect the cursor version
-    // pub(crate) unsafe fn count(&mut self, out_count: *mut u64) -> obx_err {
+    // pub(crate) unsafe fn count(&self, out_count: *mut u64) -> obx_err {
     //     obx_query_count(self.obx_query, out_count)
     // }
 
     // elect the cursor version
-    // pub(crate) unsafe fn remove(&mut self, out_count: *mut u64) -> obx_err {
+    // pub(crate) unsafe fn remove(&self, out_count: *mut u64) -> obx_err {
     //     obx_query_remove(self.obx_query, out_count)
     // }
 
     /// For testing and debugging
     /// A function pointer is passed here, to prevent dealing with lifetime issues.
-    pub fn describe(&mut self, fn_ptr: fn(String) -> bool) -> bool {
+    pub fn describe(&self, fn_ptr: fn(String) -> bool) -> bool {
         unsafe {
             let out_ptr = obx_query_describe(self.obx_query);
             test_fn_ptr_on_char_ptr(out_ptr, fn_ptr)
@@ -166,7 +157,7 @@ impl<T: OBBlanket> Query<T> {
 
     /// For testing and debugging
     /// A function pointer is passed here, to prevent dealing with lifetime issues.
-    pub fn describe_params(&mut self, fn_ptr: fn(String) -> bool) -> bool {
+    pub fn describe_params(&self, fn_ptr: fn(String) -> bool) -> bool {
         unsafe {
             let out_ptr = obx_query_describe_params(self.obx_query);
             test_fn_ptr_on_char_ptr(out_ptr, fn_ptr)
@@ -185,7 +176,7 @@ impl<T: OBBlanket> Query<T> {
             obx_query_cursor_visit(self.obx_query, cursor, visitor, user_data)
         }
 
-        unsafe fn cursor_find(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_bytes_array {
+        unsafe fn cursor_find(&self, cursor: &mut OBX_cursor) -> *mut OBX_bytes_array {
             obx_query_cursor_find(self.obx_query, cursor)
         }
     */
@@ -193,7 +184,7 @@ impl<T: OBBlanket> Query<T> {
     // Reuse what you have, until someone has the time
     // and shares a PR, and improves on this
     // by calling obx_query_cursor_find
-    pub fn find(&mut self) -> error::Result<Vec<T>> {
+    pub fn find(&self) -> error::Result<Vec<T>> {
         let mut vec = Vec::new();
         let mut cursor = Cursor::new(false, self.obx_store, self.helper.clone())?;
         let ids = self.find_ids()?;
@@ -201,19 +192,19 @@ impl<T: OBBlanket> Query<T> {
         for id in ids {
             vec.push(
                 cursor
-                    .get_entity(id)?
-                    .map_or(self.helper.new_entity(), |e| e),
+                    .get_entity(id)
+                    ?.map_or(self.helper.new_entity(), |e| e),
             );
         }
-        self.error.clone().map_or(Ok(vec), |e| Err(e))
+        Ok(vec)
     }
 
-    unsafe fn cursor_find_ids(&mut self, cursor: &mut OBX_cursor) -> *mut OBX_id_array {
+    unsafe fn cursor_find_ids(&self, cursor: &mut OBX_cursor) -> *mut OBX_id_array {
         obx_query_cursor_find_ids(self.obx_query, cursor)
     }
 
     // TODO write test
-    pub fn find_ids(&mut self) -> error::Result<Vec<c::obx_id>> {
+    pub fn find_ids(&self) -> error::Result<Vec<c::obx_id>> {
         let mut vec = Vec::new();
         unsafe {
             let cursor = Cursor::new(false, self.obx_store, self.helper.clone())?;
@@ -228,34 +219,36 @@ impl<T: OBBlanket> Query<T> {
         }
     }
 
-    unsafe fn cursor_count(&mut self, cursor: &mut OBX_cursor, out_count: *mut u64) -> obx_err {
-        obx_query_cursor_count(self.obx_query, cursor, out_count)
-    }
-
-    // TODO write test
-    pub fn count(&mut self) -> error::Result<u64> {
+    fn cursor_count(&self, cursor: &mut OBX_cursor, out_count: *mut u64) -> error::Result<u64> {
         unsafe {
-            let cursor = Cursor::new(false, self.obx_store, self.helper.clone())?;
-            let count: *mut u64 = &mut 0;
-            let err_code = self.cursor_count(&mut *cursor.obx_cursor, count);
-            // TODO error check tx, cursor, with get_result_from_ptr
-            c::get_result(err_code, *count)
+            let code = obx_query_cursor_count(self.obx_query, cursor, out_count);
+            c::call(code, None).map(|_|*out_count)
         }
     }
 
-    unsafe fn cursor_remove(&mut self, cursor: &mut OBX_cursor, out_count: *mut u64) -> obx_err {
-        obx_query_cursor_remove(self.obx_query, cursor, out_count)
+    // TODO write test
+    pub fn count(&self) -> error::Result<u64> {
+        unsafe {
+            let cursor = Cursor::new(false, self.obx_store, self.helper.clone())?;
+            let count: *mut u64 = &mut 0;
+            self.cursor_count(&mut *cursor.obx_cursor, count)
+        }
     }
 
-    pub fn remove(&mut self) -> error::Result<u64> {
+    unsafe fn cursor_remove(&self, cursor: &mut OBX_cursor, out_count: *mut u64) -> error::Result<obx_err> {
+        let code = obx_query_cursor_remove(self.obx_query, cursor, out_count);
+        c::call(code, None).map(|_|code)
+    }
+
+    pub fn remove(&self) -> error::Result<u64> {
         unsafe {
             let mut cursor = Cursor::new(true, self.obx_store, self.helper.clone())?;
             let count: *mut u64 = &mut 0;
-            let err_code = self.cursor_remove(&mut *cursor.obx_cursor, count);
+            let err_code = self.cursor_remove(&mut *cursor.obx_cursor, count)?;
             if err_code == 0 {
                 cursor.get_tx().success()?;
             }
-            c::get_result(err_code, *count)
+            Ok(*count)
         }
     }
     // end cursor

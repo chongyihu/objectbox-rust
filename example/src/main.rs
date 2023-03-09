@@ -67,7 +67,7 @@ pub struct Entity {
 
 fn main() {
     let mut model = ob::make_model();
-    let opt = Opt::from_model(&mut model);
+    let opt = Opt::from_model(&mut model).expect("crash");
     let trait_map = ob::make_factory_map();
     let store = Store::new(opt, trait_map).expect("crash");
 
@@ -172,7 +172,7 @@ mod tests {
     #[serial]
     fn test_box_put_and_count_and_remove_all() {
         let mut model = ob::make_model();
-        let opt = Opt::from_model(&mut model);
+        let opt = Opt::from_model(&mut model).expect("crash");
         let trait_map = ob::make_factory_map();
         let store = Store::new(opt, trait_map).expect("crash");
 
@@ -334,7 +334,7 @@ mod tests {
     #[serial]
     fn query_tests() {
         let mut model = ob::make_model();
-        let opt = Opt::from_model(&mut model);
+        let opt = Opt::from_model(&mut model).expect("crash");
         let trait_map = ob::make_factory_map();
         let store = Store::new(opt, trait_map).expect("crash");
 
@@ -374,7 +374,7 @@ mod tests {
             let mut c2 = hello
             .case_sensitive(true)
             .and(hello.contains("real"));
-            let mut q2 = box3.query(&mut c2).expect("explode");
+            let q2 = box3.query(&mut c2).expect("explode");
             let found_list2 = q2.find().expect("explode");
             assert_eq!(1, found_list2.len());
         }

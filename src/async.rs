@@ -4,19 +4,16 @@ use crate::{c, error};
 // TODO required for putAsync and putQueued
 pub(crate) struct Async {
     pub(crate) obx_async: *mut c::OBX_async,
-    pub(crate) error: Option<error::Error>,
     ptr_closed: bool,
 }
 
 impl Drop for Async {
     fn drop(&mut self) {
         if !self.ptr_closed && !self.obx_async.is_null() {
-            self.close();
+            if let Err(e) = self.close() {
+                eprint!("{e}");
+            }
             self.obx_async = std::ptr::null_mut();
-        }
-
-        if let Some(err) = &self.error {
-            eprintln!("Error: async: {err}");
         }
     }
 }
@@ -25,16 +22,13 @@ impl Async {
     // TODO test
     pub fn from_box(obx_box: *mut c::OBX_box) -> error::Result<Self> {
         unsafe {
-            let r = c::new_mut(c::obx_async(obx_box), Some("Async::from_box"));
-
-            match r {
-                Ok(ptr) => Ok(Async {
+            c::new_mut(c::obx_async(obx_box), Some("Async::from_box"))
+            .map(|ptr|
+                Async {
                     obx_async: ptr,
-                    error: None,
                     ptr_closed: false,
-                }),
-                Err(err) => Err(err.clone()),
-            }
+                }            
+            )
         }
     }
 
@@ -42,12 +36,7 @@ impl Async {
     pub(crate) fn remove_with_id(&mut self, id: c::obx_id) -> error::Result<bool> {
         unsafe {
             let code = c::obx_async_remove(self.obx_async, id);
-            self.error = c::call(code, Some("Async::error")).err();
-            if let Some(err) = &self.error {
-                Err(err.clone())
-            } else {
-                Ok(code == 0) // else: NOT_FOUND_404
-            }
+            c::call(code, Some("Async::error")).map(|_|code == 0)
         }
     }
 
@@ -57,29 +46,24 @@ impl Async {
         enqueue_timeout_millis: u64,
     ) -> error::Result<Self> {
         unsafe {
-            let r = c::new_mut(
+            c::new_mut(
                 c::obx_async_create(obx_box, enqueue_timeout_millis),
                 Some("Async::from_box_with_timeout"),
-            );
-
-            match r {
-                Ok(ptr) => Ok(Async {
+            ).map(|ptr|
+                Async {
                     obx_async: ptr,
-                    error: None,
                     ptr_closed: false,
-                }),
-                Err(err) => Err(err.clone()),
-            }
+                }
+            )
         }
     }
 
     // TODO test
-    pub(crate) fn close(&mut self) {
-        self.error = c::call(
+    pub(crate) fn close(&mut self) -> error::Result<()> {
+        c::call(
             unsafe { c::obx_async_close(self.obx_async) },
             Some("Async::close"),
         )
-        .err();
     }
 
     // TODO finish
@@ -87,7 +71,7 @@ impl Async {
     pub(crate) fn put5(&mut self, id: c::obx_id, data: ConstVoidPtr, size: usize, mode: c::OBXPutMode) -> error::Result<c::obx_id> {
       // TODO depending on the state of the object determine the mode (PUT, INSERT, UPDATE)
       // TODO if this is a fresh new object, get an id
-      self.error = c::call(unsafe { c::obx_async_put5(self.obx_async, id, data, size, mode) }, Some("Async::put5")).err();
+      c::call(unsafe { c::obx_async_put5(self.obx_async, id, data, size, mode) }, Some("Async::put5")).err();
       // TODO return this error::Result<id>
     }
     */

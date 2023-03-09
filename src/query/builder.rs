@@ -24,18 +24,15 @@ use crate::query::Query;
 impl<T: OBBlanket> Drop for Builder<T> {
     fn drop(&mut self) {
         if !self.has_built_query && !self.obx_query_builder.is_null() {
-            self.close();
+            if let Err(err) = self.close() {
+                eprintln!("Error: async: {err}");
+            }
             self.obx_query_builder = std::ptr::null_mut();
-        }
-
-        if let Some(err) = &self.error {
-            eprintln!("Error: async: {err}");
         }
     }
 }
 
 pub struct Builder<T: OBBlanket> {
-    error: Option<error::Error>,
     obx_store: *mut OBX_store,
     helper: Rc<dyn EntityFactoryExt<T>>,
     property_id: obx_schema_id,
@@ -56,7 +53,6 @@ impl<T: OBBlanket> Builder<T> {
         new_mut(obx_query_builder, Some("Builder::new"))?;
 
         let mut builder = Builder {
-            error: None,
             obx_store,
             helper: box_store.helper.clone(),
             property_id: 0,
@@ -173,10 +169,12 @@ impl<T: OBBlanket> Builder<T> {
                         new_string.push('\0');
                         new_strings.push(new_string);
                         if let Err(err) = CString::new(s.as_bytes()) {
-                            self.error = Some(error::Error::new_local(&format!(
-                                "Bad string conversion (in_strings: {})",
-                                err.to_string()
-                            )));
+                            // TODO bring back self.error? or leave string validation to user?
+                            // TODO validate strings outside function
+                            // error::Error::new_local(&format!(
+                            //     "Bad string conversion (in_strings: {})",
+                            //     err.to_string()
+                            // ))?;
                             return QUERY_NO_OP;
                         }
                     }
@@ -197,19 +195,16 @@ impl<T: OBBlanket> Builder<T> {
 
     /// Why does Self::build have to be called separately?
     pub fn build(&mut self) -> error::Result<Query<T>> {
-        if let Some(err) = &self.error {
-            Err(err.clone())?;
-        }
-        let r = Query::new(self.obx_store, self.helper.clone(), self.obx_query_builder)?;
+        let query = Query::new(self.obx_store, self.helper.clone(), self.obx_query_builder)?;
         // iff a query is built properly, then do not drop, else drop
-        let query = get_result(self.error_code(), r)?;
         self.has_built_query = true;
         Ok(query)
     }
 
     /// private, in case of double frees
-    fn close(&mut self) -> obx_err {
-        unsafe { obx_qb_close(self.obx_query_builder) }
+    fn close(&mut self) -> error::Result<()> {
+        let code = unsafe { obx_qb_close(self.obx_query_builder) };
+        c::call(code, None)
     }
 
     // pub(crate) fn type_id(&self) -> obx_schema_id {
