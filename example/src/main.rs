@@ -419,6 +419,16 @@ mod tests {
             // let q2 = box3.query(&mut c2).expect("explode");
             // let found_list2 = q2.find().expect("explode");
             // assert_eq!(1, found_list2.len());
+
+            // TODO complete tests, split away string tests from other scalar tests
+            // let mut c3 = hello.case_sensitive(true).and(hello.in_strings(vec!["test"]));
+            // let mut c4 = hello.any_equals(list)
+            // let mut c5 = hello.contains("test");
+            // let mut c6 = hello.contains_element("test");
+            // let mut c7 = hello.contains_key_value("meh", "bleh");
+            // let mut c8 = hello.ends_with("d");
+            // let mut c9 = hello.starts_with("r");
+            //  and more...
         }
 
         let EntityConditionFactory {
@@ -475,7 +485,7 @@ mod tests {
         // store "two" items
         box1.put(&mut entity).expect("explode");
 
-        // TODO FIXME: broken
+        // TODO investigate: doesn't seem to be supported
         // assert_eq!(
         //     2,
         //     box1.query(&mut t_bool.eq(0))

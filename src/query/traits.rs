@@ -296,7 +296,11 @@ impl<Entity: OBBlanket> InOutExt<Entity, String> for ConditionBuilder<Entity> {
 }
 
 /// Blankets
-pub trait BoolBlanket<Entity: OBBlanket>: BasicExt<Entity> + EqExt<Entity, i64> {}
+pub trait BoolBlanket<Entity: OBBlanket>:
+    BasicExt<Entity>
+    // + EqExt<Entity, i64>
+{
+}
 
 pub trait CharBlanket<Entity: OBBlanket>:
     BasicExt<Entity>
@@ -408,7 +412,8 @@ impl<Entity: OBBlanket> F64Blanket<Entity> for Entity where
 {
 }
 impl<Entity: OBBlanket> BoolBlanket<Entity> for Entity where
-    Entity: BasicExt<Entity> + EqExt<Entity, i64>
+    Entity: BasicExt<Entity>
+        // + EqExt<Entity, i64>
 {
 }
 impl<Entity: OBBlanket> CharBlanket<Entity> for Entity where
