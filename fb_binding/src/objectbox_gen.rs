@@ -1,9 +1,10 @@
 use objectbox::c;
-use objectbox::entity_builder;
 use objectbox::flatbuffers;
 use objectbox::map;
 use objectbox::model;
+use objectbox::query::traits as qtraits;
 use objectbox::traits;
+use std::marker;
 use std::rc;
 impl traits::IdExt for crate::Entity {
     fn get_id(&self) -> c::obx_id {
@@ -44,7 +45,7 @@ impl traits::FBOBBridge for crate::Entity {
         builder.finish_minimal(wip_offset_finished);
     }
 }
-impl traits::FactoryHelper<crate::Entity> for traits::Factory<crate::Entity> {
+impl traits::EntityFactoryExt<crate::Entity> for traits::Factory<crate::Entity> {
     fn make(&self, table: &mut flatbuffers::Table) -> crate::Entity {
         let mut object = self.new_entity();
         let crate::Entity {
@@ -80,14 +81,17 @@ impl traits::FactoryHelper<crate::Entity> for traits::Factory<crate::Entity> {
             if let Some(s) = table.get::<flatbuffers::ForwardsUOffset<&str>>(28, None) {
                 *t_string = s.to_string();
             }
-            let fb_vec_t_vec_u8 =
-                table.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<u8>>>(30, None);
+            let fb_vec_t_vec_u8 = table
+                .get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<u8>>>(30, None);
             if let Some(bv) = fb_vec_t_vec_u8 {
                 *t_vec_u8 = bv.bytes().to_vec();
             }
-            let fb_vec_t_vec_string = table.get::<flatbuffers::ForwardsUOffset<
-                flatbuffers::Vector<flatbuffers::ForwardsUOffset<&str>>,
-            >>(32, None);
+            let fb_vec_t_vec_string = table
+                .get::<
+                    flatbuffers::ForwardsUOffset<
+                        flatbuffers::Vector<flatbuffers::ForwardsUOffset<&str>>,
+                    >,
+                >(32, None);
             if let Some(sv) = fb_vec_t_vec_string {
                 *t_vec_string = sv.iter().map(|s| s.to_string()).collect();
             }
@@ -117,34 +121,80 @@ impl traits::FactoryHelper<crate::Entity> for traits::Factory<crate::Entity> {
         }
     }
 }
+impl qtraits::F32Blanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+impl qtraits::VecU8Blanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+impl qtraits::BoolBlanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+impl qtraits::I8Blanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+impl qtraits::I16Blanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+impl qtraits::I32Blanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+impl qtraits::I64Blanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+impl qtraits::F64Blanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+impl qtraits::StringBlanket<crate::Entity> for qtraits::ConditionBuilder<crate::Entity> {}
+pub struct EntityConditionFactory {
+    pub id: Box<dyn qtraits::I64Blanket<crate::Entity>>,
+    pub t_i8: Box<dyn qtraits::I8Blanket<crate::Entity>>,
+    pub t_u8: Box<dyn qtraits::I8Blanket<crate::Entity>>,
+    pub t_bool: Box<dyn qtraits::BoolBlanket<crate::Entity>>,
+    pub t_i16: Box<dyn qtraits::I16Blanket<crate::Entity>>,
+    pub t_u16: Box<dyn qtraits::I16Blanket<crate::Entity>>,
+    pub t_i32: Box<dyn qtraits::I32Blanket<crate::Entity>>,
+    pub t_u32: Box<dyn qtraits::I32Blanket<crate::Entity>>,
+    pub t_f32: Box<dyn qtraits::F32Blanket<crate::Entity>>,
+    pub t_u64: Box<dyn qtraits::I64Blanket<crate::Entity>>,
+    pub t_i64: Box<dyn qtraits::I64Blanket<crate::Entity>>,
+    pub t_f64: Box<dyn qtraits::F64Blanket<crate::Entity>>,
+    pub t_string: Box<dyn qtraits::StringBlanket<crate::Entity>>,
+    pub t_vec_u8: Box<dyn qtraits::VecU8Blanket<crate::Entity>>,
+}
+pub fn new_entity_condition_factory() -> EntityConditionFactory {
+    EntityConditionFactory {
+        id: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 1, 6>()),
+        t_i8: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 2, 2>()),
+        t_u8: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 3, 2>()),
+        t_bool: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 4, 1>()),
+        t_i16: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 5, 3>()),
+        t_u16: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 6, 3>()),
+        t_i32: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 7, 5>()),
+        t_u32: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 8, 5>()),
+        t_f32: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 9, 7>()),
+        t_u64: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 10, 6>()),
+        t_i64: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 11, 6>()),
+        t_f64: Box::new(qtraits::create_condition_builder::<crate::Entity, 1, 12, 8>()),
+        t_string: Box::new(
+            qtraits::create_condition_builder::<crate::Entity, 1, 13, 9>(),
+        ),
+        t_vec_u8: Box::new(
+            qtraits::create_condition_builder::<crate::Entity, 1, 14, 23>(),
+        ),
+    }
+}
 pub fn make_model() -> model::Model {
-    let builder = Box::new(entity_builder::EntityBuilder::new());
-    model::Model::new(builder)
-        .entity("Entity", 1, 7551803668634645716)
-        .property("id", 1, 9943366999632794820, 6, 129)
-        .property("t_i8", 2, 7937178564250802941, 2, 0)
-        .property("t_u8", 3, 7735704263686443859, 2, 8192)
-        .property("t_bool", 4, 9383799058200708867, 1, 0)
-        .property("t_i16", 5, 6143935949328131354, 3, 0)
-        .property("t_u16", 6, 8090067461108831747, 3, 8192)
-        .property("t_i32", 7, 13668939779110250598, 5, 0)
-        .property("t_u32", 8, 10168178769468024933, 5, 8192)
-        .property("t_f32", 9, 4251174597276613234, 7, 0)
-        .property("t_u64", 10, 1306951904039029772, 6, 8192)
-        .property("t_i64", 11, 15424638261835058189, 6, 0)
-        .property("t_f64", 12, 8940604438827748056, 8, 0)
-        .property("t_string", 13, 11273009364328282404, 9, 0)
-        .property("t_vec_u8", 14, 15023020076450076132, 23, 0)
-        .property("t_vec_string", 15, 6919323261465852311, 30, 0)
-        .last_property_id(15, 6919323261465852311)
-        .last_entity_id(1, 7551803668634645716)
+    model::Model::new()
+        .entity("Entity", 1, 6934213297317435850)
+        .property("id", 1, 7398129845820662226, 6, 129)
+        .property("t_u64", 10, 6762680243245672799, 6, 8192)
+        .property("t_i64", 11, 3412405623712805883, 6, 0)
+        .property("t_f64", 12, 4525049858390567096, 8, 0)
+        .property("t_vec_string", 15, 12538710810757874575, 30, 0)
+        .property("t_vec_u8", 14, 8696023648830558810, 23, 0)
+        .property("t_string", 13, 8100121304458598589, 9, 0)
+        .property("t_i32", 7, 6638210980164788377, 5, 0)
+        .property("t_u32", 8, 14713831257541507981, 5, 8192)
+        .property("t_f32", 9, 17998607689778292859, 7, 0)
+        .property("t_i16", 5, 8650354029225646382, 3, 0)
+        .property("t_u16", 6, 11832362041913486637, 3, 8192)
+        .property("t_i8", 2, 16937435693226446575, 2, 0)
+        .property("t_u8", 3, 11996711052919561065, 2, 8192)
+        .property("t_bool", 4, 4285115186600216247, 1, 0)
+        .last_property_id(15, 12538710810757874575)
+        .last_entity_id(1, 6934213297317435850)
 }
 pub fn make_factory_map() -> map::AnyMap {
     let mut map = map::AnyMap::new();
     let f1 = rc::Rc::new(traits::Factory::<crate::Entity> {
-        _required_for_generic_trait: None,
+        phantom_data: marker::PhantomData,
         schema_id: 1,
-    }) as rc::Rc<dyn traits::FactoryHelper<crate::Entity>>;
+    }) as rc::Rc<dyn traits::EntityFactoryExt<crate::Entity>>;
     map.insert(f1);
     map
 }
