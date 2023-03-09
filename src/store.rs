@@ -37,7 +37,7 @@ impl Drop for Store {
 impl Store {
     /// Assumes ownership of map, and Opt,
     pub fn new(mut opt: Opt, map: AnyMap) -> error::Result<Self> {
-        let obx_store = c::new_mut(unsafe { obx_store_open(opt.obx_opt) }, None)?;
+        let obx_store = c::new_mut(unsafe { obx_store_open(opt.obx_opt) })?;
         // This prevents a double free
         opt.ptr_consumed = !obx_store.is_null();
         let r = Store {
@@ -109,7 +109,7 @@ impl Store {
     pub fn from_core_wrap(core_store: &mut Vec<u8>, map: AnyMap) -> error::Result<Self> {
         // TODO test
         let ptr = unsafe { obx_store_wrap(core_store.as_ptr() as *mut std::ffi::c_void) };
-        c::new_mut(ptr, None).map(|s| Store {
+        c::new_mut(ptr).map(|s| Store {
             obx_store: s,
             trait_map: map,
         })
@@ -152,11 +152,7 @@ impl Store {
     }
 
     pub fn debug_flags(&self, flags: OBXDebugFlags) -> error::Result<&Self> {
-        c::call(
-            unsafe { obx_store_debug_flags(self.obx_store, flags) },
-            Some("store::debug_flags"),
-        )
-        .map(|_| self)
+        c::call(unsafe { obx_store_debug_flags(self.obx_store, flags) }).map(|_| self)
     }
 
     pub fn opened_with_previous_commit(&self) -> bool {
@@ -164,19 +160,11 @@ impl Store {
     }
 
     fn prepare_to_close(&self) -> error::Result<&Self> {
-        c::call(
-            unsafe { obx_store_prepare_to_close(self.obx_store) },
-            Some("store::prepare_to_close"),
-        )
-        .map(|_| self)
+        c::call(unsafe { obx_store_prepare_to_close(self.obx_store) }).map(|_| self)
     }
 
     fn close(&self) -> error::Result<&Self> {
-        c::call(
-            unsafe { obx_store_close(self.obx_store) },
-            Some("store::close"),
-        )
-        .map(|_| self)
+        c::call(unsafe { obx_store_close(self.obx_store) }).map(|_| self)
     }
 
     fn prepare_then_close(&self) -> error::Result<&Self> {

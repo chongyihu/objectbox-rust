@@ -22,7 +22,7 @@ impl Async {
     // TODO test
     pub fn from_box(obx_box: *mut c::OBX_box) -> error::Result<Self> {
         unsafe {
-            c::new_mut(c::obx_async(obx_box), Some("Async::from_box")).map(|ptr| Async {
+            c::new_mut(c::obx_async(obx_box)).map(|ptr| Async {
                 obx_async: ptr,
                 ptr_closed: false,
             })
@@ -33,7 +33,7 @@ impl Async {
     pub(crate) fn remove_with_id(&mut self, id: c::obx_id) -> error::Result<bool> {
         unsafe {
             let code = c::obx_async_remove(self.obx_async, id);
-            c::call(code, Some("Async::error")).map(|_| code == 0)
+            c::call(code).map(|_| code == 0)
         }
     }
 
@@ -43,11 +43,7 @@ impl Async {
         enqueue_timeout_millis: u64,
     ) -> error::Result<Self> {
         unsafe {
-            c::new_mut(
-                c::obx_async_create(obx_box, enqueue_timeout_millis),
-                Some("Async::from_box_with_timeout"),
-            )
-            .map(|ptr| Async {
+            c::new_mut(c::obx_async_create(obx_box, enqueue_timeout_millis)).map(|ptr| Async {
                 obx_async: ptr,
                 ptr_closed: false,
             })
@@ -56,10 +52,7 @@ impl Async {
 
     // TODO test
     pub(crate) fn close(&mut self) -> error::Result<()> {
-        c::call(
-            unsafe { c::obx_async_close(self.obx_async) },
-            Some("Async::close"),
-        )
+        c::call(unsafe { c::obx_async_close(self.obx_async) })
     }
 
     // TODO finish
@@ -67,7 +60,7 @@ impl Async {
     pub(crate) fn put5(&mut self, id: c::obx_id, data: ConstVoidPtr, size: usize, mode: c::OBXPutMode) -> error::Result<c::obx_id> {
       // TODO depending on the state of the object determine the mode (PUT, INSERT, UPDATE)
       // TODO if this is a fresh new object, get an id
-      c::call(unsafe { c::obx_async_put5(self.obx_async, id, data, size, mode) }, Some("Async::put5")).err();
+      c::call(unsafe { c::obx_async_put5(self.obx_async, id, data, size, mode) }).err();
       // TODO return this error::Result<id>
     }
     */

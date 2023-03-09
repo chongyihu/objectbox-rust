@@ -48,9 +48,9 @@ impl<T: OBBlanket> Builder<T> {
     pub(crate) fn new(box_store: &Box<T>, condition: &mut Condition<T>) -> error::Result<Self> {
         let entity_id = box_store.helper.get_entity_id(); // call factory
         let obx_store = box_store.get_store();
-        new_mut(obx_store, Some("Builder::new"))?;
+        new_mut(obx_store)?;
         let obx_query_builder = unsafe { obx_query_builder(obx_store, entity_id) };
-        new_mut(obx_query_builder, Some("Builder::new"))?;
+        new_mut(obx_query_builder)?;
 
         let mut builder = Builder {
             obx_store,
@@ -204,7 +204,7 @@ impl<T: OBBlanket> Builder<T> {
     /// private, in case of double frees
     fn close(&mut self) -> error::Result<()> {
         let code = unsafe { obx_qb_close(self.obx_query_builder) };
-        c::call(code, None)
+        c::call(code)
     }
 
     // pub(crate) fn type_id(&self) -> obx_schema_id {

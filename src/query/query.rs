@@ -38,7 +38,7 @@ impl<T: OBBlanket> Query<T> {
     ) -> error::Result<Self> {
         unsafe {
             let obx_query = obx_query(builder);
-            let _ = c::new_mut(obx_query, Some("Query::new"))?;
+            let _ = c::new_mut(obx_query)?;
             Ok(Query {
                 obx_query,
                 obx_store,
@@ -50,7 +50,7 @@ impl<T: OBBlanket> Query<T> {
 
     fn close(&self) -> error::Result<()> {
         let code = unsafe { obx_query_close(self.obx_query) };
-        c::call(code, None)
+        c::call(code)
     }
 
     // No Clone trait here, because that implies Copy,
@@ -58,7 +58,7 @@ impl<T: OBBlanket> Query<T> {
     pub fn clone(&self) -> error::Result<Self> {
         unsafe {
             let clone = obx_query_clone(self.obx_query);
-            let _ = c::new_mut(clone, Some("Query::clone"))?;
+            let _ = c::new_mut(clone)?;
 
             // if they are the same, a double free will occur
             // otherwise, the same drop semantics will apply
@@ -77,7 +77,7 @@ impl<T: OBBlanket> Query<T> {
     pub fn offset(&self, offset: usize) -> error::Result<&Self> {
         unsafe {
             let result = obx_query_offset(self.obx_query, offset);
-            c::call(result, Some("Query::offset")).map(|_| self)
+            c::call(result).map(|_| self)
         }
     }
 
@@ -85,7 +85,7 @@ impl<T: OBBlanket> Query<T> {
     pub fn offset_limit(&self, offset: usize, limit: usize) -> error::Result<&Self> {
         unsafe {
             let result = obx_query_offset_limit(self.obx_query, offset, limit);
-            c::call(result, Some("Query::offset_limit")).map(|_| self)
+            c::call(result).map(|_| self)
         }
     }
 
@@ -93,7 +93,7 @@ impl<T: OBBlanket> Query<T> {
     pub fn limit(&self, limit: usize) -> error::Result<&Self> {
         unsafe {
             let result = obx_query_limit(self.obx_query, limit);
-            c::call(result, Some("Query::limit")).map(|_| self)
+            c::call(result).map(|_| self)
         }
     }
 
@@ -220,7 +220,7 @@ impl<T: OBBlanket> Query<T> {
     fn cursor_count(&self, cursor: &mut OBX_cursor, out_count: *mut u64) -> error::Result<u64> {
         unsafe {
             let code = obx_query_cursor_count(self.obx_query, cursor, out_count);
-            c::call(code, None).map(|_| *out_count)
+            c::call(code).map(|_| *out_count)
         }
     }
 
@@ -239,7 +239,7 @@ impl<T: OBBlanket> Query<T> {
         out_count: *mut u64,
     ) -> error::Result<obx_err> {
         let code = obx_query_cursor_remove(self.obx_query, cursor, out_count);
-        c::call(code, None).map(|_| code)
+        c::call(code).map(|_| code)
     }
 
     pub fn remove(&self) -> error::Result<u64> {

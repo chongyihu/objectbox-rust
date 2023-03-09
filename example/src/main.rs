@@ -1,7 +1,6 @@
 extern crate objectbox;
 
 use objectbox::{macros::entity, opt::Opt, store::Store};
-// use objectbox::macros::Entity;
 
 /// Run `cargo build` twice, ignore the errors
 mod objectbox_gen;
@@ -10,16 +9,6 @@ use objectbox_gen as ob;
 // hard assumption: your Entity must be on the crate's
 // ground-level, so the generated code can access it
 // via crate::Entity
-
-/*
-// TODO complete this, see macros/src/lib.rs
-#[derive(Debug, Entity)]
-pub struct DerivedEntity {
-    #[id]
-    id: u64,
-    hello: String,
-}
-*/
 
 #[derive(Debug)]
 #[entity]
@@ -374,62 +363,14 @@ mod tests {
 
     #[test]
     #[serial]
-    fn query_tests() {
+    fn query_tests_strings() {
         let mut model = ob::make_model();
         let opt = Opt::from_model(&mut model).expect("crash");
         let trait_map = ob::make_factory_map();
         let store = Store::new(opt, trait_map).expect("crash");
 
-        let mut box3 = store.get_box::<Entity3>().expect("crash");
-        box3.remove_all().expect("crash");
-        let mut box2 = store.get_box::<Entity2>().expect("crash");
-        box2.remove_all().expect("crash");
         let mut box1 = store.get_box::<Entity>().expect("crash");
         box1.remove_all().expect("crash");
-
-        // query builder, query condition, case sensitivity
-        {
-            let mut first = Entity3 {
-                id: 1,
-                hello: "world".to_string(),
-            };
-            let mut second = Entity3 {
-                id: 2,
-                hello: "real world".to_string(),
-            };
-            let mut third = Entity3 {
-                id: 3,
-                hello: "REAL world".to_string(),
-            };
-            let _ = box3.put(&mut first);
-            let _ = box3.put(&mut second);
-            let _ = box3.put(&mut third);
-            let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
-
-            // TODO FIXME: there's something clearly wrong here,
-            // TODO maybe something with how spaces in &str are handled in rust
-            // let mut c = hello.case_sensitive(true).and(hello.contains("real world"));
-            // let q = box3.query(&mut c).expect("explode");
-            // let found_list = q.find().expect("explode");
-            // assert_eq!(2, found_list.len());
-            // assert_eq!(first.hello, found_list[0].hello);
-
-            // TODO FIXME: also broken
-            // let mut c2 = hello.case_sensitive(true).and(hello.contains("real"));
-            // let q2 = box3.query(&mut c2).expect("explode");
-            // let found_list2 = q2.find().expect("explode");
-            // assert_eq!(1, found_list2.len());
-
-            // TODO complete tests, split away string tests from other scalar tests
-            // let mut c3 = hello.case_sensitive(true).and(hello.in_strings(vec!["test"]));
-            // let mut c4 = hello.any_equals(list)
-            // let mut c5 = hello.contains("test");
-            // let mut c6 = hello.contains_element("test");
-            // let mut c7 = hello.contains_key_value("meh", "bleh");
-            // let mut c8 = hello.ends_with("d");
-            // let mut c9 = hello.starts_with("r");
-            //  and more...
-        }
 
         let EntityConditionFactory {
             // id,
@@ -488,14 +429,14 @@ mod tests {
         // TODO investigate: doesn't seem to be supported
         // assert_eq!(
         //     2,
-        //     box1.query(&mut t_bool.eq(0))
+        //     box1.query(&mut t_bool.eq(0 as i64))
         //         .expect("explode")
         //         .count()
         //         .expect("explode")
         // );
         // assert_eq!(
         //     2,
-        //     box1.query(&mut t_bool.ne(1))
+        //     box1.query(&mut t_bool.ne(1 as i64))
         //         .expect("explode")
         //         .count()
         //         .expect("explode")
@@ -635,5 +576,72 @@ mod tests {
         assert_eq!(r[0].index_u32, entity.index_u32);
 
         // TODO generate all the tests
+    }
+
+    #[test]
+    #[serial]
+    fn string_query_tests() {
+        let mut model = ob::make_model();
+        let opt = Opt::from_model(&mut model).expect("crash");
+        let trait_map = ob::make_factory_map();
+        let store = Store::new(opt, trait_map).expect("crash");
+
+        let mut box3 = store.get_box::<Entity3>().expect("crash");
+        box3.remove_all().expect("crash");
+        let mut box2 = store.get_box::<Entity2>().expect("crash");
+        box2.remove_all().expect("crash");
+        let mut box1 = store.get_box::<Entity>().expect("crash");
+        box1.remove_all().expect("crash");
+
+        // query builder, query condition, case sensitivity
+        {
+            let mut first = Entity3 {
+                id: 1,
+                hello: "world".to_string(),
+            };
+            let mut second = Entity3 {
+                id: 2,
+                hello: "real world".to_string(),
+            };
+            let mut third = Entity3 {
+                id: 3,
+                hello: "REAL world".to_string(),
+            };
+            let _ = box3.put(&mut first);
+            let _ = box3.put(&mut second);
+            let _ = box3.put(&mut third);
+            let Entity3ConditionFactory { hello, .. } = new_entity3_condition_factory();
+
+            // TODO FIXME: there's something clearly wrong here,
+            // TODO maybe something with how spaces in &str are handled in rust
+            // let mut c = hello.case_sensitive(true).and(hello.contains("real world"));
+            // let q = box3.query(&mut c).expect("explode");
+            // let found_list = q.find().expect("explode");
+            // assert_eq!(2, found_list.len());
+            // assert_eq!(first.hello, found_list[0].hello);
+
+            // TODO FIXME: also broken
+            // let mut c2 = hello.case_sensitive(true).and(hello.contains("real"));
+            // let q2 = box3.query(&mut c2).expect("explode");
+            // let found_list2 = q2.find().expect("explode");
+            // assert_eq!(1, found_list2.len());
+
+            // TODO complete tests, split away string tests from other scalar tests
+            // let mut c3 = hello.case_sensitive(true).and(hello.in_strings(vec!["test"]));
+            // let mut c4 = hello.any_equals(list)
+            // let mut c5 = hello.contains("test");
+            // let mut c6 = hello.contains_element("test");
+            // let mut c7 = hello.contains_key_value("meh", "bleh");
+            // let mut c8 = hello.ends_with("d");
+            // let mut c9 = hello.starts_with("r");
+            // let mut ca = hello.in_strings(&vec!["a".to_string()]);
+            // let mut cb = hello.eq("a".to_string());
+            // let mut cc = hello.ne("a".to_string());
+            // let mut cd = hello.lt("a".to_string());
+            // let mut ce = hello.le("a".to_string());
+            // let mut cf = hello.ge("a".to_string());
+            // let mut d0 = hello.gt("a".to_string());
+            //  and more...
+        }
     }
 }

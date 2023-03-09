@@ -117,14 +117,16 @@ pub fn entity(args: TokenStream, input: TokenStream) -> TokenStream {
     _entity(input, Some(args))
 }
 
-/*
+
 // TODO fix this, also allow for id/uid parameters to entity
 // TODO look into [darling](https://crates.io/crates/darling)
-#[proc_macro_derive(Entity, attributes(id, index, unique, transient, sync))]
-pub fn derive_ob_entity(input: TokenStream) -> TokenStream {
-    _entity(input.clone(), None)
-}
-*/
+// #[proc_macro_derive(OB, attributes(entity))]
+// #[proc_macro_derive(OB, attributes(id, unique, index))]
+// pub fn derive_ob_entity(input: TokenStream) -> TokenStream {
+//     _entity(input, None)
+//     // input
+// }
+
 
 #[proc_macro_attribute]
 pub fn sync(_attribute: TokenStream, input: TokenStream) -> TokenStream {
