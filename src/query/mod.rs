@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 pub(crate) mod builder;
-pub(crate) mod condition;
+pub mod condition;
 pub(crate) mod enums;
 mod query;
 pub mod traits;

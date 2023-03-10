@@ -87,7 +87,7 @@ fn main() {
 mod tests {
     use objectbox::flatbuffers::{FlatBufferBuilder, Table};
     use objectbox::traits::{self, FBOBBridge, IdExt};
-    use objectbox::{opt::Opt, store::Store};
+    use objectbox::{opt::Opt, query::condition::Condition, store::Store};
     use std::rc;
 
     use crate::ob::{
@@ -98,6 +98,10 @@ mod tests {
     use serial_test::serial;
 
     use super::*;
+
+    trait TesterExt {
+        fn given_condition_count(&mut self, c: &mut Condition<Entity3>, i: usize);
+    }
 
     #[test]
     #[serial]
@@ -578,6 +582,14 @@ mod tests {
         // TODO generate all the tests
     }
 
+    impl TesterExt for objectbox::r#box::Box<'_, Entity3> {
+        fn given_condition_count(&mut self, c: &mut Condition<Entity3>, i: usize) {
+            let q2 = self.query(c).expect("explode");
+            let found_list = q2.find().expect("explode");
+            assert_eq!(i, found_list.len());
+        }
+    }
+
     #[test]
     #[serial]
     fn string_query_tests() {
@@ -626,15 +638,43 @@ mod tests {
             // let found_list2 = q2.find().expect("explode");
             // assert_eq!(1, found_list2.len());
 
-            // TODO complete tests, split away string tests from other scalar tests
-            // let mut c3 = hello.case_sensitive(true).and(hello.in_strings(vec!["test"]));
-            // let mut c4 = hello.any_equals(list)
-            // let mut c5 = hello.contains("test");
+            // TODO FIXME: broken
+            // let mut c3 = hello.case_sensitive(true).and(hello.in_strings(&vec!["world".to_string(), "does not exist".to_string(),]));
+            // box3.given_condition_count(&mut c3, 1);
+
+            // TODO FIXME: broken
+            // let mut c4 = hello.any_equals("world");
+            // box3.given_condition_count(&mut c4, 1);
+
+            let mut c5 = hello.contains("world");
+            box3.given_condition_count(&mut c5, 3);
+
+            // TODO FIX LOGIC or implementation, always return 3
+            // let mut c5_2 = hello.case_sensitive(false) & hello.contains("real");
+            // box3.given_condition_count(&mut c5_2, 2);
+
             // let mut c6 = hello.contains_element("test");
             // let mut c7 = hello.contains_key_value("meh", "bleh");
-            // let mut c8 = hello.ends_with("d");
-            // let mut c9 = hello.starts_with("r");
-            // let mut ca = hello.in_strings(&vec!["a".to_string()]);
+
+            let mut c8 = hello.ends_with("d");
+            box3.given_condition_count(&mut c8, 3);
+
+            // TODO FIX LOGIC or implementation, always returns 3
+            // let mut c8_2 = hello.ends_with(" world");
+            // box3.given_condition_count(&mut c8_2, 2);
+
+            // TODO FIX LOGIC or implementation, always returns 3
+            // let mut c9_1 = hello.case_sensitive(true) & hello.starts_with("h");
+            // let mut c9_2 = hello.starts_with("H");
+            // let mut c9_3 = hello.starts_with("w");
+            // box3.given_condition_count(&mut c9_1, 1);
+            // box3.given_condition_count(&mut c9_2, 1);
+            // box3.given_condition_count(&mut c9_3, 1);
+
+            // TODO FIX LOGIC or implementation, always returns 3
+            // let mut ca = hello.in_strings(&vec!["ea".to_string()]);
+            // box3.given_condition_count(&mut ca, 3);
+
             // let mut cb = hello.eq("a".to_string());
             // let mut cc = hello.ne("a".to_string());
             // let mut cd = hello.lt("a".to_string());
