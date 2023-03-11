@@ -156,7 +156,7 @@ impl CodeGenEntityExt for ModelEntity {
     }
 
     fn generate_id_trait(&self) -> Tokens<Rust> {
-        let entity = &rust::import("crate", &self.name);
+        let entity = &rust::import("self", &self.name);
         let obx_id = &rust::import("objectbox::c", "obx_id");
         let id_trait = &rust::import("objectbox::traits", "IdExt");
 
@@ -181,7 +181,7 @@ impl CodeGenEntityExt for ModelEntity {
     }
 
     fn generate_fb_trait(&self) -> Tokens<Rust> {
-        let entity = &rust::import("crate", &self.name);
+        let entity = &rust::import("self", &self.name);
         let bridge_trait = &rust::import("objectbox::traits", "FBOBBridge");
         let flatbuffer_builder = &rust::import("objectbox::flatbuffers", "FlatBufferBuilder");
 
@@ -225,7 +225,7 @@ impl CodeGenEntityExt for ModelEntity {
         let fb_table = &rust::import("objectbox::flatbuffers", "Table");
         let factory = &rust::import("objectbox::traits", "Factory");
         let factory_helper = &rust::import("objectbox::traits", "EntityFactoryExt");
-        let entity = &rust::import("crate", &self.name);
+        let entity = &rust::import("self", &self.name);
 
         let schema_id = &rust::import("objectbox::c", "obx_schema_id");
 
@@ -277,7 +277,7 @@ impl CodeGenEntityExt for ModelEntity {
     }
 
     fn generate_query_trait_impls(&self) -> Tokens<Rust> {
-        let entity = &rust::import("crate", &self.name);
+        let entity = &rust::import("self", &self.name);
 
         let cf_props = self
             .properties
@@ -385,7 +385,7 @@ fn generate_factory_map_fn(model_info: &ModelInfo) -> Tokens<Rust> {
     let tokens = &mut Tokens::<Rust>::new();
 
     for e in &model_info.entities {
-        let entity = &rust::import("crate", &e.name);
+        let entity = &rust::import("self", &e.name);
         let mut entity_id = String::new();
         for c in e.id.chars() {
             if c != ':' {
