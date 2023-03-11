@@ -39,15 +39,9 @@ fn test_box_put_and_count_and_remove_all() -> error::Result<()> {
     let mut e2 = f2.new_entity();
     let mut e3 = f3.new_entity();
 
-    if let Err(err) = box1.put(&mut e1) {
-        panic!("{err}");
-    }
-    if let Err(err) = box2.put(&mut e2) {
-        panic!("{err}");
-    }
-    if let Err(err) = box3.put(&mut e3) {
-        panic!("{err}");
-    }
+    box1.put(&mut e1)?;
+    box2.put(&mut e2)?;
+    box3.put(&mut e3)?;
 
     assert_eq!(false, e1.get_id() == 0, "Set new ID after put");
     assert_eq!(false, e2.get_id() == 0);
@@ -84,42 +78,24 @@ fn test_box_put_and_count_and_remove_all() -> error::Result<()> {
         let mut e1 = f1.new_entity();
         e1.t_u16 = 0xFFF;
 
-        let new_id = match box1.put(&mut e1) {
-            Err(err) => panic!("{err}"),
-            Ok(id) => id,
-        };
-
-        match box1.get(new_id) {
-            Err(err) => panic!("{err}"),
-            Ok(opt) => {
-                assert_eq!(0xFFF, opt.unwrap().t_u16);
-            }
-        }
+        let new_id = box1.put(&mut e1)?;
+        assert_eq!(0xFFF, box1.get(new_id)?.unwrap().t_u16);
         box1.remove_all()?;
     }
 
     // put_many, get_many, get_all
     {
-        let mut ids = match box1.put_many(vec![&mut f1.new_entity(), &mut f1.new_entity()]) {
-            Err(err) => panic!("{err}"),
-            Ok(ids) => ids,
-        };
+        let mut ids = box1.put_many(vec![&mut f1.new_entity(), &mut f1.new_entity()])?;
 
         ids.push(404);
 
-        let objects = match box1.get_many(ids.as_slice()) {
-            Err(err) => panic!("{err}"),
-            Ok(v) => v,
-        };
+        let objects = box1.get_many(ids.as_slice())?;
 
         assert!(objects[0].is_some());
         assert!(objects[1].is_some());
         assert!(objects[2].is_none());
 
-        let all_objects = match box1.get_all() {
-            Err(err) => panic!("{err}"),
-            Ok(objs) => objs,
-        };
+        let all_objects = box1.get_all()?;
 
         assert_eq!(2, all_objects.len());
     }
@@ -128,40 +104,26 @@ fn test_box_put_and_count_and_remove_all() -> error::Result<()> {
     {
         box1.remove_all()?;
 
-        let mut ids = match box1.put_many(vec![
+        let mut ids = box1.put_many(vec![
             &mut f1.new_entity(),
             &mut f1.new_entity(),
             &mut f1.new_entity(),
             &mut f1.new_entity(),
             &mut f1.new_entity(),
-        ]) {
-            Err(e) => panic!("{e}"),
-            Ok(ids) => ids,
-        };
+        ])?;
 
-        match box1.contains_many(&ids) {
-            Ok(v) => assert!(v.iter().all(|b| *b)),
-            Err(e) => panic!("{e}"),
-        }
+        assert!(box1.contains_many(&ids)?.iter().all(|b| *b));
 
         ids.push(404);
 
-        match box1.contains_many(&ids) {
-            Ok(v) => assert!(v.iter().any(|b| !*b)),
-            Err(e) => panic!("{e}"),
-        }
+        assert!(box1.contains_many(&ids)?.iter().any(|b| !*b));
 
         assert_ne!(true, box1.contains(404)?);
 
-        if let Ok(r) = box1.remove_with_id(404) {
-            assert_ne!(true, r);
-        }
+        assert_ne!(true, box1.remove_with_id(404)?);
 
         // remove_many uses remove_with_id, so its transitively tested
-        match box1.remove_many(&ids) {
-            Ok(r) => assert_ne!(true, r[5]),
-            Err(e) => panic!("{e}"),
-        }
+        assert_ne!(true, box1.remove_many(&ids)?[5]);
 
         assert!(box1.is_empty()?);
     }
