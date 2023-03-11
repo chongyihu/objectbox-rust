@@ -35,7 +35,7 @@ impl<Entity: OBBlanket> Condition<Entity> {
     pub(crate) fn new_group(ids_and_type: IdsAndType, op: ConditionOp, group: Vec<Self>) -> Self {
         Self {
             phantom_data: PhantomData,
-            ids_and_type: ids_and_type.clone(),
+            ids_and_type,
             op,
             group: Some(group),
             result: None,

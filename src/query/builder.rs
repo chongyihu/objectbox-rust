@@ -5,8 +5,6 @@ use std::{
     rc::Rc,
 };
 
-// TODO write macro for boilerplate: fn obx_query_something(...) -> obx_err, rewrite to get_result,
-// TODO use rusty result operators (or, or_else, ? etc.) to chain results
 // TODO also error check before chaining the next call (obx_qb_cond)
 // TODO depending on property type, allow only certain calls at compile time?
 // TODO compile time determined extension blanket traits?
@@ -76,7 +74,10 @@ impl<T: OBBlanket> Builder<T> {
             let result = match &c.op {
                 ConditionOp::IsNull => self.is_null(),
                 ConditionOp::NotNull => self.not_null(),
-                ConditionOp::OrderFlags(flags) => self.order(*flags),
+                ConditionOp::OrderFlags(flags) => {
+                    self.order(*flags);
+                    QUERY_NO_OP
+                },
                 ConditionOp::CaseSensitive(b) => {
                     self.case_sensitive = *b;
                     QUERY_NO_OP
@@ -104,8 +105,11 @@ impl<T: OBBlanket> Builder<T> {
                 ConditionOp::Ge_string(s) => self.greater_or_equal_string(s.as_c_char_ptr()),
                 ConditionOp::All => {
                     let cs = c.collect_results();
-                    let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
-                    if cs.len() > 0 {
+                    // do not build the (sub)tree with one result
+                    if cs.len() == 1 {
+                        cs[0]
+                    }else if cs.len() > 1 {
+                        let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();    
                         self.all(ptr, len)
                     } else {
                         QUERY_NO_OP
@@ -113,8 +117,11 @@ impl<T: OBBlanket> Builder<T> {
                 }
                 ConditionOp::Any => {
                     let cs = c.collect_results();
-                    let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
-                    if cs.len() > 0 {
+                    // do not build the (sub)tree with one result
+                    if cs.len() == 1 {
+                        cs[0]
+                    } else if cs.len() > 1 {
+                        let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();    
                         self.any(ptr, len)
                     } else {
                         QUERY_NO_OP

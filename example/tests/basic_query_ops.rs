@@ -214,7 +214,8 @@ fn basic_query_tests() {
             .expect("explode")
     );
 
-    // TODO FIXME: broken conversion or logic
+    // TODO separate: not_member_of and member_of, because String does not support not_member_of aka not_in_strings
+    // TODO lifetime of Vec could drop before the condition can be calculated, box?
     // assert_eq!(
     //     2,
     //     box1.query(&mut unique_i32.not_member_of(vec![6, 555]))

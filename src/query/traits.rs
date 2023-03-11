@@ -150,8 +150,6 @@ impl<Entity: OBBlanket> StringExt<Entity> for ConditionBuilder<Entity> {
     }
 }
 
-// TODO blanket later in code_gen
-
 pub trait BetweenExt<Entity: OBBlanket, SurroundType>
 where
     SurroundType: ?Sized,
