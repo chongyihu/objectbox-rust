@@ -1,18 +1,18 @@
 use example::{make_factory_map, make_model, Entity};
-use objectbox::{opt::Opt, store::Store};
+use objectbox::{opt::Opt, store::Store, error};
 
 use serial_test::serial;
 
 #[test]
 #[serial]
-fn uniqueness_tests() {
+fn uniqueness_tests() -> error::Result<()> {
     let mut model = make_model();
-    let opt = Opt::from_model(&mut model).expect("crash");
+    let opt = Opt::from_model(&mut model)?;
     let trait_map = make_factory_map();
-    let store = Store::new(opt, trait_map).expect("crash");
+    let store = Store::new(opt, trait_map)?;
 
-    let mut box1 = store.get_box::<Entity>().expect("crash");
-    box1.remove_all().expect("crash");
+    let mut box1 = store.get_box::<Entity>()?;
+    box1.remove_all()?;
 
     let mut entity = Entity {
         id: 0,
@@ -40,5 +40,7 @@ fn uniqueness_tests() {
     // pretend this is a new object
     entity.id = 0;
 
-    assert!(box1.put(&mut entity).is_err())
+    assert!(box1.put(&mut entity).is_err());
+
+    Ok(())
 }

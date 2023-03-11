@@ -2,13 +2,6 @@ extern crate objectbox;
 
 use objectbox::macros::entity;
 
-// /// Run `cargo build` twice, ignore the errors
-// pub mod objectbox_gen;
-
-// hard assumption: your Entity must be on the crate's
-// ground-level, so the generated code can access it
-// via crate::Entity
-
 #[derive(Debug)]
 #[entity]
 pub struct Entity3 {

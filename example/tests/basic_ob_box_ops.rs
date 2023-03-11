@@ -1,4 +1,5 @@
 use example::{make_factory_map, make_model, Entity, Entity2, Entity3};
+use objectbox::error;
 use objectbox::traits::{self, IdExt};
 use objectbox::{opt::Opt, store::Store};
 use std::rc;
@@ -7,18 +8,18 @@ use serial_test::serial;
 
 #[test]
 #[serial]
-fn test_box_put_and_count_and_remove_all() {
+fn test_box_put_and_count_and_remove_all() -> error::Result<()> {
     let mut model = make_model();
-    let opt = Opt::from_model(&mut model).expect("crash");
+    let opt = Opt::from_model(&mut model)?;
     let trait_map = make_factory_map();
-    let store = Store::new(opt, trait_map).expect("crash");
+    let store = Store::new(opt, trait_map)?;
 
-    let mut box3 = store.get_box::<Entity3>().expect("crash");
-    box3.remove_all().expect("crash");
-    let mut box2 = store.get_box::<Entity2>().expect("crash");
-    box2.remove_all().expect("crash");
-    let mut box1 = store.get_box::<Entity>().expect("crash");
-    box1.remove_all().expect("crash");
+    let mut box3 = store.get_box::<Entity3>()?;
+    box3.remove_all()?;
+    let mut box2 = store.get_box::<Entity2>()?;
+    box2.remove_all()?;
+    let mut box1 = store.get_box::<Entity>()?;
+    box1.remove_all()?;
 
     let trait_map2 = make_factory_map();
     let f1 = trait_map2
@@ -66,15 +67,15 @@ fn test_box_put_and_count_and_remove_all() {
     assert_eq!(1, box2.count_with_cursor().expect("crash"));
     assert_eq!(1, box3.count_with_cursor().expect("crash"));
 
-    box1.remove_all().expect("crash");
+    box1.remove_all()?;
     assert!(box1.is_empty().expect("crash"));
     assert_eq!(0, box1.count_with_cursor().expect("crash"));
 
-    box2.remove_all().expect("crash");
+    box2.remove_all()?;
     assert!(box2.is_empty().expect("crash"));
     assert_eq!(0, box2.count_with_cursor().expect("crash"));
 
-    box3.remove_all().expect("crash");
+    box3.remove_all()?;
     assert!(box3.is_empty().expect("crash"));
     assert_eq!(0, box3.count_with_cursor().expect("crash"));
 
@@ -94,7 +95,7 @@ fn test_box_put_and_count_and_remove_all() {
                 assert_eq!(0xFFF, opt.unwrap().t_u16);
             }
         }
-        box1.remove_all().expect("crash");
+        box1.remove_all()?;
     }
 
     // put_many, get_many, get_all
@@ -125,7 +126,7 @@ fn test_box_put_and_count_and_remove_all() {
 
     // contains*, remove_*
     {
-        box1.remove_all().expect("crash");
+        box1.remove_all()?;
 
         let mut ids = match box1.put_many(vec![
             &mut f1.new_entity(),
@@ -164,4 +165,6 @@ fn test_box_put_and_count_and_remove_all() {
 
         assert!(box1.is_empty().expect("crash"));
     }
+
+    Ok(())
 }

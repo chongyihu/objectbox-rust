@@ -2,36 +2,37 @@ use example::{
     make_factory_map, make_model, new_entity3_condition_factory, Entity, Entity2, Entity3,
     Entity3ConditionFactory,
 };
-use objectbox::{opt::Opt, store::Store, query::condition::Condition};
+use objectbox::{opt::Opt, store::Store, query::condition::Condition, error};
 
 use serial_test::serial;
 
 trait TesterExt {
-    fn given_condition_count(&mut self, c: &mut Condition<Entity3>, i: usize);
+    fn given_condition_count(&mut self, c: &mut Condition<Entity3>, i: usize) -> error::Result<()>;
 }
 
 impl TesterExt for objectbox::r#box::Box<'_, Entity3> {
-    fn given_condition_count(&mut self, c: &mut Condition<Entity3>, i: usize) {
-        let q2 = self.query(c).expect("explode");
-        let found_list = q2.find().expect("explode");
+    fn given_condition_count(&mut self, c: &mut Condition<Entity3>, i: usize) -> error::Result<()> {
+        let q2 = self.query(c)?;
+        let found_list = q2.find()?;
         assert_eq!(i, found_list.len());
+        Ok(())
     }
 }
 
 #[test]
 #[serial]
-fn string_query_tests() {
+fn string_query_tests() -> error::Result<()> {
     let mut model = make_model();
-    let opt = Opt::from_model(&mut model).expect("crash");
+    let opt = Opt::from_model(&mut model)?;
     let trait_map = make_factory_map();
-    let store = Store::new(opt, trait_map).expect("crash");
+    let store = Store::new(opt, trait_map)?;
 
-    let mut box3 = store.get_box::<Entity3>().expect("crash");
-    box3.remove_all().expect("crash");
-    let mut box2 = store.get_box::<Entity2>().expect("crash");
-    box2.remove_all().expect("crash");
-    let mut box1 = store.get_box::<Entity>().expect("crash");
-    box1.remove_all().expect("crash");
+    let mut box3 = store.get_box::<Entity3>()?;
+    box3.remove_all()?;
+    let mut box2 = store.get_box::<Entity2>()?;
+    box2.remove_all()?;
+    let mut box1 = store.get_box::<Entity>()?;
+    box1.remove_all()?;
 
     // query builder, query condition, case sensitivity
     {
@@ -55,15 +56,15 @@ fn string_query_tests() {
         // TODO FIXME: there's something clearly wrong here,
         // TODO maybe something with how spaces in &str are handled in rust
         // let mut c = hello.case_sensitive(true).and(hello.contains("real world"));
-        // let q = box3.query(&mut c).expect("explode");
-        // let found_list = q.find().expect("explode");
+        // let q = box3.query(&mut c)?;
+        // let found_list = q.find()?;
         // assert_eq!(2, found_list.len());
         // assert_eq!(first.hello, found_list[0].hello);
 
         // TODO FIXME: also broken
         // let mut c2 = hello.case_sensitive(true).and(hello.contains("real"));
-        // let q2 = box3.query(&mut c2).expect("explode");
-        // let found_list2 = q2.find().expect("explode");
+        // let q2 = box3.query(&mut c2)?;
+        // let found_list2 = q2.find()?;
         // assert_eq!(1, found_list2.len());
 
         // TODO FIXME: broken
@@ -74,7 +75,7 @@ fn string_query_tests() {
         // box3.given_condition_count(&mut c4, 1);
 
         let mut c5 = hello.contains("world");
-        box3.given_condition_count(&mut c5, 3);
+        box3.given_condition_count(&mut c5, 3)?;
 
         // TODO FIX LOGIC or implementation, always return 3
         // let mut c5_2 = hello.case_sensitive(false) & hello.contains("real");
@@ -84,7 +85,7 @@ fn string_query_tests() {
         // let mut c7 = hello.contains_key_value("meh", "bleh");
 
         let mut c8 = hello.ends_with("d");
-        box3.given_condition_count(&mut c8, 3);
+        box3.given_condition_count(&mut c8, 3)?;
 
         // TODO FIX LOGIC or implementation, always returns 3
         // let mut c8_2 = hello.ends_with(" world");
@@ -109,4 +110,6 @@ fn string_query_tests() {
         // let mut d0 = hello.gt("a".to_string());
         //  and more...
     }
+
+    Ok(())
 }
