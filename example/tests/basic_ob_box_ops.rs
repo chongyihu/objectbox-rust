@@ -53,31 +53,31 @@ fn test_box_put_and_count_and_remove_all() -> error::Result<()> {
     assert_eq!(false, e2.get_id() == 0);
     assert_eq!(false, e3.get_id() == 0);
 
-    assert_eq!(false, box1.is_empty().expect("crash"));
-    assert_eq!(false, box2.is_empty().expect("crash"));
-    assert_eq!(false, box3.is_empty().expect("crash"));
+    assert_eq!(false, box1.is_empty()?);
+    assert_eq!(false, box2.is_empty()?);
+    assert_eq!(false, box3.is_empty()?);
 
-    assert_eq!(1, box1.count().expect("crash"));
-    assert_eq!(1, box2.count().expect("crash"));
-    assert_eq!(1, box3.count().expect("crash"));
-    assert_eq!(1, box1.count_with_limit(1).expect("crash"));
-    assert_eq!(1, box2.count_with_limit(1).expect("crash"));
-    assert_eq!(1, box3.count_with_limit(1).expect("crash"));
-    assert_eq!(1, box1.count_with_cursor().expect("crash"));
-    assert_eq!(1, box2.count_with_cursor().expect("crash"));
-    assert_eq!(1, box3.count_with_cursor().expect("crash"));
+    assert_eq!(1, box1.count()?);
+    assert_eq!(1, box2.count()?);
+    assert_eq!(1, box3.count()?);
+    assert_eq!(1, box1.count_with_limit(1)?);
+    assert_eq!(1, box2.count_with_limit(1)?);
+    assert_eq!(1, box3.count_with_limit(1)?);
+    assert_eq!(1, box1.count_with_cursor()?);
+    assert_eq!(1, box2.count_with_cursor()?);
+    assert_eq!(1, box3.count_with_cursor()?);
 
     box1.remove_all()?;
-    assert!(box1.is_empty().expect("crash"));
-    assert_eq!(0, box1.count_with_cursor().expect("crash"));
+    assert!(box1.is_empty()?);
+    assert_eq!(0, box1.count_with_cursor()?);
 
     box2.remove_all()?;
-    assert!(box2.is_empty().expect("crash"));
-    assert_eq!(0, box2.count_with_cursor().expect("crash"));
+    assert!(box2.is_empty()?);
+    assert_eq!(0, box2.count_with_cursor()?);
 
     box3.remove_all()?;
-    assert!(box3.is_empty().expect("crash"));
-    assert_eq!(0, box3.count_with_cursor().expect("crash"));
+    assert!(box3.is_empty()?);
+    assert_eq!(0, box3.count_with_cursor()?);
 
     // put then get, then clear
     {
@@ -151,7 +151,7 @@ fn test_box_put_and_count_and_remove_all() -> error::Result<()> {
             Err(e) => panic!("{e}"),
         }
 
-        assert_ne!(true, box1.contains(404).expect("crash"));
+        assert_ne!(true, box1.contains(404)?);
 
         if let Ok(r) = box1.remove_with_id(404) {
             assert_ne!(true, r);
@@ -163,7 +163,7 @@ fn test_box_put_and_count_and_remove_all() -> error::Result<()> {
             Err(e) => panic!("{e}"),
         }
 
-        assert!(box1.is_empty().expect("crash"));
+        assert!(box1.is_empty()?);
     }
 
     Ok(())
