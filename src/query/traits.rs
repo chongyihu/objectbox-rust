@@ -55,10 +55,10 @@ impl<Entity: OBBlanket> BasicExt<Entity> for ConditionBuilder<Entity> {
 
     // TODO test when there is support for Option<*> properties
     fn is_null(&self) -> Condition<Entity> {
-        Condition::new(self.ids_and_type.clone(), ConditionOp::IsNull)
+        Condition::new(self.get_property_attrs(), ConditionOp::IsNull)
     }
     fn is_not_null(&self) -> Condition<Entity> {
-        Condition::new(self.ids_and_type.clone(), ConditionOp::NotNull)
+        Condition::new(self.get_property_attrs(), ConditionOp::NotNull)
     }
 }
 
