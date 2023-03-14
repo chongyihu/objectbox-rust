@@ -2,7 +2,7 @@ use example::{
     make_factory_map, make_model, new_entity3_condition_factory, Entity, Entity2, Entity3,
     Entity3ConditionFactory,
 };
-use objectbox::{opt::Opt, store::Store, query::condition::Condition, error};
+use objectbox::{error, opt::Opt, query::condition::Condition, store::Store};
 
 use serial_test::serial;
 

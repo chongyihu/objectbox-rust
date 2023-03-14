@@ -1,5 +1,5 @@
 use example::{make_factory_map, make_model, Entity};
-use objectbox::{opt::Opt, store::Store, error};
+use objectbox::{error, opt::Opt, store::Store};
 
 use serial_test::serial;
 
@@ -35,7 +35,7 @@ fn uniqueness_tests() -> error::Result<()> {
         t_vec_bytes: vec![0x9, 0x8, 0x7, 0x6, 0x5],
     };
 
-    box1.put(&mut entity).expect("explode");
+    box1.put(&mut entity)?;
 
     // pretend this is a new object
     entity.id = 0;

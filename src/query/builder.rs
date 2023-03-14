@@ -77,7 +77,7 @@ impl<T: OBBlanket> Builder<T> {
                 ConditionOp::OrderFlags(flags) => {
                     self.order(*flags);
                     QUERY_NO_OP
-                },
+                }
                 ConditionOp::CaseSensitive(b) => {
                     self.case_sensitive = *b;
                     QUERY_NO_OP
@@ -108,8 +108,8 @@ impl<T: OBBlanket> Builder<T> {
                     // do not build the (sub)tree with one result
                     if cs.len() == 1 {
                         cs[0]
-                    }else if cs.len() > 1 {
-                        let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();    
+                    } else if cs.len() > 1 {
+                        let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
                         self.all(ptr, len)
                     } else {
                         QUERY_NO_OP
@@ -121,7 +121,7 @@ impl<T: OBBlanket> Builder<T> {
                     if cs.len() == 1 {
                         cs[0]
                     } else if cs.len() > 1 {
-                        let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();    
+                        let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
                         self.any(ptr, len)
                     } else {
                         QUERY_NO_OP
