@@ -65,6 +65,19 @@ impl<T: OBBlanket> Builder<T> {
         c::get_result(builder.error_code(), builder)
     }
 
+    fn get_group_integer(&self, c: &Condition<T>, mut f: impl FnMut(*const i32, usize) -> c::obx_qb_cond) -> c::obx_qb_cond {
+        let cs = c.collect_results();
+        // do not build the (sub)tree with one result
+        if cs.len() == 1 {
+            cs[0]
+        } else if cs.len() > 1 {
+            let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
+            f(ptr, len)
+        } else {
+            QUERY_NO_OP
+        }
+    }
+
     fn get_condition_integer(&mut self, c: &mut Condition<T>) -> c::obx_qb_cond {
         // invariant to 0 parameter condition functions
         self.property_id = c.get_property_id();
@@ -104,28 +117,10 @@ impl<T: OBBlanket> Builder<T> {
                 ConditionOp::Le_string(s) => self.less_or_equal_string(s.as_c_char_ptr()),
                 ConditionOp::Ge_string(s) => self.greater_or_equal_string(s.as_c_char_ptr()),
                 ConditionOp::All => {
-                    let cs = c.collect_results();
-                    // do not build the (sub)tree with one result
-                    if cs.len() == 1 {
-                        cs[0]
-                    } else if cs.len() > 1 {
-                        let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
-                        self.all(ptr, len)
-                    } else {
-                        QUERY_NO_OP
-                    }
+                    self.get_group_integer(c,  |ptr, len| self.all(ptr, len))
                 }
                 ConditionOp::Any => {
-                    let cs = c.collect_results();
-                    // do not build the (sub)tree with one result
-                    if cs.len() == 1 {
-                        cs[0]
-                    } else if cs.len() > 1 {
-                        let (ptr, len) = cs.as_ptr_and_length_tuple::<c::obx_qb_cond>();
-                        self.any(ptr, len)
-                    } else {
-                        QUERY_NO_OP
-                    }
+                    self.get_group_integer(c,  |ptr, len| self.any(ptr, len))
                 }
                 ConditionOp::ContainsKeyValue(k, v) => {
                     self.contains_key_value_string(k.as_c_char_ptr(), v.as_c_char_ptr())
