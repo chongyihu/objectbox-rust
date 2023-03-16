@@ -69,10 +69,10 @@ fn string_query_tests() -> error::Result<()> {
 
         // TODO FIXME: broken
         // let mut c3 = hello.case_sensitive(true).and(hello.in_strings(&vec!["world".to_string(), "does not exist".to_string(),]));
-        // box3.given_condition_count(&mut c3, 1);
+        // box3.given_condition_count(&mut c3, 1)?;
         // TODO FIXME: broken
         // let mut c4 = hello.any_equals("world");
-        // box3.given_condition_count(&mut c4, 1);
+        // box3.given_condition_count(&mut c4, 1)?;
 
         let mut c5 = hello.contains("world");
         box3.given_condition_count(&mut c5, 3)?;
@@ -95,20 +95,25 @@ fn string_query_tests() -> error::Result<()> {
         // let mut c9_1 = hello.case_sensitive(true) & hello.starts_with("h");
         // let mut c9_2 = hello.starts_with("H");
         // let mut c9_3 = hello.starts_with("w");
-        // box3.given_condition_count(&mut c9_1, 1);
-        // box3.given_condition_count(&mut c9_2, 1);
-        // box3.given_condition_count(&mut c9_3, 1);
+        // box3.given_condition_count(&mut c9_1, 1)?;
+        // box3.given_condition_count(&mut c9_2, 1)?;
+        // box3.given_condition_count(&mut c9_3, 1)?;
 
         // TODO FIX LOGIC or implementation, always returns 3
         // let mut ca = hello.in_strings(&vec!["ea".to_string()]);
         // box3.given_condition_count(&mut ca, 3);
-        // let mut cb = hello.eq("a".to_string());
-        // let mut cc = hello.ne("a".to_string());
+        // let mut cb = hello.eq("world".to_string());
+        // box3.given_condition_count(&mut cb, 1)?;
+        let mut cc = hello.ne("a".to_string());
+        box3.given_condition_count(&mut cc, 3)?;
         // let mut cd = hello.lt("a".to_string());
+        // box3.given_condition_count(&mut cd, 0)?;
         // let mut ce = hello.le("a".to_string());
+        // box3.given_condition_count(&mut ce, 0)?;
         // let mut cf = hello.ge("a".to_string());
+        // box3.given_condition_count(&mut cf, 0)?;
         // let mut d0 = hello.gt("a".to_string());
-        //  and more...
+        // box3.given_condition_count(&mut d0, 0)?;
     }
 
     Ok(())
