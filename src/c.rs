@@ -5,6 +5,7 @@
 #![allow(non_snake_case)]
 #![allow(unsafe_code)]
 #![allow(unsafe_op_in_unsafe_fn)]
+#![allow(unused_assignments)]
 include!("./c_bindings.rs");
 
 use crate::error::Error;
