@@ -46,7 +46,6 @@ pub const OBX_ERROR_TREE_VALUE_TYPE_MISMATCH: u32 = 10602;
 pub const OBX_ERROR_TREE_PATH_NON_UNIQUE: u32 = 10603;
 pub const OBX_ERROR_TREE_PATH_ILLEGAL: u32 = 10604;
 pub const OBX_ERROR_TREE_OTHER: u32 = 10699;
-pub type __darwin_size_t = ::std::os::raw::c_ulong;
 pub type obx_schema_id = u32;
 pub type obx_uid = u64;
 pub type obx_id = u64;
@@ -85,7 +84,7 @@ pub const OBXFeature_DebugLog: OBXFeature = 4;
 pub const OBXFeature_Admin: OBXFeature = 5;
 pub const OBXFeature_Tree: OBXFeature = 6;
 pub const OBXFeature_SyncServer: OBXFeature = 7;
-pub type OBXFeature = u32;
+pub type OBXFeature = i32;
 extern "C" {
     pub fn obx_has_feature(feature: OBXFeature) -> bool;
 }
@@ -94,7 +93,7 @@ pub const OBXLogLevel_Debug: OBXLogLevel = 20;
 pub const OBXLogLevel_Info: OBXLogLevel = 30;
 pub const OBXLogLevel_Warn: OBXLogLevel = 40;
 pub const OBXLogLevel_Error: OBXLogLevel = 50;
-pub type OBXLogLevel = u32;
+pub type OBXLogLevel = i32;
 pub type obx_log_callback = ::std::option::Option<
     unsafe extern "C" fn(
         log_level: OBXLogLevel,
@@ -158,10 +157,10 @@ pub const OBXPropertyType_DateNano: OBXPropertyType = 12;
 pub const OBXPropertyType_Flex: OBXPropertyType = 13;
 pub const OBXPropertyType_ByteVector: OBXPropertyType = 23;
 pub const OBXPropertyType_StringVector: OBXPropertyType = 30;
-pub type OBXPropertyType = u32;
+pub type OBXPropertyType = i32;
 pub const OBXEntityFlags_SYNC_ENABLED: OBXEntityFlags = 2;
 pub const OBXEntityFlags_SHARED_GLOBAL_IDS: OBXEntityFlags = 4;
-pub type OBXEntityFlags = u32;
+pub type OBXEntityFlags = i32;
 pub const OBXPropertyFlags_ID: OBXPropertyFlags = 1;
 pub const OBXPropertyFlags_NON_PRIMITIVE_TYPE: OBXPropertyFlags = 2;
 pub const OBXPropertyFlags_NOT_NULL: OBXPropertyFlags = 4;
@@ -179,7 +178,7 @@ pub const OBXPropertyFlags_UNSIGNED: OBXPropertyFlags = 8192;
 pub const OBXPropertyFlags_ID_COMPANION: OBXPropertyFlags = 16384;
 pub const OBXPropertyFlags_UNIQUE_ON_CONFLICT_REPLACE: OBXPropertyFlags = 32768;
 pub const OBXPropertyFlags_EXPIRATION_TIME: OBXPropertyFlags = 65536;
-pub type OBXPropertyFlags = u32;
+pub type OBXPropertyFlags = i32;
 #[repr(C)]
 pub struct OBX_model {
     _unused: [u8; 0],
@@ -289,11 +288,11 @@ pub const OBXDebugFlags_LOG_CACHE_ALL: OBXDebugFlags = 64;
 pub const OBXDebugFlags_LOG_TREE: OBXDebugFlags = 128;
 pub const OBXDebugFlags_LOG_EXCEPTION_STACK_TRACE: OBXDebugFlags = 256;
 pub const OBXDebugFlags_RUN_THREADING_SELF_TEST: OBXDebugFlags = 512;
-pub type OBXDebugFlags = u32;
+pub type OBXDebugFlags = i32;
 pub const OBXPutPaddingMode_PaddingAutomatic: OBXPutPaddingMode = 1;
 pub const OBXPutPaddingMode_PaddingAllowedByBuffer: OBXPutPaddingMode = 2;
 pub const OBXPutPaddingMode_PaddingByCaller: OBXPutPaddingMode = 3;
-pub type OBXPutPaddingMode = u32;
+pub type OBXPutPaddingMode = i32;
 #[repr(C)]
 pub struct OBX_bytes {
     pub data: *const ::std::os::raw::c_void,
@@ -921,7 +920,7 @@ pub struct OBX_cursor {
 pub const OBXPutMode_PUT: OBXPutMode = 1;
 pub const OBXPutMode_INSERT: OBXPutMode = 2;
 pub const OBXPutMode_UPDATE: OBXPutMode = 3;
-pub type OBXPutMode = u32;
+pub type OBXPutMode = i32;
 extern "C" {
     pub fn obx_cursor(txn: *mut OBX_txn, entity_id: obx_schema_id) -> *mut OBX_cursor;
 }
@@ -1398,7 +1397,7 @@ pub const OBXOrderFlags_CASE_SENSITIVE: OBXOrderFlags = 2;
 pub const OBXOrderFlags_UNSIGNED: OBXOrderFlags = 4;
 pub const OBXOrderFlags_NULLS_LAST: OBXOrderFlags = 8;
 pub const OBXOrderFlags_NULLS_ZERO: OBXOrderFlags = 16;
-pub type OBXOrderFlags = u32;
+pub type OBXOrderFlags = i32;
 pub type obx_qb_cond = ::std::os::raw::c_int;
 extern "C" {
     pub fn obx_query_builder(
