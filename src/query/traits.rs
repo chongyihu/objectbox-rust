@@ -41,7 +41,7 @@ impl<Entity: OBBlanket> ConditionBuilder<Entity> {
 }
 
 pub trait BasicExt<Entity: OBBlanket> {
-    fn order_flags(&mut self, of: u32) -> Condition<Entity>;
+    fn order_flags(&mut self, of: i32) -> Condition<Entity>;
 
     // TODO test when there is support for Option<*> properties
 
@@ -50,7 +50,7 @@ pub trait BasicExt<Entity: OBBlanket> {
 }
 
 impl<Entity: OBBlanket> BasicExt<Entity> for ConditionBuilder<Entity> {
-    fn order_flags(&mut self, of: u32) -> Condition<Entity> {
+    fn order_flags(&mut self, of: i32) -> Condition<Entity> {
         Condition::new(self.get_property_attrs(), ConditionOp::OrderFlags(of))
     }
 
