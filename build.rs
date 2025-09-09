@@ -14,9 +14,9 @@ fn main() {
         // The input header we would like to generate bindings for.
         .header("src/objectbox.h")
         // Some settings
-        .whitelist_function("obx_.*")
-        .whitelist_type("OBX_.*")
-        .whitelist_var("OBX_.*")
+        .allowlist_function("obx_.*")
+        .allowlist_type("OBX_.*")
+        .allowlist_var("OBX_.*")
         .prepend_enum_name(false)
         .derive_copy(false)
         .derive_debug(false)
