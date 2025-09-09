@@ -17,7 +17,7 @@ pub(crate) enum ConditionOp {
     IsNull,
     NotNull,
 
-    OrderFlags(u32),
+    OrderFlags(i32),
 
     NoOp,
 
